@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import com.agustinbenitez.addoncreator.utils.ZipUtils;
+import javafx.stage.FileChooser;
 
 /**
  * Controller for the home screen
@@ -98,6 +100,10 @@ public class HomeScreenController {
         settingsButton.setOnAction(e -> handleSettings());
         if (loginButton != null) {
             loginButton.setOnAction(e -> handleLogin());
+        }
+
+        if (searchField != null) {
+            searchField.textProperty().addListener((obs, oldVal, newVal) -> filterProjects(newVal));
         }
 
         // Check for saved credentials and update avatar
@@ -275,11 +281,20 @@ public class HomeScreenController {
         Label dateLabel = new Label("Modificado: " + project.getLastModified().format(formatter));
         dateLabel.getStyleClass().add("project-card-date");
 
+        // Download button
+        Button downloadBtn = new Button("⬇ Descargar ZIP");
+        downloadBtn.getStyleClass().add("project-card-button");
+        downloadBtn.setMaxWidth(Double.MAX_VALUE);
+        downloadBtn.setOnAction(e -> {
+            e.consume();
+            handleDownloadProject(project);
+        });
+
         // Add spacer
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        card.getChildren().addAll(iconView, nameLabel, descLabel, spacer, dateLabel);
+        card.getChildren().addAll(iconView, nameLabel, descLabel, spacer, dateLabel, downloadBtn);
 
         // Click handler to open editor
         card.setOnMouseClicked(e -> {
@@ -362,6 +377,45 @@ public class HomeScreenController {
         if (selectedDirectory != null) {
              Project project = new Project(selectedDirectory.getName(), "Imported Project", selectedDirectory.getAbsolutePath());
              NavigationManager.getInstance().showEditor(project);
+        }
+    }
+
+    private void handleDownloadProject(Project project) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Guardar Proyecto como ZIP");
+        fileChooser.setInitialFileName(project.getName() + ".zip");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("ZIP files (*.zip)", "*.zip"));
+        
+        File destFile = fileChooser.showSaveDialog(projectsGrid.getScene().getWindow());
+        
+        if (destFile != null) {
+            try {
+                // Show loading
+                Alert loadingAlert = new Alert(Alert.AlertType.INFORMATION);
+                loadingAlert.setTitle("Exportando");
+                loadingAlert.setHeaderText(null);
+                loadingAlert.setContentText("Comprimiendo proyecto...");
+                loadingAlert.show();
+                
+                Path sourceDir = Paths.get(project.getRootPath());
+                ZipUtils.zipDirectory(sourceDir, destFile.toPath());
+                
+                loadingAlert.close();
+                
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Exportación Exitosa");
+                alert.setHeaderText(null);
+                alert.setContentText("El proyecto se ha exportado correctamente a:\n" + destFile.getAbsolutePath());
+                alert.showAndWait();
+                
+            } catch (Exception e) {
+                logger.error("Failed to zip project", e);
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Error al exportar proyecto");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
+            }
         }
     }
 

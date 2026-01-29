@@ -14,6 +14,41 @@
     -fx-background-color: #1e1e1e;
 }
 
+.project-card-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 6 12;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+    -fx-alignment: center;
+}
+
+.project-card-button:hover {
+    -fx-background-color: #505050;
+}
+
+.project-card-button:pressed {
+    -fx-background-color: #007acc;
+}
+
+/* ===== TEXT FIELDS ===== */
+.text-field {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-prompt-text-fill: #808080;
+    -fx-highlight-fill: #264f78;
+    -fx-highlight-text-fill: white;
+    -fx-background-radius: 2px;
+}
+
+.text-field:focused {
+    -fx-border-color: #007acc;
+    -fx-border-width: 1;
+    -fx-background-insets: 0 0 0 0;
+}
+
 /* ===== MENU BAR ===== */
 
 .ide-menubar {
@@ -561,6 +596,149 @@
     -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: #ffffff;
+}
+
+.project-card-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: #cccccc;
+}
+
+.project-card-date {
+    -fx-font-size: 11px;
+    -fx-text-fill: #999999;
+}
+
+.section-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+/* ===== RESTORED OLD CSS ===== */
+
+/* ===== LABELS ===== */
+
+.label {
+    -fx-text-fill: #cccccc;
+}
+
+/* ===== BUTTONS (General) ===== */
+
+.button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-padding: 8 16;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #1177bb;
+}
+
+.button:pressed {
+    -fx-background-color: #005a9e;
+}
+
+/* ===== BACK BUTTON ===== */
+
+.back-button {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: white;
+    -fx-padding: 8 16;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.back-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== ACTIVITY BAR (VS Code Style) ===== */
+
+.activity-bar {
+    -fx-background-color: #333333;
+    -fx-border-color: #252526;
+    -fx-border-width: 0 1 0 0;
+}
+
+.activity-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #999999;
+    -fx-padding: 10;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 2;
+    -fx-cursor: hand;
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+}
+
+.activity-button:hover {
+    -fx-text-fill: white;
+}
+
+.activity-button:hover .activity-icon {
+    -fx-fill: white;
+}
+
+.activity-button:pressed {
+    -fx-border-color: white; 
+}
+
+.activity-icon {
+    -fx-fill: #999999;
+}
+
+.tooltip {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #454545;
+    -fx-font-size: 12px;
+}
+
+/* ===== GIT PANEL ===== */
+
+.git-panel {
+    -fx-background-color: #252526;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 1 0 0;
+}
+
+.git-panel-header {
+    -fx-padding: 10;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 0 1 0;
+}
+
+.git-panel-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #bbbbbb;
+}
+
+.git-file-list {
+    -fx-background-color: transparent;
+}
+
+.git-file-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 2 5;
+}
+
+.git-file-list .list-cell:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.git-action-bar {
+    -fx-padding: 5;
+    -fx-spacing: 5;
+}
+
+.git-commit-area {
+    -fx-padding: 10;
+    -fx-spacing: 10;
 }
 
 .project-card-description {
