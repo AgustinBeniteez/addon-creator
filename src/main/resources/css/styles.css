@@ -314,6 +314,44 @@
     -fx-padding: 0 1 0 1;
 }
 
+/* ===== DIFF VIEW ===== */
+
+.diff-container {
+    -fx-background-color: #1e1e1e;
+}
+
+.diff-list-view {
+    -fx-background-color: #1e1e1e;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.diff-list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-text-fill: #cccccc;
+}
+
+.diff-list-view .list-cell:empty {
+    -fx-background-color: transparent;
+}
+
+.diff-list-view .scroll-bar:horizontal .track,
+.diff-list-view .scroll-bar:vertical .track{
+    -fx-background-color:transparent;
+    -fx-border-color:transparent;
+    -fx-background-radius: 0em;
+}
+
+.diff-line-added {
+    -fx-background-color: rgba(46, 160, 67, 0.2); /* Green tint */
+}
+
+.diff-line-deleted {
+    -fx-background-color: rgba(248, 81, 73, 0.2); /* Red tint */
+}
+
 /* ===== SCROLLBARS ===== */
 
 .scroll-bar {
@@ -363,6 +401,51 @@
 
 .context-menu .menu-item .label {
     -fx-text-fill: #cccccc;
+}
+
+/* ===== BOTTOM TAB PANE (TERMINAL/LOG) ===== */
+
+.bottom-tab-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+.bottom-tab-pane .tab-header-area {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #2d2d2d;
+    -fx-border-width: 1 0 0 0; /* Top border only, but since it's at bottom, maybe? No, tab header is usually at top of tabpane. */
+}
+
+.bottom-tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #252526;
+}
+
+.bottom-tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-text-fill: #969696;
+    -fx-padding: 5 10;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.bottom-tab-pane .tab:selected {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: white;
+    -fx-border-color: #007acc transparent transparent transparent;
+    -fx-border-width: 2 0 0 0;
+}
+
+.bottom-tab-pane .tab:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.bottom-tab-pane .tab-label {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.bottom-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: white;
 }
 
 /* ===== DIALOGS ===== */
@@ -569,6 +652,7 @@
 .back-button:hover {
     -fx-background-color: rgba(255, 255, 255, 0.2);
 }
+
 /* ===== ACTIVITY BAR (VS Code Style) ===== */
 
 .activity-bar {
@@ -611,3 +695,46 @@
     -fx-font-size: 12px;
 }
 
+/* ===== GIT PANEL ===== */
+
+.git-panel {
+    -fx-background-color: #252526;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 1 0 0;
+}
+
+.git-panel-header {
+    -fx-padding: 10;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 0 1 0;
+}
+
+.git-panel-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #bbbbbb;
+}
+
+.git-file-list {
+    -fx-background-color: transparent;
+}
+
+.git-file-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 2 5;
+}
+
+.git-file-list .list-cell:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.git-action-bar {
+    -fx-padding: 5;
+    -fx-spacing: 5;
+}
+
+.git-commit-area {
+    -fx-padding: 10;
+    -fx-spacing: 10;
+}

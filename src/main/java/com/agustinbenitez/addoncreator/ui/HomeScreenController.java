@@ -1,13 +1,16 @@
 package com.agustinbenitez.addoncreator.ui;
 
+import com.agustinbenitez.addoncreator.core.GitManager;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.models.Project;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -42,6 +45,9 @@ public class HomeScreenController {
     private Button createProjectButton;
 
     @FXML
+    private Button openProjectButton;
+
+    @FXML
     private Button settingsButton;
 
     @FXML
@@ -51,12 +57,14 @@ public class HomeScreenController {
     private ImageView headerImageView;
 
     private ProjectManager projectManager;
+    private GitManager gitManager;
 
     @FXML
     public void initialize() {
         logger.info("Initializing HomeScreenController");
 
         projectManager = new ProjectManager();
+        gitManager = new GitManager();
 
         // Make FlowPane responsive - bind wrap length to ScrollPane width
         // Subtracting padding to prevent horizontal scroll
@@ -73,6 +81,7 @@ public class HomeScreenController {
 
         // Setup button action
         createProjectButton.setOnAction(e -> handleCreateProject());
+        openProjectButton.setOnAction(e -> handleOpenProject());
         settingsButton.setOnAction(e -> handleSettings());
 
         // Load and display projects
@@ -192,6 +201,60 @@ public class HomeScreenController {
         NavigationManager.getInstance().showSettingsModal();
     }
 
+    private void handleOpenProject() {
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Abrir Carpeta de Proyecto");
+        File file = directoryChooser.showDialog(openProjectButton.getScene().getWindow());
+
+        if (file != null) {
+            // Check if it's already in the list to avoid duplicates (optional, but good UX)
+            // Ideally we check by path.
+            
+            // For now, just create a project object. We might want to read manifest.json to get name/desc
+            String name = file.getName();
+            String description = "Proyecto importado";
+            
+            // Try to read manifest.json for better name/desc
+            try {
+                File bpManifest = new File(file, "BP/manifest.json");
+                if (bpManifest.exists()) {
+                     String content = Files.readString(bpManifest.toPath());
+                     // Simple parsing or use Gson if available
+                     if (content.contains("\"name\"")) {
+                         // Very basic extraction just to have something better than folder name
+                         // A proper JSON parse is better but let's keep it simple or use the existing Gson if we want
+                     }
+                }
+            } catch (Exception e) {
+                logger.warn("Could not read manifest", e);
+            }
+
+            Project project = new Project(name, description, file.getAbsolutePath());
+            
+            // Check if already exists in manager to update it or add it
+            // ProjectManager doesn't expose "exists", so we just add. 
+            // Depending on implementation of addProject/saveProjects, it might duplicate if ID is new.
+            // But Project constructor generates new UUID.
+            // Ideally we should check if path exists in loaded projects.
+            
+            List<Project> existing = projectManager.loadProjects();
+            boolean exists = false;
+            for (Project p : existing) {
+                if (p.getRootPath().equals(project.getRootPath())) {
+                    project = p; // Use existing
+                    exists = true;
+                    break;
+                }
+            }
+            
+            if (!exists) {
+                projectManager.addProject(project);
+            }
+            
+            NavigationManager.getInstance().showEditor(project);
+        }
+    }
+
     @FXML
     private void handleCreateProject() {
         logger.info("Create project button clicked");
@@ -235,43 +298,43 @@ public class HomeScreenController {
         final File[] selectedImage = { null };
 
         browseButton.setOnAction(e -> {
-            DirectoryChooser chooser = new DirectoryChooser();
-            chooser.setTitle("Seleccionar Carpeta del Proyecto");
-
-            File folder = chooser.showDialog(dialog.getOwner());
-            if (folder != null) {
-                selectedFolder[0] = folder;
-                pathField.setText(folder.getAbsolutePath());
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            directoryChooser.setTitle("Seleccionar Carpeta del Proyecto");
+            File file = directoryChooser.showDialog(browseButton.getScene().getWindow());
+            if (file != null) {
+                selectedFolder[0] = file;
+                pathField.setText(file.getAbsolutePath());
             }
         });
 
         browseImageButton.setOnAction(e -> {
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Seleccionar Icono del Pack");
-            chooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("Imágenes PNG", "*.png"));
-
-            File image = chooser.showOpenDialog(dialog.getOwner());
-            if (image != null) {
-                selectedImage[0] = image;
-                imageField.setText(image.getName());
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Seleccionar Imagen del Pack");
+            fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Imágenes PNG", "*.png"),
+                    new FileChooser.ExtensionFilter("Todas las imágenes", "*.*"));
+            File file = fileChooser.showOpenDialog(browseImageButton.getScene().getWindow());
+            if (file != null) {
+                selectedImage[0] = file;
+                imageField.setText(file.getName());
             }
         });
 
-        HBox pathBox = new HBox(10, pathField, browseButton);
-        HBox.setHgrow(pathField, Priority.ALWAYS);
-
-        HBox imageBox = new HBox(10, imageField, browseImageButton);
-        HBox.setHgrow(imageField, Priority.ALWAYS);
+        // Git Init CheckBox
+        CheckBox gitInitCheckBox = new CheckBox("Inicializar repositorio Git");
+        gitInitCheckBox.setSelected(false);
 
         grid.add(new Label("Nombre:"), 0, 0);
         grid.add(nameField, 1, 0);
         grid.add(new Label("Descripción:"), 0, 1);
         grid.add(descArea, 1, 1);
         grid.add(new Label("Ubicación:"), 0, 2);
-        grid.add(pathBox, 1, 2);
-        grid.add(new Label("Icono:"), 0, 3);
-        grid.add(imageBox, 1, 3);
+        grid.add(pathField, 1, 2);
+        grid.add(browseButton, 2, 2);
+        grid.add(new Label("Imagen:"), 0, 3);
+        grid.add(imageField, 1, 3);
+        grid.add(browseImageButton, 2, 3);
+        grid.add(gitInitCheckBox, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -342,6 +405,19 @@ public class HomeScreenController {
                 Files.writeString(rpPath.resolve("manifest.json"), rpManifest);
 
                 logger.info("Created manifest files for project: {}", project.getName());
+
+                // Initialize Git if requested
+                if (gitInitCheckBox.isSelected()) {
+                    try {
+                        gitManager.initRepository(new File(project.getRootPath()));
+                        gitManager.addAll();
+                        gitManager.commit("Initial commit");
+                        logger.info("Initialized Git repository for project: {}", project.getName());
+                    } catch (Exception e) {
+                        logger.error("Failed to initialize Git repository", e);
+                        showError("Error Git", "No se pudo inicializar el repositorio Git: " + e.getMessage());
+                    }
+                }
 
             } catch (IOException ex) {
                 logger.error("Failed to create project files", ex);

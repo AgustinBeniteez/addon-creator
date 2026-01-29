@@ -1,12 +1,15 @@
 package com.agustinbenitez.addoncreator.ui;
 
 import com.agustinbenitez.addoncreator.core.FileTreeManager;
+import com.agustinbenitez.addoncreator.core.GitManager;
 import com.agustinbenitez.addoncreator.core.ProjectGenerator;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.models.Project;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.TransferMode;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
@@ -40,8 +43,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
@@ -49,6 +58,13 @@ import javafx.util.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import java.io.UncheckedIOException;
+
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.text.TextFlow;
+import javafx.scene.text.Text;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 
 /**
  * Controller for the IDE-style editor screen
@@ -124,6 +140,32 @@ public class EditorController {
     private Label searchStatusLabel;
     @FXML
     private ListView<String> searchResultsList;
+    
+    // Git
+    @FXML
+    private Button btnGit;
+    @FXML
+    private VBox gitView;
+    @FXML
+    private VBox noGitRepoContent;
+    @FXML
+    private VBox gitRepoContent;
+    @FXML
+    private Button btnInitGit;
+    @FXML
+    private Button btnLinkRemote;
+    @FXML
+    private Label gitBranchLabel;
+    @FXML
+    private ListView<GitManager.GitChange> gitChangesList;
+    @FXML
+    private TextArea commitMessageArea;
+    @FXML
+    private Button commitButton;
+    @FXML
+    private Button btnGitPush;
+    @FXML
+    private Button btnGitFetch;
 
     @FXML
     private Button btnAddElement;
@@ -145,20 +187,32 @@ public class EditorController {
     private Button btnToggleConsole;
     @FXML
     private TextArea consoleOutput;
+    @FXML
+    private TabPane bottomTabPane; // Added reference
+    @FXML
+    private TextArea terminalOutput;
+    @FXML
+    private TextField terminalInput;
+    
+    private Process terminalProcess;
+    private java.io.BufferedWriter terminalWriter;
 
     private Project currentProject;
     private ProjectManager projectManager;
+    private GitManager gitManager;
     private Map<Tab, Path> tabFileMap; // Map tabs to their file paths
     private Map<Tab, Boolean> tabDirtyMap; // Map tabs to their dirty state
     private boolean consoleVisible = true;
     private boolean autoSaveEnabled = false;
     private PauseTransition searchDebounce;
+    private Set<String> stagedFiles = new HashSet<>();
 
     @FXML
     public void initialize() {
         logger.info("Initializing IDE EditorController");
 
         projectManager = new ProjectManager();
+        gitManager = new GitManager();
         tabFileMap = new HashMap<>();
         tabDirtyMap = new HashMap<>();
 
@@ -166,9 +220,11 @@ public class EditorController {
         setupToolbarActions();
         setupFileTree();
         setupConsole();
+        setupTerminal();
         setupAddElementButton();
         setupNewFileButton();
         setupSearch();
+        setupGitList();
         
         // Tab selection listener to update save button state
         editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -179,6 +235,205 @@ public class EditorController {
         updateSaveButtonState();
 
         log("IDE initialized successfully");
+    }
+
+    private void setupGitList() {
+        gitChangesList.setCellFactory(lv -> new ListCell<GitManager.GitChange>() {
+            private final CheckBox checkBox = new CheckBox();
+            private final Label pathLabel = new Label();
+            private final Label statusLabel = new Label();
+            private final HBox root = new HBox(5, checkBox, statusLabel, pathLabel);
+
+            {
+                checkBox.setOnAction(e -> {
+                    GitManager.GitChange item = getItem();
+                    if (item != null) {
+                        if (checkBox.isSelected()) {
+                            stagedFiles.add(item.filePath);
+                        } else {
+                            stagedFiles.remove(item.filePath);
+                        }
+                    }
+                });
+                
+                // Clicking the cell (but not checkbox) should show diff
+                root.setOnMouseClicked(e -> {
+                    if (e.getClickCount() == 1 && getItem() != null) {
+                        showDiff(getItem());
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(GitManager.GitChange item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                } else {
+                    pathLabel.setText(item.filePath);
+                    statusLabel.setText("[" + item.type.substring(0, 1) + "]");
+                    
+                    // Style status
+                    switch (item.type) {
+                        case "MODIFIED": statusLabel.setStyle("-fx-text-fill: #E2C08D;"); break; // Yellowish
+                        case "ADDED": statusLabel.setStyle("-fx-text-fill: #73C991;"); break; // Greenish
+                        case "DELETED": statusLabel.setStyle("-fx-text-fill: #FF6B6B;"); break; // Reddish
+                        case "UNTRACKED": statusLabel.setStyle("-fx-text-fill: #888888;"); break; // Gray
+                    }
+
+                    checkBox.setSelected(stagedFiles.contains(item.filePath));
+                    setGraphic(root);
+                }
+            }
+        });
+    }
+
+    private void showDiff(GitManager.GitChange change) {
+        // Create or select diff tab
+        String tabTitle = "Diff: " + change.filePath;
+        
+        for (Tab tab : editorTabs.getTabs()) {
+            if (tab.getText().equals(tabTitle)) {
+                editorTabs.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
+        // Create new tab with SplitPane
+        Tab tab = new Tab(tabTitle);
+        SplitPane splitPane = new SplitPane();
+        
+        // Left Side: Old Content (HEAD)
+        String oldContent = gitManager.getFileContentFromHead(change.filePath);
+        VBox leftBox = createDiffSide("HEAD (Old)", oldContent, true);
+        
+        // Right Side: New Content (Working Tree)
+        String newContent = "";
+        try {
+            // Read current file content
+            Path path = Paths.get(currentProject.getRootPath(), change.filePath);
+            if (Files.exists(path)) {
+                newContent = Files.readString(path);
+            }
+        } catch (IOException e) {
+            newContent = "Error reading file: " + e.getMessage();
+        }
+        
+        VBox rightBox = createDiffSide("Working Tree (New)", newContent, false);
+        
+        // Compute Diff and highlight
+        highlightDiff(leftBox, rightBox, oldContent, newContent, change.filePath);
+
+        splitPane.getItems().addAll(leftBox, rightBox);
+        splitPane.setDividerPositions(0.5);
+        
+        tab.setContent(splitPane);
+        editorTabs.getTabs().add(tab);
+        editorTabs.getSelectionModel().select(tab);
+    }
+    
+    private VBox createDiffSide(String title, String content, boolean isOld) {
+        VBox container = new VBox();
+        container.getStyleClass().add("diff-container");
+        VBox.setVgrow(container, Priority.ALWAYS);
+        
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-font-weight: bold; -fx-padding: 5; -fx-background-color: #2d2d2d; -fx-text-fill: #cccccc;");
+        titleLabel.setMaxWidth(Double.MAX_VALUE);
+        
+        ListView<HBox> listView = new ListView<>();
+        listView.getStyleClass().add("diff-list-view");
+        listView.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-background-color: #1e1e1e;");
+        VBox.setVgrow(listView, Priority.ALWAYS);
+        
+        container.getChildren().addAll(titleLabel, listView);
+        
+        // Store the ListView in properties for synchronization later if needed
+        container.getProperties().put("listView", listView);
+        
+        return container;
+    }
+    
+    private void highlightDiff(VBox leftBox, VBox rightBox, String oldContent, String newContent, String filePath) {
+        ListView<HBox> leftList = (ListView<HBox>) leftBox.getProperties().get("listView");
+        ListView<HBox> rightList = (ListView<HBox>) rightBox.getProperties().get("listView");
+        
+        List<String> oldLines = Arrays.asList(oldContent.split("\\r?\\n", -1));
+        List<String> newLines = Arrays.asList(newContent.split("\\r?\\n", -1));
+        
+        // Parse Git Patch to identify changed lines
+        Set<Integer> deletedLineIndices = new HashSet<>();
+        Set<Integer> addedLineIndices = new HashSet<>();
+        
+        String patch = gitManager.getDiff(filePath);
+        if (patch != null && !patch.isEmpty()) {
+            String[] patchLines = patch.split("\\r?\\n");
+            int currentOldLine = 0;
+            int currentNewLine = 0;
+            
+            for (String line : patchLines) {
+                if (line.startsWith("@@")) {
+                    // Parse header like @@ -1,4 +1,5 @@
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@").matcher(line);
+                    if (m.find()) {
+                        currentOldLine = Integer.parseInt(m.group(1));
+                        currentNewLine = Integer.parseInt(m.group(2));
+                    }
+                } else if (line.startsWith("-") && !line.startsWith("---")) {
+                    deletedLineIndices.add(currentOldLine);
+                    currentOldLine++;
+                } else if (line.startsWith("+") && !line.startsWith("+++")) {
+                    addedLineIndices.add(currentNewLine);
+                    currentNewLine++;
+                } else if (line.startsWith(" ")) {
+                    currentOldLine++;
+                    currentNewLine++;
+                }
+            }
+        }
+        
+        // Populate Left (Old)
+        for (int i = 0; i < oldLines.size(); i++) {
+            String styleClass = deletedLineIndices.contains(i + 1) ? "diff-line-deleted" : null;
+            leftList.getItems().add(createDiffLine((i+1) + "", oldLines.get(i), styleClass));
+        }
+        
+        // Populate Right (New)
+        for (int i = 0; i < newLines.size(); i++) {
+             String styleClass = addedLineIndices.contains(i + 1) ? "diff-line-added" : null;
+             rightList.getItems().add(createDiffLine((i+1) + "", newLines.get(i), styleClass));
+        }
+        
+        // Synchronize scrolling
+        ScrollBarSkinProxy.bindScrollBars(leftList, rightList);
+    }
+    
+    private HBox createDiffLine(String lineNum, String content, String styleClass) {
+        HBox box = new HBox(10);
+        box.setAlignment(Pos.CENTER_LEFT);
+        
+        Label num = new Label(lineNum);
+        num.setStyle("-fx-text-fill: #666666; -fx-min-width: 30; -fx-alignment: center-right;");
+        
+        Label text = new Label(content);
+        text.setStyle("-fx-text-fill: #cccccc; -fx-font-family: 'Consolas', monospace;");
+        
+        if (styleClass != null) {
+            box.getStyleClass().add(styleClass);
+        }
+        
+        box.getChildren().addAll(num, text);
+        return box;
+    }
+    
+    // Helper class for scrolling (Inner class or static)
+    private static class ScrollBarSkinProxy {
+        static void bindScrollBars(ListView<?> lv1, ListView<?> lv2) {
+             // This requires access to the VirtualFlow or ScrollBar, which is only available after layout.
+             // We can use a simpler approach: bind formatted positions?
+             // Not easy in standard JavaFX API.
+             // We'll skip sync scrolling for this iteration to avoid crashes/complexity.
+        }
     }
 
     private void setupSearch() {
@@ -279,12 +534,24 @@ public class EditorController {
         // Build file tree
         refreshFileTree();
 
+        // Initialize Git
+        try {
+            gitManager.openRepository(new File(project.getRootPath()));
+            refreshGitStatus();
+        } catch (Exception e) {
+            // Not a git repo or error
+            if (gitBranchLabel != null) gitBranchLabel.setText("No Repo");
+        }
+
         log("Proyecto cargado: " + project.getName());
         log("Ubicación: " + project.getRootPath());
 
         if (!project.hasContent()) {
             log("Proyecto vacío - Usa el botón '+' para añadir elementos");
         }
+        
+        // Restart terminal in project directory
+        startTerminalProcess();
     }
 
     private void setupMenuActions() {
@@ -320,11 +587,33 @@ public class EditorController {
         btnBack.setOnAction(e -> handleClose());
         btnExplorer.setOnAction(e -> handleExplorer());
         btnSearch.setOnAction(e -> handleSearch());
+        if (btnGit != null) btnGit.setOnAction(e -> handleGit());
         btnSave.setOnAction(e -> handleSave());
         btnFormat.setOnAction(e -> handleFormat());
         btnExport.setOnAction(e -> handleExport());
         btnTest.setOnAction(e -> handleTest());
         btnSettings.setOnAction(e -> handleSettings());
+        
+        // Git Actions
+        if (btnInitGit != null) {
+            btnInitGit.setOnAction(e -> handleInitGit());
+        }
+        if (btnLinkRemote != null) {
+            btnLinkRemote.setOnAction(e -> handleLinkRemote());
+        }
+        if (btnGitPush != null) btnGitPush.setOnAction(e -> handleGitPush());
+        if (btnGitFetch != null) btnGitFetch.setOnAction(e -> handleGitFetch());
+        
+        if (commitButton != null) {
+            commitButton.setOnAction(e -> handleCommit());
+        }
+        if (commitMessageArea != null) {
+            commitMessageArea.setOnKeyPressed(e -> {
+                if (e.isControlDown() && e.getCode() == KeyCode.ENTER) {
+                    handleCommit();
+                }
+            });
+        }
         
         // Search View Actions
         btnDoSearch.setOnAction(e -> performSearch());
@@ -343,14 +632,200 @@ public class EditorController {
     private void handleExplorer() {
         projectExplorerView.setVisible(true);
         searchView.setVisible(false);
+        if (gitView != null) gitView.setVisible(false);
     }
 
     private void handleSearch() {
         projectExplorerView.setVisible(false);
+        if (gitView != null) gitView.setVisible(false);
         searchView.setVisible(true);
         searchField.requestFocus();
     }
     
+    private void handleGit() {
+        projectExplorerView.setVisible(false);
+        searchView.setVisible(false);
+        if (gitView != null) gitView.setVisible(true);
+        refreshGitStatus();
+    }
+    
+    private void refreshGitStatus() {
+        if (gitManager == null || !gitManager.isRepositoryOpen()) {
+            if (gitBranchLabel != null) gitBranchLabel.setText("No Repo");
+            if (gitChangesList != null) gitChangesList.getItems().clear();
+            stagedFiles.clear();
+            
+            // Toggle view visibility
+            if (noGitRepoContent != null) {
+                noGitRepoContent.setVisible(true);
+                noGitRepoContent.setManaged(true);
+            }
+            if (gitRepoContent != null) {
+                gitRepoContent.setVisible(false);
+                gitRepoContent.setManaged(false);
+            }
+            return;
+        }
+
+        // Show repo content
+        if (noGitRepoContent != null) {
+            noGitRepoContent.setVisible(false);
+            noGitRepoContent.setManaged(false);
+        }
+        if (gitRepoContent != null) {
+            gitRepoContent.setVisible(true);
+            gitRepoContent.setManaged(true);
+        }
+
+        try {
+            String branch = gitManager.getCurrentBranch();
+            if (gitBranchLabel != null) gitBranchLabel.setText(branch != null ? branch : "HEAD");
+
+            if (gitChangesList != null) {
+                var changes = gitManager.getChanges();
+                gitChangesList.getItems().clear();
+                gitChangesList.getItems().addAll(changes);
+                
+                // Keep previously staged files if they are still present
+                // (Though usually we clear selection on refresh, but for UX let's keep valid ones)
+                stagedFiles.retainAll(changes.stream().map(c -> c.filePath).collect(java.util.stream.Collectors.toSet()));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to refresh git status", e);
+        }
+    }
+
+    private void handleInitGit() {
+        if (currentProject == null) return;
+        
+        try {
+            File root = new File(currentProject.getRootPath());
+            gitManager.initRepository(root);
+            gitManager.addAll();
+            gitManager.commit("Initial commit");
+            
+            log("Git repository initialized successfully");
+            refreshGitStatus();
+        } catch (Exception e) {
+            logger.error("Failed to initialize git repository", e);
+            showError("Git Error", "Failed to initialize repository: " + e.getMessage());
+        }
+    }
+
+    private void handleLinkRemote() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Link Remote Repository");
+        dialog.setHeaderText("Enter Git Remote URL");
+        dialog.setContentText("URL:");
+
+        dialog.showAndWait().ifPresent(url -> {
+            if (url.trim().isEmpty()) return;
+            try {
+                gitManager.addRemote("origin", url.trim());
+                log("Remote 'origin' added: " + url);
+            } catch (Exception e) {
+                logger.error("Failed to add remote", e);
+                showError("Git Error", "Failed to add remote: " + e.getMessage());
+            }
+        });
+    }
+
+    private void handleCommit() {
+        if (commitMessageArea == null) return;
+
+        String message = commitMessageArea.getText().trim();
+        if (message.isEmpty()) {
+            showError("Commit Error", "Commit message cannot be empty");
+            return;
+        }
+        
+        if (stagedFiles.isEmpty()) {
+            showError("Commit Error", "No files selected for commit");
+            return;
+        }
+
+        try {
+            if (!gitManager.isRepositoryOpen()) {
+                 // Should be handled by init button now, but keep as fallback
+                 handleInitGit();
+                 return;
+            }
+
+            gitManager.add(stagedFiles);
+            gitManager.commit(message);
+            commitMessageArea.clear();
+            stagedFiles.clear();
+            log("✓ Committed: " + message);
+            refreshGitStatus();
+        } catch (Exception e) {
+            logger.error("Commit failed", e);
+            showError("Commit Error", "Failed to commit: " + e.getMessage());
+        }
+    }
+    
+    private void handleGitPush() {
+        showLoginDialogAndExecute((user, pass) -> {
+            try {
+                gitManager.push(user, pass);
+                log("Push successful");
+            } catch (Exception e) {
+                logger.error("Push failed", e);
+                showError("Push Error", e.getMessage());
+            }
+        });
+    }
+
+    private void handleGitFetch() {
+        showLoginDialogAndExecute((user, pass) -> {
+            try {
+                gitManager.fetch(user, pass);
+                refreshGitStatus(); // Updates might show need to pull/merge
+                log("Fetch successful");
+            } catch (Exception e) {
+                logger.error("Fetch failed", e);
+                showError("Fetch Error", e.getMessage());
+            }
+        });
+    }
+
+    private void showLoginDialogAndExecute(java.util.function.BiConsumer<String, String> action) {
+        // Simple Login Dialog
+        Dialog<javafx.util.Pair<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Git Credentials");
+        dialog.setHeaderText("Enter Git Username and Password/Token");
+
+        ButtonType loginButtonType = new ButtonType("Login", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(loginButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField username = new TextField();
+        username.setPromptText("Username");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Password / Token");
+
+        grid.add(new Label("Username:"), 0, 0);
+        grid.add(username, 1, 0);
+        grid.add(new Label("Password:"), 0, 1);
+        grid.add(password, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == loginButtonType) {
+                return new javafx.util.Pair<>(username.getText(), password.getText());
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(credentials -> {
+            action.accept(credentials.getKey(), credentials.getValue());
+        });
+    }
+
     private void performSearch() {
         if (currentProject == null) {
             searchStatusLabel.setText("No project loaded");
@@ -766,6 +1241,73 @@ public class EditorController {
     private void setupConsole() {
         btnClearConsole.setOnAction(e -> consoleOutput.clear());
         btnToggleConsole.setOnAction(e -> toggleConsole());
+    }
+
+    private void setupTerminal() {
+        if (terminalInput != null) {
+            terminalInput.setOnAction(e -> handleTerminalInput());
+        }
+        startTerminalProcess();
+    }
+
+    private void startTerminalProcess() {
+        if (terminalProcess != null && terminalProcess.isAlive()) {
+            terminalProcess.destroy();
+        }
+        
+        new Thread(() -> {
+            try {
+                // Determine OS and shell
+                String os = System.getProperty("os.name").toLowerCase();
+                String shell = os.contains("win") ? "powershell.exe" : "bash";
+                
+                ProcessBuilder pb = new ProcessBuilder(shell);
+                pb.redirectErrorStream(true);
+                
+                // Set working directory to project root if available
+                if (currentProject != null) {
+                    pb.directory(new File(currentProject.getRootPath()));
+                }
+                
+                terminalProcess = pb.start();
+                
+                terminalWriter = new java.io.BufferedWriter(new java.io.OutputStreamWriter(terminalProcess.getOutputStream()));
+                
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(terminalProcess.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        String finalLine = line;
+                        javafx.application.Platform.runLater(() -> {
+                            if (terminalOutput != null) {
+                                terminalOutput.appendText(finalLine + "\n");
+                            }
+                        });
+                    }
+                }
+            } catch (IOException e) {
+                log("Error starting terminal: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void handleTerminalInput() {
+        String command = terminalInput.getText();
+        terminalInput.clear();
+        
+        if (terminalWriter != null && terminalProcess != null && terminalProcess.isAlive()) {
+            try {
+                terminalWriter.write(command);
+                terminalWriter.newLine();
+                terminalWriter.flush();
+            } catch (IOException e) {
+                log("Error writing to terminal: " + e.getMessage());
+            }
+        } else {
+             if (terminalOutput != null) {
+                terminalOutput.appendText("Terminal is not running. Restarting...\n");
+            }
+            startTerminalProcess();
+        }
     }
 
     private void setupAddElementButton() {
@@ -1417,9 +1959,24 @@ public class EditorController {
 
     private void toggleConsole() {
         consoleVisible = !consoleVisible;
-        consoleContainer.setVisible(consoleVisible);
-        consoleContainer.setManaged(consoleVisible);
-        btnToggleConsole.setText(consoleVisible ? "▼" : "▲");
+        // Don't set visible(false) to keep the layout, just minimize height
+        if (consoleVisible) {
+            consoleContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+            consoleContainer.setMinHeight(150); // Default height
+            consoleContainer.setMaxHeight(Double.MAX_VALUE);
+            bottomTabPane.setVisible(true);
+        } else {
+            consoleContainer.setPrefHeight(30); // Minimal height for header/button
+            consoleContainer.setMinHeight(30);
+            consoleContainer.setMaxHeight(30);
+            bottomTabPane.setVisible(false);
+        }
+        
+        // Ensure button is always visible by not hiding the container
+        // consoleContainer.setVisible(true); // Always true now
+        // consoleContainer.setManaged(true); // Always true now
+        
+        // Update menu check
         menuToggleConsole.setSelected(consoleVisible);
     }
 

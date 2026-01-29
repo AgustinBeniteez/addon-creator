@@ -5,6 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.image.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.shape.SVGPath?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
@@ -30,13 +31,22 @@
                 <Insets top="30" right="40" bottom="30" left="40"/>
             </padding>
             
-            <!-- Create Project Button -->
-            <Button fx:id="createProjectButton" text="+ Crear Nuevo Proyecto" 
-                    styleClass="create-project-button">
-                <font>
-                    <Font name="System Bold" size="18"/>
-                </font>
-            </Button>
+            <!-- Buttons Container -->
+            <HBox spacing="20" alignment="CENTER">
+                <Button fx:id="createProjectButton" text="+ Crear Nuevo Proyecto" 
+                        styleClass="create-project-button">
+                    <font>
+                        <Font name="System Bold" size="18"/>
+                    </font>
+                </Button>
+                
+                <Button fx:id="openProjectButton" text="📂 Abrir Proyecto" 
+                        styleClass="create-project-button">
+                    <font>
+                        <Font name="System Bold" size="18"/>
+                    </font>
+                </Button>
+            </HBox>
             
             <!-- Settings Button -->
             <Button fx:id="settingsButton" text="⚙ Ajustes" 

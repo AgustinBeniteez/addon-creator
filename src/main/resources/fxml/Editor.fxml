@@ -82,6 +82,14 @@
                 </graphic>
             </Button>
             
+            <Button fx:id="btnGit" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Source Control"/></tooltip>
+                <graphic>
+                    <SVGPath content="M23.546 10.93L13.067.452c-.604-.603-1.582-.603-2.188 0L8.708 2.627l2.76 2.76c.645-.215 1.379-.07 1.889.441.516.515.658 1.258.438 1.9l2.658 2.66c.645-.223 1.387-.078 1.9.435.721.72.721 1.884 0 2.604-.719.719-1.881.719-2.6 0-.539-.541-.674-1.337-.404-1.99L12.68 8.705l-2.08 2.08c.18.602.042 1.261-.4 1.702-.541.54-1.341.674-1.992.404l-2.662 2.663c.221.643.078 1.381-.436 1.896-.72.719-1.885.719-2.605 0-.719-.719-.719-1.885 0-2.605.51-.51 1.246-.656 1.889-.438l2.66-2.66c-.221-.645-.074-1.387.441-1.902.518-.518 1.26-.662 1.906-.441l2.08-2.08-2.664-2.664-5.65 5.65c-.603.603-.603 1.584 0 2.188l10.48 10.478c.604.604 1.582.604 2.188 0l10.48-10.48c.604-.604.604-1.582 0-2.188z" 
+                             scaleX="0.8" scaleY="0.8" styleClass="activity-icon"/>
+                </graphic>
+            </Button>
+            
             <Button fx:id="btnSave" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
                 <tooltip><Tooltip text="Save"/></tooltip>
                 <graphic>
@@ -190,6 +198,58 @@
                     
                     <ListView fx:id="searchResultsList" VBox.vgrow="ALWAYS" styleClass="file-tree"/>
                 </VBox>
+                
+                <!-- Git View -->
+                <VBox fx:id="gitView" styleClass="ide-sidebar" spacing="10" visible="false">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    <Label text="SOURCE CONTROL" styleClass="sidebar-section-title">
+                        <font>
+                            <Font name="System Bold" size="11"/>
+                        </font>
+                    </Label>
+                    
+                    <!-- No Repo Content -->
+                    <VBox fx:id="noGitRepoContent" spacing="15" alignment="CENTER" VBox.vgrow="ALWAYS">
+                        <Label text="No git repository found." wrapText="true" textAlignment="CENTER" style="-fx-text-fill: #888888;"/>
+                        <Button fx:id="btnInitGit" text="Initialize Repository" maxWidth="Infinity"/>
+                    </VBox>
+
+                    <!-- Repo Content -->
+                    <VBox fx:id="gitRepoContent" spacing="10" VBox.vgrow="ALWAYS" visible="false" managed="false">
+                        <HBox spacing="5" alignment="CENTER_LEFT">
+                             <Label text="Branch:" style="-fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
+                             <Label fx:id="gitBranchLabel" text="main" style="-fx-text-fill: #cccccc;"/>
+                             <Region HBox.hgrow="ALWAYS"/>
+                             <Button fx:id="btnLinkRemote" text="Link" style="-fx-font-size: 10px;"/>
+                        </HBox>
+                        
+                        <HBox spacing="5" alignment="CENTER_LEFT">
+                             <Button fx:id="btnGitPush" text="Push" style="-fx-font-size: 10px;" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                                 <graphic>
+                                     <SVGPath content="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
+                                 </graphic>
+                             </Button>
+                             <Button fx:id="btnGitFetch" text="Fetch" style="-fx-font-size: 10px;" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                                 <graphic>
+                                     <SVGPath content="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z" style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
+                                 </graphic>
+                             </Button>
+                        </HBox>
+                        
+                        <Separator styleClass="separator"/>
+                        
+                        <Label text="Changes" styleClass="section-title" style="-fx-font-size: 12px;"/>
+                        <ListView fx:id="gitChangesList" VBox.vgrow="ALWAYS" styleClass="git-file-list"/>
+                        
+                        <VBox styleClass="git-commit-area" spacing="5">
+                            <TextArea fx:id="commitMessageArea" promptText="Commit Message (Ctrl+Enter)" 
+                                      prefRowCount="3" wrapText="true"/>
+                            <Button fx:id="commitButton" text="Commit" maxWidth="Infinity"/>
+                        </VBox>
+                    </VBox>
+                </VBox>
             </StackPane>
             
             <!-- Right: Code Editor Area -->
@@ -214,48 +274,57 @@
     <!-- Bottom: Collapsible Console -->
     <bottom>
         <VBox fx:id="consoleContainer" styleClass="console-container">
-            <!-- Console Header -->
-            <HBox styleClass="console-header" alignment="CENTER_LEFT" spacing="10">
-                <padding>
-                    <Insets top="5" right="10" bottom="5" left="10"/>
-                </padding>
+            <AnchorPane VBox.vgrow="ALWAYS">
+                <TabPane fx:id="bottomTabPane" styleClass="bottom-tab-pane" tabClosingPolicy="UNAVAILABLE" 
+                         AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0" 
+                         AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+                    <Tab text="LOG ADDON CREATOR">
+                        <VBox>
+                             <!-- Console Controls (Clear) - Optional, maybe inside the tab content or floating? 
+                                  Let's put the Clear button inside the VBox of the Log tab. -->
+                             <HBox alignment="CENTER_RIGHT" style="-fx-padding: 2; -fx-background-color: #252526;">
+                                <Button fx:id="btnClearConsole" styleClass="console-button" contentDisplay="GRAPHIC_ONLY" style="-fx-padding: 2 5;">
+                                    <graphic>
+                                        <Group scaleX="0.7" scaleY="0.7">
+                                            <SVGPath content="M5 6H19" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                            <SVGPath content="M9 6V4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V6" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                            <SVGPath content="M18.8334 7L17.5739 19.5952C17.4828 20.5061 16.7127 21.2 15.7969 21.2H8.20311C7.28732 21.2 6.51718 20.5061 6.42612 19.5952L5.16669 7" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                            <SVGPath content="M10 11V17" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                            <SVGPath content="M14 11V17" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                        </Group>
+                                    </graphic>
+                                    <tooltip><Tooltip text="Clear Log"/></tooltip>
+                                </Button>
+                             </HBox>
+                             <TextArea fx:id="consoleOutput" editable="false" wrapText="true"
+                                     styleClass="console-output" prefRowCount="8" VBox.vgrow="ALWAYS">
+                                <font>
+                                    <Font name="Consolas" size="12"/>
+                                </font>
+                            </TextArea>
+                        </VBox>
+                    </Tab>
+                    <Tab text="TERMINAL">
+                        <VBox spacing="0">
+                            <TextArea fx:id="terminalOutput" editable="false" wrapText="true"
+                                     styleClass="console-output" VBox.vgrow="ALWAYS" 
+                                     style="-fx-font-family: 'Consolas'; -fx-control-inner-background: #1e1e1e; -fx-text-fill: #cccccc;">
+                            </TextArea>
+                            <TextField fx:id="terminalInput" promptText="Type command..." 
+                                     style="-fx-background-color: #2d2d2d; -fx-text-fill: white; -fx-font-family: 'Consolas'; -fx-border-color: #3e3e3e; -fx-border-width: 1 0 0 0;"/>
+                        </VBox>
+                    </Tab>
+                </TabPane>
                 
-                <Group scaleX="0.8" scaleY="0.8">
-                    <Rectangle x="2" y="4" width="20" height="16" arcWidth="2" arcHeight="2" fill="#2D2D2D"/>
-                    <SVGPath content="M 2 7 H 22" stroke="#4A4A4A" strokeWidth="1"/>
-                    <SVGPath content="M 7 11 L 10 13 L 7 15" stroke="#3B82F6" strokeWidth="2" strokeLineCap="ROUND" strokeLineJoin="ROUND" fill="TRANSPARENT"/>
-                    <SVGPath content="M 12 15 H 16" stroke="#F8F8F2" strokeWidth="2" strokeLineCap="ROUND"/>
-                </Group>
-                
-                <Label text="CONSOLE" styleClass="console-title">
-                    <font>
-                        <Font name="System Bold" size="11"/>
-                    </font>
-                </Label>
-                
-                <Region HBox.hgrow="ALWAYS"/>
-                
-                <Button fx:id="btnClearConsole" styleClass="console-button" contentDisplay="GRAPHIC_ONLY">
+                <Button fx:id="btnToggleConsole" styleClass="console-button" 
+                        AnchorPane.topAnchor="2.0" AnchorPane.rightAnchor="5.0"
+                        style="-fx-font-size: 10px; -fx-padding: 2 5;">
                     <graphic>
-                        <Group scaleX="0.8" scaleY="0.8">
-                            <SVGPath content="M5 6H19" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
-                            <SVGPath content="M9 6V4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V6" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
-                            <SVGPath content="M18.8334 7L17.5739 19.5952C17.4828 20.5061 16.7127 21.2 15.7969 21.2H8.20311C7.28732 21.2 6.51718 20.5061 6.42612 19.5952L5.16669 7" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
-                            <SVGPath content="M10 11V17" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
-                            <SVGPath content="M14 11V17" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
-                        </Group>
+                        <SVGPath content="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.68,13.68L12,10.5L9.68,7.32L8,8.5L9.34,10.5L8,12.5L9.68,13.68Z" 
+                                 style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
                     </graphic>
                 </Button>
-                <Button fx:id="btnToggleConsole" text="▼" styleClass="console-button"/>
-            </HBox>
-            
-            <!-- Console Output -->
-            <TextArea fx:id="consoleOutput" editable="false" wrapText="true"
-                     styleClass="console-output" prefRowCount="8">
-                <font>
-                    <Font name="Consolas" size="12"/>
-                </font>
-            </TextArea>
+            </AnchorPane>
         </VBox>
     </bottom>
     
