@@ -18,6 +18,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +64,11 @@ public class HomeScreenController {
 
     @FXML
     private ImageView headerImageView;
+
+    @FXML
+    private TextField searchField;
+
+    private List<Project> allProjects;
 
     private ProjectManager projectManager;
     private GitManager gitManager;
@@ -189,11 +198,28 @@ public class HomeScreenController {
     }
 
     private void loadProjects() {
+        allProjects = projectManager.loadProjects();
+        logger.info("Loading {} projects", allProjects.size());
+        displayProjects(allProjects);
+    }
+
+    private void filterProjects(String query) {
+        if (allProjects == null) return;
+
+        if (query == null || query.trim().isEmpty()) {
+            displayProjects(allProjects);
+            return;
+        }
+
+        String lowerQuery = query.toLowerCase();
+        List<Project> filtered = allProjects.stream()
+                .filter(p -> p.getName().toLowerCase().contains(lowerQuery))
+                .collect(java.util.stream.Collectors.toList());
+        displayProjects(filtered);
+    }
+
+    private void displayProjects(List<Project> projects) {
         projectsGrid.getChildren().clear();
-
-        List<Project> projects = projectManager.loadProjects();
-        logger.info("Loading {} projects", projects.size());
-
         for (Project project : projects) {
             VBox projectCard = createProjectCard(project);
             projectsGrid.getChildren().add(projectCard);
@@ -258,8 +284,39 @@ public class HomeScreenController {
         // Click handler to open editor
         card.setOnMouseClicked(e -> {
             if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
-                logger.info("Opening project: {}", project.getName());
-                NavigationManager.getInstance().showEditor(project);
+                // Show loading overlay
+                BorderPane root = (BorderPane) card.getScene().getRoot();
+                
+                javafx.scene.Node overlay = LoadingSpinnerHelper.createOverlay("Cargando proyecto: " + project.getName());
+                
+                if (root.getScene().getRoot() instanceof StackPane) {
+                    ((StackPane) root.getScene().getRoot()).getChildren().add(overlay);
+                    
+                    PauseTransition pause = new PauseTransition(Duration.millis(100));
+                    pause.setOnFinished(event -> {
+                         logger.info("Opening project: {}", project.getName());
+                         NavigationManager.getInstance().showEditor(project);
+                         ((StackPane) root.getScene().getRoot()).getChildren().remove(overlay);
+                    });
+                    pause.play();
+                } else {
+                     // Best approach for BorderPane: Create a temporary StackPane
+                     javafx.scene.Node originalCenter = root.getCenter();
+                     StackPane stack = new StackPane();
+                     if (originalCenter != null) stack.getChildren().add(originalCenter);
+                     stack.getChildren().add(overlay);
+                     
+                     root.setCenter(stack);
+                     
+                     PauseTransition pause = new PauseTransition(Duration.millis(100));
+                     pause.setOnFinished(event -> {
+                          logger.info("Opening project: {}", project.getName());
+                          NavigationManager.getInstance().showEditor(project);
+                          // Restore center (though scene will change anyway)
+                          root.setCenter(originalCenter); 
+                     });
+                     pause.play();
+                }
             }
         });
 

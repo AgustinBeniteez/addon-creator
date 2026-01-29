@@ -53,7 +53,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import javafx.animation.PauseTransition;
+import javafx.animation.FadeTransition;
 import javafx.util.Duration;
+import javafx.scene.Node;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -1249,6 +1251,14 @@ public class EditorController {
             } else {
                 String editorUrl = url.toExternalForm();
                 
+                // Create a StackPane to hold WebView and LoadingOverlay
+                StackPane contentContainer = new StackPane();
+                contentContainer.getChildren().add(webView);
+                
+                // Add Loading Overlay
+                Node loadingOverlay = LoadingSpinnerHelper.createOverlay("Cargando editor...");
+                contentContainer.getChildren().add(loadingOverlay);
+                
                 webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
                     if (newState == Worker.State.SUCCEEDED) {
                         JSObject window = (JSObject) webEngine.executeScript("window");
@@ -1256,11 +1266,18 @@ public class EditorController {
                         
                         String lang = getMonacoLanguage(filePath.getFileName().toString());
                         webEngine.executeScript("setTimeout(function() { if(typeof setContent === 'function') { setContent(javaApp.getContent()); setLanguage('" + lang + "'); } }, 200);");
+                        
+                        // Fade out loading overlay
+                        FadeTransition ft = new FadeTransition(Duration.millis(300), loadingOverlay);
+                        ft.setFromValue(1.0);
+                        ft.setToValue(0.0);
+                        ft.setOnFinished(e -> contentContainer.getChildren().remove(loadingOverlay));
+                        ft.play();
                     }
                 });
                 
                 webEngine.load(editorUrl);
-                tab.setContent(webView);
+                tab.setContent(contentContainer);
             }
 
             tabFileMap.put(tab, filePath);

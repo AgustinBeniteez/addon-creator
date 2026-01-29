@@ -48,6 +48,12 @@
             
             <!-- Buttons Container -->
             <HBox spacing="20" alignment="CENTER">
+                <TextField fx:id="searchField" promptText="Buscar proyectos..." prefWidth="300" style="-fx-font-size: 16px; -fx-background-radius: 20; -fx-padding: 10 20;">
+                    <font>
+                        <Font size="16"/>
+                    </font>
+                </TextField>
+
                 <Button fx:id="createProjectButton" text="+ Crear Nuevo Proyecto" 
                         styleClass="create-project-button">
                     <font>
