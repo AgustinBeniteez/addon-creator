@@ -49,6 +49,9 @@ public class HomeScreenController {
 
         projectManager = new ProjectManager();
 
+        // Make FlowPane responsive - bind wrap length to width
+        projectsGrid.prefWrapLengthProperty().bind(projectsGrid.widthProperty());
+
         // Setup button action
         createProjectButton.setOnAction(e -> handleCreateProject());
         settingsButton.setOnAction(e -> handleSettings());

@@ -11,7 +11,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.web.WebView;
 import javafx.scene.web.WebEngine;
 import javafx.concurrent.Worker;
@@ -568,13 +568,68 @@ public class EditorController {
             javafx.scene.image.Image image = new javafx.scene.image.Image(imagePath.toUri().toString());
             javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView(image);
             imageView.setPreserveRatio(true);
-            imageView.setFitWidth(800);
+            
+            // Set initial size
+            double maxWidth = 800;
+            if (image.getWidth() > maxWidth) {
+                imageView.setFitWidth(maxWidth);
+            } else {
+                imageView.setFitWidth(image.getWidth());
+            }
 
+            // Create zoom controls
+            Label zoomLabel = new Label("100%");
+            zoomLabel.setStyle("-fx-text-fill: white; -fx-background-color: rgba(0,0,0,0.5); -fx-padding: 5; -fx-background-radius: 5;");
+            
+            Slider zoomSlider = new Slider(0.1, 5.0, 1.0);
+            zoomSlider.setMaxWidth(200);
+            zoomSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                double zoom = newVal.doubleValue();
+                imageView.setScaleX(zoom);
+                imageView.setScaleY(zoom);
+                zoomLabel.setText(String.format("%.0f%%", zoom * 100));
+            });
+            
+            // Zoom with scroll wheel
             javafx.scene.layout.StackPane imageContainer = new javafx.scene.layout.StackPane(imageView);
             imageContainer.setStyle("-fx-background-color: #1e1e1e; -fx-alignment: center;");
+            
+            imageContainer.setOnScroll(e -> {
+                if (e.isControlDown()) {
+                    double delta = e.getDeltaY();
+                    double zoomFactor = 1.05;
+                    double currentZoom = zoomSlider.getValue();
+                    
+                    if (delta < 0) {
+                        zoomSlider.setValue(currentZoom / zoomFactor);
+                    } else {
+                        zoomSlider.setValue(currentZoom * zoomFactor);
+                    }
+                    e.consume();
+                }
+            });
+
+            // Wrap in ScrollPane for panning
+            ScrollPane scrollPane = new ScrollPane(imageContainer);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setFitToHeight(true);
+            scrollPane.setStyle("-fx-background-color: #1e1e1e; -fx-background: #1e1e1e;");
+            
+            // Layout with controls
+            VBox mainLayout = new VBox();
+            mainLayout.setStyle("-fx-background-color: #1e1e1e;");
+            
+            HBox controls = new HBox(10);
+            controls.setAlignment(javafx.geometry.Pos.CENTER);
+            controls.setPadding(new javafx.geometry.Insets(10));
+            controls.setStyle("-fx-background-color: #2d2d2d;");
+            controls.getChildren().addAll(new Label("Zoom:"), zoomSlider, zoomLabel);
+            
+            mainLayout.getChildren().addAll(controls, scrollPane);
+            VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
 
             Tab tab = new Tab(imagePath.getFileName().toString());
-            tab.setContent(imageContainer);
+            tab.setContent(mainLayout);
 
             tabFileMap.put(tab, imagePath);
             editorTabs.getTabs().add(tab);

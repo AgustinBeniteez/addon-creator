@@ -56,7 +56,7 @@
                 
                 <!-- Projects Grid in ScrollPane -->
                 <ScrollPane fitToWidth="true" styleClass="projects-scroll" 
-                           VBox.vgrow="ALWAYS">
+                           VBox.vgrow="ALWAYS" hbarPolicy="NEVER">
                     <FlowPane fx:id="projectsGrid" 
                              hgap="20" vgap="20" 
                              styleClass="projects-grid"
