@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.agustinbenitez.addoncreator.ui.EditorController"
+            styleClass="ide-root">
+    
+    <!-- Top: Menu Bar and Toolbar -->
+    <top>
+        <VBox>
+            <!-- Menu Bar -->
+            <MenuBar styleClass="ide-menubar">
+                <Menu text="File">
+                    <MenuItem fx:id="menuNewFile" text="New File" accelerator="Ctrl+N"/>
+                    <MenuItem fx:id="menuSave" text="Save" accelerator="Ctrl+S"/>
+                    <MenuItem fx:id="menuSaveAll" text="Save All" accelerator="Ctrl+Shift+S"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem fx:id="menuExport" text="Export Project" accelerator="Ctrl+E"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem fx:id="menuClose" text="Close Project" accelerator="Ctrl+W"/>
+                </Menu>
+                
+                <Menu text="Tools">
+                    <MenuItem fx:id="menuAddEntity" text="Add Entity"/>
+                    <MenuItem fx:id="menuAddItem" text="Add Item"/>
+                    <MenuItem fx:id="menuAddBlock" text="Add Block"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem fx:id="menuTest" text="Test Addon"/>
+                </Menu>
+                
+                <Menu text="View">
+                    <CheckMenuItem fx:id="menuToggleConsole" text="Console" selected="true"/>
+                    <CheckMenuItem fx:id="menuToggleFileTree" text="File Explorer" selected="true"/>
+                </Menu>
+                
+                <Menu text="Help">
+                    <MenuItem fx:id="menuAbout" text="About"/>
+                    <MenuItem fx:id="menuDocs" text="Documentation"/>
+                    <MenuItem fx:id="menuLicenses" text="Licencias"/>
+                </Menu>
+            </MenuBar>
+            
+            <!-- Toolbar -->
+            <ToolBar styleClass="ide-toolbar">
+                <Button fx:id="btnBack" text="← Inicio" styleClass="toolbar-button"/>
+                <Separator orientation="VERTICAL"/>
+                <Button fx:id="btnSave" text="💾 Save" styleClass="toolbar-button"/>
+                <Separator orientation="VERTICAL"/>
+                <Button fx:id="btnFormat" text="🧹 Format" styleClass="toolbar-button"/>
+                <Separator orientation="VERTICAL"/>
+                <Button fx:id="btnExport" text="📦 Export" styleClass="toolbar-button"/>
+                <Button fx:id="btnTest" text="▶ Test" styleClass="toolbar-button"/>
+                <Separator orientation="VERTICAL"/>
+                <Button fx:id="btnSettings" text="⚙ Settings" styleClass="toolbar-button"/>
+                <Separator orientation="VERTICAL"/>
+                <Label fx:id="projectNameToolbar" text="Project Name" styleClass="toolbar-label">
+                    <font>
+                        <Font name="System Bold" size="12"/>
+                    </font>
+                </Label>
+            </ToolBar>
+        </VBox>
+    </top>
+    
+    <!-- Center: Main IDE Area -->
+    <center>
+        <SplitPane dividerPositions="0.2" styleClass="ide-splitpane">
+            
+            <!-- Left: Sidebar with File Explorer -->
+            <VBox styleClass="ide-sidebar">
+                <padding>
+                    <Insets top="5" right="5" bottom="5" left="5"/>
+                </padding>
+                
+                <!-- Add Element Button -->
+                <Button fx:id="btnAddElement" text="+ Add Element" 
+                        styleClass="add-element-button" maxWidth="Infinity">
+                    <font>
+                        <Font name="System Bold" size="13"/>
+                    </font>
+                </Button>
+                
+                <Separator/>
+                
+                <!-- File Explorer Header -->
+                <HBox alignment="CENTER_LEFT" spacing="5">
+                    <padding>
+                        <Insets top="10" bottom="5"/>
+                    </padding>
+                    <Label text="PROJECT EXPLORER" styleClass="sidebar-section-title">
+                        <font>
+                            <Font name="System Bold" size="11"/>
+                        </font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="btnNewFile" text="+" styleClass="tree-action-button"/>
+                </HBox>
+                
+                <!-- File Tree -->
+                <TreeView fx:id="fileTree" VBox.vgrow="ALWAYS" 
+                         styleClass="file-tree"/>
+            </VBox>
+            
+            <!-- Right: Code Editor Area -->
+            <BorderPane styleClass="editor-area">
+                
+                <!-- Center: Code Editor with Tabs -->
+                <center>
+                    <VBox>
+                        <!-- File Tabs -->
+                        <TabPane fx:id="editorTabs" styleClass="editor-tabs" 
+                                VBox.vgrow="ALWAYS">
+                            <!-- Tabs will be added dynamically -->
+                        </TabPane>
+                    </VBox>
+                </center>
+                
+            </BorderPane>
+            
+        </SplitPane>
+    </center>
+    
+    <!-- Bottom: Collapsible Console -->
+    <bottom>
+        <VBox fx:id="consoleContainer" styleClass="console-container">
+            <!-- Console Header -->
+            <HBox styleClass="console-header" alignment="CENTER_LEFT" spacing="10">
+                <padding>
+                    <Insets top="5" right="10" bottom="5" left="10"/>
+                </padding>
+                
+                <Label text="CONSOLE" styleClass="console-title">
+                    <font>
+                        <Font name="System Bold" size="11"/>
+                    </font>
+                </Label>
+                
+                <Region HBox.hgrow="ALWAYS"/>
+                
+                <Button fx:id="btnClearConsole" text="🗑" styleClass="console-button"/>
+                <Button fx:id="btnToggleConsole" text="▼" styleClass="console-button"/>
+            </HBox>
+            
+            <!-- Console Output -->
+            <TextArea fx:id="consoleOutput" editable="false" wrapText="true"
+                     styleClass="console-output" prefRowCount="8">
+                <font>
+                    <Font name="Consolas" size="12"/>
+                </font>
+            </TextArea>
+        </VBox>
+    </bottom>
+    
+</BorderPane>

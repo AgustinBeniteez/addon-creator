@@ -1,0 +1,537 @@
+/* ===== ADDON CREATOR IDE - DARK THEME ===== */
+/* Inspired by VS Code and MCreator */
+/* Created by Agustín Benítez */
+
+/* ===== ROOT & GLOBAL ===== */
+
+.root {
+    -fx-background-color: #1e1e1e;
+    -fx-font-family: "Segoe UI", "San Francisco", Arial, sans-serif;
+    -fx-font-size: 13px;
+}
+
+.ide-root {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ===== MENU BAR ===== */
+
+.ide-menubar {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #2d2d2d;
+    -fx-border-width: 0 0 1 0;
+}
+
+.ide-menubar .label {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 13px;
+}
+
+.ide-menubar .menu-item {
+    -fx-background-color: #3c3c3c;
+}
+
+.ide-menubar .menu-item:hover {
+    -fx-background-color: #505050;
+}
+
+.ide-menubar .menu-item .label {
+    -fx-text-fill: #cccccc;
+}
+
+.ide-menubar .context-menu {
+    -fx-background-color: #252526;
+    -fx-border-color: #454545;
+    -fx-border-width: 1;
+}
+
+/* ===== TOOLBAR ===== */
+
+.ide-toolbar {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 5 10;
+}
+
+.toolbar-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 6 12;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+}
+
+.toolbar-button:hover {
+    -fx-background-color: #505050;
+}
+
+.toolbar-button:pressed {
+    -fx-background-color: #007acc;
+}
+
+.toolbar-label {
+    -fx-text-fill: #cccccc;
+}
+
+/* ===== SIDEBAR ===== */
+
+.ide-sidebar {
+    -fx-background-color: #252526;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 1 0 0;
+    -fx-pref-width: 250px;
+}
+
+.add-element-button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-padding: 10 15;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.add-element-button:hover {
+    -fx-background-color: #1177bb;
+}
+
+.add-element-button:pressed {
+    -fx-background-color: #005a9e;
+}
+
+.sidebar-section-title {
+    -fx-text-fill: #999999;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.tree-action-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 2 8;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.tree-action-button:hover {
+    -fx-background-color: #0e639c;
+}
+
+/* ===== FILE TREE ===== */
+
+.file-tree {
+    -fx-background-color: #252526;
+    -fx-border-color: transparent;
+}
+
+.file-tree .tree-cell {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 4 8;
+    -fx-font-size: 13px;
+}
+
+.file-tree .tree-cell:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.file-tree .tree-cell:selected {
+    -fx-background-color: #094771;
+    -fx-text-fill: white;
+}
+
+.file-tree .tree-cell:focused {
+    -fx-background-color: #094771;
+}
+
+/* ===== EDITOR AREA ===== */
+
+.editor-area {
+    -fx-background-color: #1e1e1e;
+}
+
+.editor-tabs {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #2d2d2d;
+    -fx-border-width: 0 0 1 0;
+}
+
+.editor-tabs .tab-header-area {
+    -fx-background-color: #2d2d2d;
+}
+
+.editor-tabs .tab-header-background {
+    -fx-background-color: #2d2d2d;
+}
+
+.editor-tabs .tab {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #1e1e1e;
+    -fx-border-width: 0 1 0 0;
+}
+
+.editor-tabs .tab:selected {
+    -fx-background-color: #1e1e1e;
+}
+
+.editor-tabs .tab .tab-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+}
+
+.editor-tabs .tab:selected .tab-label {
+    -fx-text-fill: #ffffff;
+}
+
+.editor-tabs .tab .label {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+}
+
+.editor-tabs .tab:selected .label {
+    -fx-text-fill: #ffffff;
+}
+
+.editor-tabs .tab:hover {
+    -fx-background-color: #323232;
+}
+
+.editor-tabs .text-area {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #d4d4d4;
+    -fx-font-family: "Consolas", "Monaco", "Courier New", monospace;
+    -fx-font-size: 13px;
+    -fx-highlight-fill: #264f78;
+    -fx-highlight-text-fill: white;
+}
+
+.editor-tabs .text-area .content {
+    -fx-background-color: #1e1e1e;
+}
+
+.editor-tabs .text-area .scroll-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ===== CONSOLE ===== */
+
+.console-container {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #2d2d2d;
+    -fx-border-width: 1 0 0 0;
+}
+
+.console-header {
+    -fx-background-color: #252526;
+    -fx-border-color: #2d2d2d;
+    -fx-border-width: 0 0 1 0;
+}
+
+.console-title {
+    -fx-text-fill: #999999;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.console-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 2 8;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+}
+
+.console-button:hover {
+    -fx-background-color: #3c3c3c;
+}
+
+.console-output {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #cccccc;
+    -fx-font-family: "Consolas", "Monaco", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-border-color: transparent;
+    -fx-highlight-fill: #264f78;
+    -fx-highlight-text-fill: white;
+}
+
+.console-output .content {
+    -fx-background-color: #1e1e1e;
+}
+
+.console-output .scroll-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ===== SPLIT PANE ===== */
+
+.ide-splitpane {
+    -fx-background-color: #1e1e1e;
+}
+
+.ide-splitpane .split-pane-divider {
+    -fx-background-color: #2d2d2d;
+    -fx-padding: 0 1 0 1;
+}
+
+/* ===== SCROLLBARS ===== */
+
+.scroll-bar {
+    -fx-background-color: #1e1e1e;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #424242;
+    -fx-background-radius: 5;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #4e4e4e;
+}
+
+.scroll-bar .thumb:pressed {
+    -fx-background-color: #555555;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: #6e6e6e;
+}
+
+/* ===== CONTEXT MENU ===== */
+
+.context-menu {
+    -fx-background-color: #252526;
+    -fx-border-color: #454545;
+    -fx-border-width: 1;
+}
+
+.context-menu .menu-item {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 6 20;
+}
+
+.context-menu .menu-item:hover {
+    -fx-background-color: #094771;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: #cccccc;
+}
+
+/* ===== DIALOGS ===== */
+
+.dialog-pane {
+    -fx-background-color: #2d2d2d;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: #cccccc;
+}
+
+.dialog-pane .text-field {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 6;
+}
+
+.dialog-pane .text-field:focused {
+    -fx-border-color: #007acc;
+    -fx-border-width: 2;
+}
+
+.dialog-pane .button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-padding: 6 16;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button:hover {
+    -fx-background-color: #1177bb;
+}
+
+.dialog-pane .button:default {
+    -fx-background-color: #0e639c;
+}
+
+/* ===== SEPARATOR ===== */
+
+.separator {
+    -fx-background-color: #2d2d2d;
+}
+
+.separator .line {
+    -fx-border-color: #3c3c3c;
+}
+
+/* ===== HOME SCREEN (Keep existing styles) ===== */
+
+.home-header {
+    -fx-background-color: #2d2d2d;
+}
+
+.home-content {
+    -fx-background-color: #1e1e1e;
+}
+
+.create-project-button {
+    -fx-background-color: linear-gradient(to right, #0e639c, #1177bb);
+    -fx-text-fill: white;
+    -fx-padding: 15 50;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(14, 99, 156, 0.4), 15, 0, 0, 5);
+    -fx-cursor: hand;
+}
+
+.create-project-button:hover {
+    -fx-effect: dropshadow(gaussian, rgba(14, 99, 156, 0.6), 20, 0, 0, 7);
+    -fx-scale-y: 1.05;
+    -fx-scale-x: 1.05;
+}
+
+.projects-scroll {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: transparent;
+}
+
+.projects-scroll .viewport {
+    -fx-background-color: #2d2d2d;
+}
+
+.projects-grid {
+    -fx-background-color: #2d2d2d;
+}
+
+.project-card {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 2);
+    -fx-cursor: hand;
+}
+
+.project-card:hover {
+    -fx-border-color: #007acc;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(0, 122, 204, 0.4), 15, 0, 0, 5);
+    -fx-scale-y: 1.02;
+    -fx-scale-x: 1.02;
+}
+
+.project-card-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.project-card-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: #cccccc;
+}
+
+.project-card-date {
+    -fx-font-size: 11px;
+    -fx-text-fill: #999999;
+}
+
+.section-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+/* ===== TEXT INPUTS ===== */
+
+.text-field {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 6;
+}
+
+.text-field:focused {
+    -fx-border-color: #007acc;
+    -fx-border-width: 2;
+}
+
+.text-area {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.text-area:focused {
+    -fx-border-color: #007acc;
+    -fx-border-width: 2;
+}
+
+.text-area .content {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ===== LABELS ===== */
+
+.label {
+    -fx-text-fill: #cccccc;
+}
+
+/* ===== BUTTONS (General) ===== */
+
+.button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-padding: 8 16;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #1177bb;
+}
+
+.button:pressed {
+    -fx-background-color: #005a9e;
+}
+
+/* ===== BACK BUTTON ===== */
+
+.back-button {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: white;
+    -fx-padding: 8 16;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.back-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+}

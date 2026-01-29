@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.agustinbenitez.addoncreator.ui.MainWindowController"
+            styleClass="root">
+    
+    <!-- Top: Header -->
+    <top>
+        <VBox styleClass="header">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+            <Label text="Addon Creator" styleClass="title">
+                <font>
+                    <Font name="System Bold" size="32"/>
+                </font>
+            </Label>
+            <Label text="Create Minecraft Bedrock Addons" styleClass="subtitle">
+                <font>
+                    <Font size="14"/>
+                </font>
+            </Label>
+        </VBox>
+    </top>
+    
+    <!-- Center: Main Form -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="content-scroll">
+            <VBox spacing="20" styleClass="content">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20"/>
+                </padding>
+                
+                <!-- Addon Information Section -->
+                <VBox spacing="10" styleClass="section">
+                    <Label text="Addon Information" styleClass="section-title">
+                        <font>
+                            <Font name="System Bold" size="18"/>
+                        </font>
+                    </Label>
+                    
+                    <GridPane hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="120" prefWidth="120"/>
+                            <ColumnConstraints hgrow="ALWAYS"/>
+                        </columnConstraints>
+                        
+                        <!-- Addon Name -->
+                        <Label text="Addon Name:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <TextField fx:id="addonNameField" promptText="My Awesome Addon" 
+                                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                        
+                        <!-- Description -->
+                        <Label text="Description:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                        <TextArea fx:id="descriptionArea" promptText="Enter addon description..." 
+                                  prefRowCount="3" wrapText="true"
+                                  GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                    </GridPane>
+                </VBox>
+                
+                <!-- Version Section -->
+                <VBox spacing="10" styleClass="section">
+                    <Label text="Version Settings" styleClass="section-title">
+                        <font>
+                            <Font name="System Bold" size="18"/>
+                        </font>
+                    </Label>
+                    
+                    <GridPane hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="120" prefWidth="120"/>
+                            <ColumnConstraints hgrow="ALWAYS"/>
+                        </columnConstraints>
+                        
+                        <!-- Addon Version -->
+                        <Label text="Addon Version:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <TextField fx:id="versionMajorField" prefWidth="60" promptText="1"/>
+                            <Label text="."/>
+                            <TextField fx:id="versionMinorField" prefWidth="60" promptText="0"/>
+                            <Label text="."/>
+                            <TextField fx:id="versionPatchField" prefWidth="60" promptText="0"/>
+                        </HBox>
+                        
+                        <!-- Min Engine Version -->
+                        <Label text="Min Engine:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <TextField fx:id="minEngineMajorField" prefWidth="60" promptText="1"/>
+                            <Label text="."/>
+                            <TextField fx:id="minEngineMinorField" prefWidth="60" promptText="20"/>
+                            <Label text="."/>
+                            <TextField fx:id="minEnginePatchField" prefWidth="60" promptText="0"/>
+                        </HBox>
+                    </GridPane>
+                </VBox>
+                
+                <!-- Folder Selection Section -->
+                <VBox spacing="10" styleClass="section">
+                    <Label text="Output Location" styleClass="section-title">
+                        <font>
+                            <Font name="System Bold" size="18"/>
+                        </font>
+                    </Label>
+                    
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <TextField fx:id="folderPathField" promptText="Select folder..." 
+                                   editable="false" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="browseFolderButton" text="Browse..." 
+                                styleClass="button-primary"/>
+                    </HBox>
+                </VBox>
+                
+                <!-- Generate Button -->
+                <HBox alignment="CENTER">
+                    <Button fx:id="generateButton" text="Generate Addon" 
+                            styleClass="button-generate">
+                        <font>
+                            <Font name="System Bold" size="16"/>
+                        </font>
+                    </Button>
+                </HBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+    
+    <!-- Bottom: Log Area -->
+    <bottom>
+        <VBox styleClass="log-section">
+            <padding>
+                <Insets top="10" right="20" bottom="10" left="20"/>
+            </padding>
+            <Label text="Log" styleClass="section-title">
+                <font>
+                    <Font name="System Bold" size="14"/>
+                </font>
+            </Label>
+            <TextArea fx:id="logArea" editable="false" prefRowCount="6" 
+                      wrapText="true" styleClass="log-area"/>
+        </VBox>
+    </bottom>
+    
+</BorderPane>

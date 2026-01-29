@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.agustinbenitez.addoncreator.ui.HomeScreenController"
+            styleClass="root">
+    
+    <!-- Top: Header with Image -->
+    <top>
+        <VBox styleClass="home-header" alignment="CENTER">
+            <!-- Header Image -->
+            <ImageView fitWidth="2000" preserveRatio="false" fitHeight="200">
+                <image>
+                    <Image url="@../images/header_image.png"/>
+                </image>
+            </ImageView>
+        </VBox>
+    </top>
+    
+    <!-- Center: Create Button and Projects Grid -->
+    <center>
+        <VBox spacing="30" alignment="TOP_CENTER" styleClass="home-content">
+            <padding>
+                <Insets top="30" right="40" bottom="30" left="40"/>
+            </padding>
+            
+            <!-- Create Project Button -->
+            <Button fx:id="createProjectButton" text="+ Crear Nuevo Proyecto" 
+                    styleClass="create-project-button">
+                <font>
+                    <Font name="System Bold" size="18"/>
+                </font>
+            </Button>
+            
+            <!-- Settings Button -->
+            <Button fx:id="settingsButton" text="⚙ Ajustes" 
+                    styleClass="create-project-button">
+                 <font>
+                    <Font size="14"/>
+                </font>
+            </Button>
+            
+            <!-- Projects Section -->
+            <VBox spacing="15" VBox.vgrow="ALWAYS">
+                <Label text="Mis Proyectos" styleClass="section-title">
+                    <font>
+                        <Font name="System Bold" size="20"/>
+                    </font>
+                </Label>
+                
+                <!-- Projects Grid in ScrollPane -->
+                <ScrollPane fitToWidth="true" styleClass="projects-scroll" 
+                           VBox.vgrow="ALWAYS">
+                    <FlowPane fx:id="projectsGrid" 
+                             hgap="20" vgap="20" 
+                             styleClass="projects-grid"
+                             alignment="TOP_LEFT">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                    </FlowPane>
+                </ScrollPane>
+            </VBox>
+        </VBox>
+    </center>
+    
+</BorderPane>
