@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.BranchTrackingStatus;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
 import java.io.ByteArrayOutputStream;
@@ -92,6 +93,42 @@ public class GitManager {
     public String getCurrentBranch() throws IOException {
         if (repository == null) return null;
         return repository.getBranch();
+    }
+
+    public List<String> getLocalBranches() throws GitAPIException {
+        if (git == null) return List.of();
+        List<String> branches = new ArrayList<>();
+        git.branchList().call().forEach(ref -> {
+            String name = ref.getName();
+            // Ref name format is refs/heads/branchName
+            if (name.startsWith("refs/heads/")) {
+                branches.add(name.substring("refs/heads/".length()));
+            } else {
+                branches.add(name);
+            }
+        });
+        return branches;
+    }
+
+    public void checkoutBranch(String branchName) throws GitAPIException {
+        if (git == null) return;
+        git.checkout().setName(branchName).call();
+    }
+    
+    public int[] getAheadBehindCounts() {
+        if (repository == null) return new int[]{0, 0};
+        try {
+            String branchName = repository.getBranch();
+            if (branchName == null) return new int[]{0, 0};
+            
+            BranchTrackingStatus trackingStatus = BranchTrackingStatus.of(repository, branchName);
+            if (trackingStatus != null) {
+                return new int[]{trackingStatus.getAheadCount(), trackingStatus.getBehindCount()};
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get ahead/behind counts", e);
+        }
+        return new int[]{0, 0};
     }
 
     public boolean hasUncommittedChanges() throws GitAPIException {

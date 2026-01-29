@@ -71,6 +71,11 @@ import javafx.geometry.Insets;
  * 
  * @author Agustín Benítez
  */
+import javafx.scene.shape.Circle;
+import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
+import javafx.scene.paint.ImagePattern;
+
 public class EditorController {
 
     private static final Logger logger = LoggerFactory.getLogger(EditorController.class);
@@ -159,13 +164,27 @@ public class EditorController {
     @FXML
     private ListView<GitManager.GitChange> gitChangesList;
     @FXML
-    private TextArea commitMessageArea;
+    private TextField commitTitleField;
+    @FXML
+    private TextArea commitDescriptionArea;
     @FXML
     private Button commitButton;
     @FXML
     private Button btnGitPush;
     @FXML
     private Button btnGitFetch;
+    @FXML
+    private Label gitStatusLabel;
+    @FXML
+    private Button btnUserProfile;
+    @FXML
+    private Group userProfileIcon;
+    @FXML
+    private Label errorStatusLabel;
+    @FXML
+    private Label languageStatusLabel;
+    @FXML
+    private Button btnGitSync;
 
     @FXML
     private Button btnAddElement;
@@ -203,6 +222,8 @@ public class EditorController {
     private Map<Tab, Path> tabFileMap; // Map tabs to their file paths
     private Map<Tab, Boolean> tabDirtyMap; // Map tabs to their dirty state
     private boolean consoleVisible = true;
+    private int errorCount = 0;
+    private String lastErrorSource = "log";
     private boolean autoSaveEnabled = false;
     private PauseTransition searchDebounce;
     private Set<String> stagedFiles = new HashSet<>();
@@ -225,6 +246,9 @@ public class EditorController {
         setupNewFileButton();
         setupSearch();
         setupGitList();
+        setupLanguageStatus();
+        setupErrorStatus();
+        setupUserProfile();
         
         // Tab selection listener to update save button state
         editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -238,6 +262,16 @@ public class EditorController {
     }
 
     private void setupGitList() {
+        // Setup branch selection for labels
+        if (gitStatusLabel != null) {
+            gitStatusLabel.setOnMouseClicked(e -> showBranchSelection(gitStatusLabel));
+            gitStatusLabel.setCursor(javafx.scene.Cursor.HAND);
+        }
+        if (gitBranchLabel != null) {
+            gitBranchLabel.setOnMouseClicked(e -> showBranchSelection(gitBranchLabel));
+            gitBranchLabel.setCursor(javafx.scene.Cursor.HAND);
+        }
+
         gitChangesList.setCellFactory(lv -> new ListCell<GitManager.GitChange>() {
             private final CheckBox checkBox = new CheckBox();
             private final Label pathLabel = new Label();
@@ -253,6 +287,7 @@ public class EditorController {
                         } else {
                             stagedFiles.remove(item.filePath);
                         }
+                        updateCommitButtonText();
                     }
                 });
                 
@@ -286,6 +321,20 @@ public class EditorController {
                 }
             }
         });
+    }
+
+    private void updateCommitButtonText() {
+        if (commitButton == null) return;
+        
+        try {
+            String branch = gitManager != null ? gitManager.getCurrentBranch() : "HEAD";
+            if (branch == null) branch = "HEAD";
+            
+            int count = stagedFiles.size();
+            commitButton.setText("Commit " + count + " files to " + branch);
+        } catch (Exception e) {
+            commitButton.setText("Commit");
+        }
     }
 
     private void showDiff(GitManager.GitChange change) {
@@ -541,6 +590,7 @@ public class EditorController {
         } catch (Exception e) {
             // Not a git repo or error
             if (gitBranchLabel != null) gitBranchLabel.setText("No Repo");
+            if (gitStatusLabel != null) gitStatusLabel.setText("Disconnected Repo");
         }
 
         log("Proyecto cargado: " + project.getName());
@@ -607,8 +657,15 @@ public class EditorController {
         if (commitButton != null) {
             commitButton.setOnAction(e -> handleCommit());
         }
-        if (commitMessageArea != null) {
-            commitMessageArea.setOnKeyPressed(e -> {
+        if (commitTitleField != null) {
+            commitTitleField.setOnKeyPressed(e -> {
+                if (e.isControlDown() && e.getCode() == KeyCode.ENTER) {
+                    handleCommit();
+                }
+            });
+        }
+        if (commitDescriptionArea != null) {
+            commitDescriptionArea.setOnKeyPressed(e -> {
                 if (e.isControlDown() && e.getCode() == KeyCode.ENTER) {
                     handleCommit();
                 }
@@ -649,9 +706,58 @@ public class EditorController {
         refreshGitStatus();
     }
     
+    private void showBranchSelection(javafx.scene.Node anchor) {
+        if (gitManager == null || !gitManager.isRepositoryOpen()) return;
+        
+        try {
+            java.util.List<String> branches = gitManager.getLocalBranches();
+            String currentBranch = gitManager.getCurrentBranch();
+            
+            ContextMenu menu = new ContextMenu();
+            
+            // Title item
+            MenuItem title = new MenuItem("Switch Branch");
+            title.setDisable(true);
+            title.setStyle("-fx-font-weight: bold; -fx-text-fill: black;");
+            menu.getItems().add(title);
+            menu.getItems().add(new SeparatorMenuItem());
+            
+            for (String branch : branches) {
+                MenuItem item = new MenuItem(branch);
+                if (branch.equals(currentBranch)) {
+                    item.setStyle("-fx-font-weight: bold;");
+                    item.setGraphic(new Label("✓"));
+                }
+                
+                item.setOnAction(e -> {
+                    try {
+                        if (!branch.equals(currentBranch)) {
+                            gitManager.checkoutBranch(branch);
+                            log("Switched to branch: " + branch);
+                            refreshGitStatus();
+                        }
+                    } catch (Exception ex) {
+                        logger.error("Failed to switch branch", ex);
+                        showError("Git Error", "Failed to checkout branch: " + ex.getMessage());
+                    }
+                });
+                
+                menu.getItems().add(item);
+            }
+            
+            menu.show(anchor, javafx.geometry.Side.TOP, 0, 0);
+            
+        } catch (Exception e) {
+            logger.error("Failed to list branches", e);
+            showError("Git Error", "Failed to list branches: " + e.getMessage());
+        }
+    }
+
     private void refreshGitStatus() {
         if (gitManager == null || !gitManager.isRepositoryOpen()) {
             if (gitBranchLabel != null) gitBranchLabel.setText("No Repo");
+            if (gitStatusLabel != null) gitStatusLabel.setText("Disconnected Repo");
+            if (btnGitSync != null) btnGitSync.setVisible(false);
             if (gitChangesList != null) gitChangesList.getItems().clear();
             stagedFiles.clear();
             
@@ -681,6 +787,13 @@ public class EditorController {
             String branch = gitManager.getCurrentBranch();
             if (gitBranchLabel != null) gitBranchLabel.setText(branch != null ? branch : "HEAD");
 
+            if (gitStatusLabel != null) {
+                String repoName = currentProject != null ? currentProject.getName() : "Unknown Repo";
+                gitStatusLabel.setText((branch != null ? branch : "HEAD") + " - " + repoName);
+            }
+            
+            if (btnGitSync != null) btnGitSync.setVisible(true);
+
             if (gitChangesList != null) {
                 var changes = gitManager.getChanges();
                 gitChangesList.getItems().clear();
@@ -689,6 +802,14 @@ public class EditorController {
                 // Keep previously staged files if they are still present
                 // (Though usually we clear selection on refresh, but for UX let's keep valid ones)
                 stagedFiles.retainAll(changes.stream().map(c -> c.filePath).collect(java.util.stream.Collectors.toSet()));
+                updateCommitButtonText();
+            }
+
+            // Update Push/Fetch buttons
+            if (btnGitPush != null && btnGitFetch != null) {
+                int[] counts = gitManager.getAheadBehindCounts();
+                btnGitPush.setText("Push (" + counts[0] + ")");
+                btnGitFetch.setText("Fetch (" + counts[1] + ")");
             }
         } catch (Exception e) {
             logger.error("Failed to refresh git status", e);
@@ -731,13 +852,16 @@ public class EditorController {
     }
 
     private void handleCommit() {
-        if (commitMessageArea == null) return;
+        if (commitTitleField == null) return;
 
-        String message = commitMessageArea.getText().trim();
-        if (message.isEmpty()) {
-            showError("Commit Error", "Commit message cannot be empty");
+        String title = commitTitleField.getText().trim();
+        if (title.isEmpty()) {
+            showError("Commit Error", "Commit title cannot be empty");
             return;
         }
+        
+        String desc = commitDescriptionArea != null ? commitDescriptionArea.getText().trim() : "";
+        String message = title + (desc.isEmpty() ? "" : "\n\n" + desc);
         
         if (stagedFiles.isEmpty()) {
             showError("Commit Error", "No files selected for commit");
@@ -753,7 +877,8 @@ public class EditorController {
 
             gitManager.add(stagedFiles);
             gitManager.commit(message);
-            commitMessageArea.clear();
+            commitTitleField.clear();
+            if (commitDescriptionArea != null) commitDescriptionArea.clear();
             stagedFiles.clear();
             log("✓ Committed: " + message);
             refreshGitStatus();
@@ -1281,6 +1406,11 @@ public class EditorController {
                             if (terminalOutput != null) {
                                 terminalOutput.appendText(finalLine + "\n");
                             }
+                            if (finalLine.toLowerCase().contains("error")) {
+                                errorCount++;
+                                lastErrorSource = "terminal";
+                                updateErrorLabel();
+                            }
                         });
                     }
                 }
@@ -1620,6 +1750,9 @@ public class EditorController {
             SubScene subScene = new SubScene(root3D, 800, 600, true, SceneAntialiasing.BALANCED);
             subScene.setFill(Color.rgb(30, 30, 30));
             
+            // Add Grid/Floor
+            root3D.getChildren().add(createGrid());
+            
             PerspectiveCamera camera = new PerspectiveCamera(true);
             camera.setNearClip(0.1);
             camera.setFarClip(1000.0);
@@ -1751,6 +1884,36 @@ public class EditorController {
         } catch (Exception e) {
             logger.error("Error parsing bedrock geometry", e);
         }
+    }
+
+    private Group createGrid() {
+        Group grid = new Group();
+        int size = 100;
+        int spacing = 10;
+        
+        Color gridColor = Color.rgb(80, 80, 80);
+        Color axisXColor = Color.RED;
+        Color axisZColor = Color.BLUE;
+        
+        for (int i = -size; i <= size; i += spacing) {
+            // Line parallel to X axis (at Z = i)
+            Cylinder lineX = new Cylinder(0.05, size * 2);
+            lineX.setMaterial(new PhongMaterial(i == 0 ? axisXColor : gridColor));
+            lineX.setRotationAxis(Rotate.Z_AXIS);
+            lineX.setRotate(90);
+            lineX.setTranslateZ(i);
+            
+            // Line parallel to Z axis (at X = i)
+            Cylinder lineZ = new Cylinder(0.05, size * 2);
+            lineZ.setMaterial(new PhongMaterial(i == 0 ? axisZColor : gridColor));
+            lineZ.setRotationAxis(Rotate.X_AXIS);
+            lineZ.setRotate(90);
+            lineZ.setTranslateX(i);
+            
+            grid.getChildren().addAll(lineX, lineZ);
+        }
+        
+        return grid;
     }
 
     private void updateSaveButtonState() {
@@ -2043,12 +2206,112 @@ public class EditorController {
         alert.showAndWait();
     }
 
+    private void setupLanguageStatus() {
+        // Listener for tab selection
+        editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            updateLanguageLabel(newTab);
+        });
+        
+        // Initial update
+        updateLanguageLabel(editorTabs.getSelectionModel().getSelectedItem());
+        
+        // Click listener for changing language
+        if (languageStatusLabel != null) {
+            languageStatusLabel.setOnMouseClicked(e -> showLanguageSelector(e));
+        }
+    }
+
+    private void updateLanguageLabel(Tab tab) {
+        if (languageStatusLabel == null) return;
+        
+        if (tab != null && tabFileMap.containsKey(tab)) {
+            Path path = tabFileMap.get(tab);
+            String lang = getMonacoLanguage(path.getFileName().toString());
+            languageStatusLabel.setText(lang.toUpperCase());
+        } else {
+            languageStatusLabel.setText("PLAIN TEXT");
+        }
+    }
+
+    private void showLanguageSelector(javafx.scene.input.MouseEvent e) {
+        Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
+        if (selectedTab == null || !tabFileMap.containsKey(selectedTab)) return;
+
+        ContextMenu menu = new ContextMenu();
+        String[] languages = {"json", "javascript", "typescript", "html", "css", "java", "xml", "markdown", "plaintext"};
+        
+        for (String lang : languages) {
+            MenuItem item = new MenuItem(lang.toUpperCase());
+            item.setOnAction(event -> {
+                changeEditorLanguage(selectedTab, lang);
+                languageStatusLabel.setText(lang.toUpperCase());
+            });
+            menu.getItems().add(item);
+        }
+        
+        menu.show(languageStatusLabel, javafx.geometry.Side.TOP, 0, 0);
+    }
+
+    private void changeEditorLanguage(Tab tab, String language) {
+        if (tab.getContent() instanceof WebView) {
+            WebView webView = (WebView) tab.getContent();
+            javafx.scene.web.WebEngine webEngine = webView.getEngine();
+            webEngine.executeScript("if(typeof setLanguage === 'function') { setLanguage('" + language + "'); }");
+        }
+    }
+
+    private void setupErrorStatus() {
+        updateErrorLabel();
+        if (errorStatusLabel != null) {
+            errorStatusLabel.setOnMouseClicked(e -> openConsole());
+        }
+    }
+
+    private void updateErrorLabel() {
+        if (errorStatusLabel != null) {
+            javafx.application.Platform.runLater(() -> {
+                errorStatusLabel.setText(errorCount + " Errors");
+                if (errorCount > 0) {
+                     // Keep style but maybe change color if errors > 0?
+                     // The FXML defines default style.
+                     // Let's just update text. The icon is red.
+                }
+            });
+        }
+    }
+
+    private void openConsole() {
+        if (!consoleVisible) {
+            toggleConsole();
+        }
+        if (bottomTabPane != null) {
+            if ("terminal".equals(lastErrorSource)) {
+                bottomTabPane.getSelectionModel().select(1);
+            } else {
+                bottomTabPane.getSelectionModel().select(0);
+            }
+        }
+    }
+
     private void log(String message) {
         consoleOutput.appendText(message + "\n");
         logger.info(message);
+        
+        if (message != null && (
+            message.toLowerCase().contains("error") || 
+            message.toLowerCase().contains("exception") || 
+            message.toLowerCase().contains("fail"))) {
+            errorCount++;
+            lastErrorSource = "log";
+            updateErrorLabel();
+        }
     }
 
     private void showError(String title, String message) {
+        errorCount++;
+        lastErrorSource = "log";
+        updateErrorLabel();
+        
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
@@ -2113,6 +2376,61 @@ public class EditorController {
                 }
             });
         }
+    }
+
+    private void setupUserProfile() {
+        if (userProfileIcon == null) return;
+        
+        // Target size: 18x18 pixels (Radius 9)
+        // Center: (9, 9)
+        
+        // Background Circle
+        Circle bg = new Circle(9, 9, 9);
+        bg.setFill(Color.web("#5E5E5E"));
+        
+        // Head: Center at (9, 7.5), Radius 3.15
+        Circle head = new Circle(9, 7.5, 3.15);
+        head.setFill(Color.web("#C4C4C4"));
+        
+        // Body: Center at (9, 17.55), Radius 6.75
+        Circle body = new Circle(9, 17.55, 6.75);
+        body.setFill(Color.web("#C4C4C4"));
+        
+        // Clip group for the body/head inside the main circle
+        Group content = new Group(head, body);
+        Circle clip = new Circle(9, 9, 9);
+        content.setClip(clip);
+        
+        userProfileIcon.getChildren().clear();
+        userProfileIcon.getChildren().addAll(bg, content);
+        
+        if (btnUserProfile != null) {
+            btnUserProfile.setOnAction(e -> handleUserProfile());
+        }
+    }
+
+    private void handleUserProfile() {
+        showLoginDialogAndExecute((user, token) -> {
+            try {
+                String avatarUrl = "https://github.com/" + user + ".png";
+                Image image = new Image(avatarUrl, true);
+                
+                image.progressProperty().addListener((obs, oldV, newV) -> {
+                    if (newV.doubleValue() == 1.0 && !image.isError()) {
+                        javafx.application.Platform.runLater(() -> {
+                             // Update with avatar, keeping size 18x18
+                             Circle avatar = new Circle(9, 9, 9);
+                             avatar.setFill(new ImagePattern(image));
+                             userProfileIcon.getChildren().setAll(avatar);
+                        });
+                    }
+                });
+                
+                log("Logged in as " + user);
+            } catch (Exception e) {
+                logger.error("Failed to load avatar", e);
+            }
+        });
     }
 
     private static class FileIconFactory {

@@ -15,6 +15,12 @@
     <!-- Top: Menu Bar and Project Name -->
     <top>
         <HBox alignment="CENTER_LEFT" styleClass="title-bar" style="-fx-background-color: #333333;">
+            <Button fx:id="btnBack" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0 10;">
+                <tooltip><Tooltip text="Inicio"/></tooltip>
+                <graphic>
+                    <SVGPath content="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" style="-fx-fill: #CCCCCC;" scaleX="0.7" scaleY="0.7"/>
+                </graphic>
+            </Button>
             <MenuBar styleClass="ide-menubar" HBox.hgrow="ALWAYS">
                 <Menu text="File">
                     <MenuItem fx:id="menuNewFile" text="New File" accelerator="Ctrl+N"/>
@@ -61,13 +67,6 @@
     <left>
         <VBox styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="50" maxWidth="50" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
             
-            <Button fx:id="btnBack" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
-                <tooltip><Tooltip text="Inicio"/></tooltip>
-                <graphic>
-                    <SVGPath content="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
-                </graphic>
-            </Button>
-            
             <Button fx:id="btnExplorer" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
                 <tooltip><Tooltip text="Explorer"/></tooltip>
                 <graphic>
@@ -85,8 +84,10 @@
             <Button fx:id="btnGit" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
                 <tooltip><Tooltip text="Source Control"/></tooltip>
                 <graphic>
-                    <SVGPath content="M23.546 10.93L13.067.452c-.604-.603-1.582-.603-2.188 0L8.708 2.627l2.76 2.76c.645-.215 1.379-.07 1.889.441.516.515.658 1.258.438 1.9l2.658 2.66c.645-.223 1.387-.078 1.9.435.721.72.721 1.884 0 2.604-.719.719-1.881.719-2.6 0-.539-.541-.674-1.337-.404-1.99L12.68 8.705l-2.08 2.08c.18.602.042 1.261-.4 1.702-.541.54-1.341.674-1.992.404l-2.662 2.663c.221.643.078 1.381-.436 1.896-.72.719-1.885.719-2.605 0-.719-.719-.719-1.885 0-2.605.51-.51 1.246-.656 1.889-.438l2.66-2.66c-.221-.645-.074-1.387.441-1.902.518-.518 1.26-.662 1.906-.441l2.08-2.08-2.664-2.664-5.65 5.65c-.603.603-.603 1.584 0 2.188l10.48 10.478c.604.604 1.582.604 2.188 0l10.48-10.48c.604-.604.604-1.582 0-2.188z" 
-                             scaleX="0.8" scaleY="0.8" styleClass="activity-icon"/>
+                    <Group>
+                        <SVGPath content="M90.156 41.965 50.036 1.848a5.918 5.918 0 0 0-8.372 0l-8.328 8.332 10.566 10.566a7.03 7.03 0 0 1 7.23 1.684 7.034 7.034 0 0 1 1.669 7.277l10.187 10.184a7.028 7.028 0 0 1 7.278 1.672 7.04 7.04 0 0 1 0 9.957 7.05 7.05 0 0 1-9.965 0 7.044 7.044 0 0 1-1.528-7.66l-9.5-9.497V59.36a7.04 7.04 0 0 1 1.86 11.29 7.04 7.04 0 0 1-9.957 0 7.04 7.04 0 0 1 0-9.958 7.06 7.06 0 0 1 2.304-1.539V33.926a7.049 7.049 0 0 1-3.82-9.234L29.242 14.272 1.73 41.777a5.925 5.925 0 0 0 0 8.371L41.852 90.27a5.925 5.925 0 0 0 8.37 0l39.934-39.934a5.925 5.925 0 0 0 0-8.371" 
+                                 scaleX="0.2" scaleY="0.2" styleClass="activity-icon"/>
+                    </Group>
                 </graphic>
             </Button>
             
@@ -244,7 +245,8 @@
                         <ListView fx:id="gitChangesList" VBox.vgrow="ALWAYS" styleClass="git-file-list"/>
                         
                         <VBox styleClass="git-commit-area" spacing="5">
-                            <TextArea fx:id="commitMessageArea" promptText="Commit Message (Ctrl+Enter)" 
+                            <TextField fx:id="commitTitleField" promptText="Commit Title (Summary)" style="-fx-font-weight: bold;"/>
+                            <TextArea fx:id="commitDescriptionArea" promptText="Description (Optional)" 
                                       prefRowCount="3" wrapText="true"/>
                             <Button fx:id="commitButton" text="Commit" maxWidth="Infinity"/>
                         </VBox>
@@ -271,60 +273,107 @@
         </SplitPane>
     </center>
     
-    <!-- Bottom: Collapsible Console -->
+    <!-- Bottom: Collapsible Console and Status Bar -->
     <bottom>
-        <VBox fx:id="consoleContainer" styleClass="console-container">
-            <AnchorPane VBox.vgrow="ALWAYS">
-                <TabPane fx:id="bottomTabPane" styleClass="bottom-tab-pane" tabClosingPolicy="UNAVAILABLE" 
-                         AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0" 
-                         AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-                    <Tab text="LOG ADDON CREATOR">
-                        <VBox>
-                             <!-- Console Controls (Clear) - Optional, maybe inside the tab content or floating? 
-                                  Let's put the Clear button inside the VBox of the Log tab. -->
-                             <HBox alignment="CENTER_RIGHT" style="-fx-padding: 2; -fx-background-color: #252526;">
-                                <Button fx:id="btnClearConsole" styleClass="console-button" contentDisplay="GRAPHIC_ONLY" style="-fx-padding: 2 5;">
-                                    <graphic>
-                                        <Group scaleX="0.7" scaleY="0.7">
-                                            <SVGPath content="M5 6H19" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
-                                            <SVGPath content="M9 6V4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V6" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
-                                            <SVGPath content="M18.8334 7L17.5739 19.5952C17.4828 20.5061 16.7127 21.2 15.7969 21.2H8.20311C7.28732 21.2 6.51718 20.5061 6.42612 19.5952L5.16669 7" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
-                                            <SVGPath content="M10 11V17" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
-                                            <SVGPath content="M14 11V17" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
-                                        </Group>
-                                    </graphic>
-                                    <tooltip><Tooltip text="Clear Log"/></tooltip>
-                                </Button>
-                             </HBox>
-                             <TextArea fx:id="consoleOutput" editable="false" wrapText="true"
-                                     styleClass="console-output" prefRowCount="8" VBox.vgrow="ALWAYS">
-                                <font>
-                                    <Font name="Consolas" size="12"/>
-                                </font>
-                            </TextArea>
-                        </VBox>
-                    </Tab>
-                    <Tab text="TERMINAL">
-                        <VBox spacing="0">
-                            <TextArea fx:id="terminalOutput" editable="false" wrapText="true"
-                                     styleClass="console-output" VBox.vgrow="ALWAYS" 
-                                     style="-fx-font-family: 'Consolas'; -fx-control-inner-background: #1e1e1e; -fx-text-fill: #cccccc;">
-                            </TextArea>
-                            <TextField fx:id="terminalInput" promptText="Type command..." 
-                                     style="-fx-background-color: #2d2d2d; -fx-text-fill: white; -fx-font-family: 'Consolas'; -fx-border-color: #3e3e3e; -fx-border-width: 1 0 0 0;"/>
-                        </VBox>
-                    </Tab>
-                </TabPane>
+        <VBox spacing="0">
+            <VBox fx:id="consoleContainer" styleClass="console-container">
+                <AnchorPane VBox.vgrow="ALWAYS">
+                    <TabPane fx:id="bottomTabPane" styleClass="bottom-tab-pane" tabClosingPolicy="UNAVAILABLE" 
+                             AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0" 
+                             AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+                        <Tab text="LOG ADDON CREATOR">
+                            <VBox>
+                                 <!-- Console Controls (Clear) - Optional, maybe inside the tab content or floating? 
+                                      Let's put the Clear button inside the VBox of the Log tab. -->
+                                 <HBox alignment="CENTER_RIGHT" style="-fx-padding: 2; -fx-background-color: #252526;">
+                                    <Button fx:id="btnClearConsole" styleClass="console-button" contentDisplay="GRAPHIC_ONLY" style="-fx-padding: 2 5;">
+                                        <graphic>
+                                            <Group scaleX="0.7" scaleY="0.7">
+                                                <SVGPath content="M5 6H19" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                                <SVGPath content="M9 6V4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V6" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                                <SVGPath content="M18.8334 7L17.5739 19.5952C17.4828 20.5061 16.7127 21.2 15.7969 21.2H8.20311C7.28732 21.2 6.51718 20.5061 6.42612 19.5952L5.16669 7" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                                <SVGPath content="M10 11V17" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                                <SVGPath content="M14 11V17" stroke="#cccccc" strokeWidth="2" strokeLineCap="ROUND"/>
+                                            </Group>
+                                        </graphic>
+                                        <tooltip><Tooltip text="Clear Log"/></tooltip>
+                                    </Button>
+                                 </HBox>
+                                 <TextArea fx:id="consoleOutput" editable="false" wrapText="true"
+                                         styleClass="console-output" prefRowCount="8" VBox.vgrow="ALWAYS">
+                                    <font>
+                                        <Font name="Consolas" size="12"/>
+                                    </font>
+                                </TextArea>
+                            </VBox>
+                        </Tab>
+                        <Tab text="TERMINAL">
+                            <VBox spacing="0">
+                                <TextArea fx:id="terminalOutput" editable="false" wrapText="true"
+                                         styleClass="console-output" VBox.vgrow="ALWAYS" 
+                                         style="-fx-font-family: 'Consolas'; -fx-control-inner-background: #1e1e1e; -fx-text-fill: #cccccc;">
+                                </TextArea>
+                                <TextField fx:id="terminalInput" promptText="Type command..." 
+                                         style="-fx-background-color: #2d2d2d; -fx-text-fill: white; -fx-font-family: 'Consolas'; -fx-border-color: #3e3e3e; -fx-border-width: 1 0 0 0;"/>
+                            </VBox>
+                        </Tab>
+                    </TabPane>
+                    
+                    <Button fx:id="btnToggleConsole" styleClass="console-button" 
+                            AnchorPane.topAnchor="2.0" AnchorPane.rightAnchor="5.0"
+                            style="-fx-font-size: 10px; -fx-padding: 2 5;">
+                        <graphic>
+                            <SVGPath content="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.68,13.68L12,10.5L9.68,7.32L8,8.5L9.34,10.5L8,12.5L9.68,13.68Z" 
+                                     style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
+                        </graphic>
+                    </Button>
+                </AnchorPane>
+            </VBox>
+            
+            <!-- Status Bar -->
+            <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 0 10; -fx-background-color: #007acc; -fx-min-height: 22; -fx-max-height: 22;">
+                <!-- Left: Git Info -->
+                <HBox alignment="CENTER_LEFT" spacing="5" fx:id="statusBarLeft">
+                    <Button fx:id="btnUserProfile" style="-fx-background-color: transparent; -fx-padding: 0 2; -fx-cursor: hand;">
+                        <graphic>
+                            <Group fx:id="userProfileIcon"/>
+                        </graphic>
+                        <tooltip><Tooltip text="User Profile"/></tooltip>
+                    </Button>
+                    <Label fx:id="gitStatusLabel" text="Disconnected Repo" style="-fx-text-fill: white; -fx-font-size: 11px; -fx-font-family: 'Segoe UI', sans-serif;">
+                         <graphic>
+                             <SVGPath content="M15 8v8H5V8h10m1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V7c0-.55-.45-1-1-1z M11 10h2v2h-2v-2zm-4 0h2v2H7v-2zm4 4h2v2h-2v-2zm-4 0h2v2H7v-2z" 
+                                      scaleX="0.7" scaleY="0.7" style="-fx-fill: white;"/>
+                         </graphic>
+                    </Label>
+                    <Button fx:id="btnGitSync" style="-fx-background-color: transparent; -fx-padding: 0 2; -fx-cursor: hand;">
+                        <graphic>
+                            <SVGPath content="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" 
+                                     scaleX="0.6" scaleY="0.6" style="-fx-fill: white;"/>
+                        </graphic>
+                        <tooltip><Tooltip text="Sync Changes"/></tooltip>
+                    </Button>
+                </HBox>
                 
-                <Button fx:id="btnToggleConsole" styleClass="console-button" 
-                        AnchorPane.topAnchor="2.0" AnchorPane.rightAnchor="5.0"
-                        style="-fx-font-size: 10px; -fx-padding: 2 5;">
+                <Region HBox.hgrow="ALWAYS"/>
+            
+            <!-- Error Counter -->
+            <Label fx:id="errorStatusLabel" text="0 Errors" style="-fx-text-fill: white; -fx-font-size: 11px; -fx-font-family: 'Segoe UI', sans-serif; -fx-cursor: hand;">
+                 <graphic>
+                     <SVGPath content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" 
+                              scaleX="0.7" scaleY="0.7" style="-fx-fill: #ff9999;"/>
+                 </graphic>
+                 <tooltip><Tooltip text="Click to open console"/></tooltip>
+            </Label>
+
+            <!-- Right: Language Selector -->
+            <Label fx:id="languageStatusLabel" text="Plain Text" style="-fx-text-fill: white; -fx-font-size: 11px; -fx-font-family: 'Segoe UI', sans-serif; -fx-cursor: hand;">
                     <graphic>
-                        <SVGPath content="M20,19V7H4V19H20M20,3A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5C2,3.89 2.9,3 4,3H20M13,17V15H18V17H13M9.68,13.68L12,10.5L9.68,7.32L8,8.5L9.34,10.5L8,12.5L9.68,13.68Z" 
-                                 style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
+                        <SVGPath content="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.91-4.33-3.56zm2.95-8H5.08c.96-1.65 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" 
+                                 scaleX="0.7" scaleY="0.7" style="-fx-fill: white;"/>
                     </graphic>
-                </Button>
-            </AnchorPane>
+                </Label>
+            </HBox>
         </VBox>
     </bottom>
     
