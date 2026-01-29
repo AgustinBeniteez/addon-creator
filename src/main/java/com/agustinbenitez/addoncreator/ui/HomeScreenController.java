@@ -42,6 +42,13 @@ import javafx.stage.FileChooser;
 public class HomeScreenController {
 
     private static final Logger logger = LoggerFactory.getLogger(HomeScreenController.class);
+    
+    // SVG Paths for sort icons
+    // Descending (Newest First): Calendar at TOP
+    private static final String SORT_DESCENDING_PATH = "M3 18h12v-2H3v2zM3 13h10v-2H3v2zM3 8h8v-2H3v2zM15 3h1V1h2v2h2V1h1v2h1c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2h-8c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h1V3zm7 8V7h-8v4h8z";
+    
+    // Ascending (Oldest First): Calendar at BOTTOM
+    private static final String SORT_ASCENDING_PATH = "M3 6h12v2H3V6zM3 11h10v2H3v-2zM3 16h8v2H3v-2zM15 13h1v-2h2v2h2v-2h1v2h1c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2h-8c-1.1 0-2-.9-2-2v-6c0-1.1.9-2 2-2h1v-2zm7 8v-4h-8v4h8z";
 
     @FXML
     private FlowPane projectsGrid;
@@ -59,6 +66,9 @@ public class HomeScreenController {
     private Button settingsButton;
 
     @FXML
+    private Button sortProjectsButton;
+
+    @FXML
     private Button loginButton;
 
     @FXML
@@ -74,6 +84,7 @@ public class HomeScreenController {
 
     private ProjectManager projectManager;
     private GitManager gitManager;
+    private boolean isSortAscending = false;
 
     @FXML
     public void initialize() {
@@ -98,6 +109,12 @@ public class HomeScreenController {
         createProjectButton.setOnAction(e -> handleCreateProject());
         openProjectButton.setOnAction(e -> handleOpenProject());
         settingsButton.setOnAction(e -> handleSettings());
+        if (sortProjectsButton != null) {
+            logger.info("Sort button initialized");
+            sortProjectsButton.setOnAction(e -> handleSortProjects());
+        } else {
+            logger.error("Sort button failed to inject!");
+        }
         if (loginButton != null) {
             loginButton.setOnAction(e -> handleLogin());
         }
@@ -206,7 +223,47 @@ public class HomeScreenController {
     private void loadProjects() {
         allProjects = projectManager.loadProjects();
         logger.info("Loading {} projects", allProjects.size());
+        sortProjects();
         displayProjects(allProjects);
+    }
+
+    private void handleSortProjects() {
+        isSortAscending = !isSortAscending;
+        sortProjects();
+        
+        // Update tooltip and icon to reflect current state
+        if (sortProjectsButton != null) {
+            // Update Tooltip
+            if (sortProjectsButton.getTooltip() != null) {
+                sortProjectsButton.getTooltip().setText(isSortAscending ? "Ordenar: Más antiguos primero" : "Ordenar: Más recientes primero");
+            }
+            
+            // Update Icon
+            if (sortProjectsButton.getGraphic() instanceof SVGPath) {
+                SVGPath icon = (SVGPath) sortProjectsButton.getGraphic();
+                icon.setContent(isSortAscending ? SORT_ASCENDING_PATH : SORT_DESCENDING_PATH);
+            }
+        }
+        
+        // Re-filter if search is active
+        if (searchField != null && !searchField.getText().isEmpty()) {
+            filterProjects(searchField.getText());
+        } else {
+            displayProjects(allProjects);
+        }
+    }
+
+    private void sortProjects() {
+        if (allProjects == null) return;
+        
+        allProjects.sort((p1, p2) -> {
+            if (p1.getLastModified() == null || p2.getLastModified() == null) return 0;
+            if (isSortAscending) {
+                return p1.getLastModified().compareTo(p2.getLastModified());
+            } else {
+                return p2.getLastModified().compareTo(p1.getLastModified());
+            }
+        });
     }
 
     private void filterProjects(String query) {
