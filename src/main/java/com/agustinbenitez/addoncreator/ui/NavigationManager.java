@@ -86,6 +86,28 @@ public class NavigationManager {
     }
 
     /**
+     * Show create project screen
+     */
+    public void showCreateProject() {
+        try {
+            logger.info("Navigating to create project screen");
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/MainWindow.fxml"));
+            Scene scene = new Scene(loader.load(), 1200, 800);
+            scene.getStylesheets().add(
+                    getClass().getResource("/css/styles.css").toExternalForm());
+
+            primaryStage.setScene(scene);
+            primaryStage.setTitle("Addon Creator - New Project");
+
+        } catch (IOException e) {
+            logger.error("Failed to load create project screen", e);
+            throw new RuntimeException("Failed to load create project screen", e);
+        }
+    }
+
+    /**
      * Show settings as a modal dialog
      */
     public void showSettingsModal() {

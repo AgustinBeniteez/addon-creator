@@ -18,6 +18,8 @@ public class SettingsManager {
     // Default settings
     public static final String KEY_LANGUAGE = "language";
     public static final String KEY_THEME = "theme";
+    public static final String KEY_GIT_USER = "git_user";
+    public static final String KEY_GIT_TOKEN = "git_token";
 
     private SettingsManager() {
         properties = new Properties();
@@ -60,6 +62,26 @@ public class SettingsManager {
 
     public void setLanguage(String language) {
         properties.setProperty(KEY_LANGUAGE, language);
+        saveSettings();
+    }
+
+    public String getGitUser() {
+        return properties.getProperty(KEY_GIT_USER, null);
+    }
+
+    public String getGitToken() {
+        return properties.getProperty(KEY_GIT_TOKEN, null);
+    }
+
+    public void setGitCredentials(String user, String token) {
+        if (user != null) properties.setProperty(KEY_GIT_USER, user);
+        if (token != null) properties.setProperty(KEY_GIT_TOKEN, token);
+        saveSettings();
+    }
+
+    public void clearGitCredentials() {
+        properties.remove(KEY_GIT_USER);
+        properties.remove(KEY_GIT_TOKEN);
         saveSettings();
     }
 }

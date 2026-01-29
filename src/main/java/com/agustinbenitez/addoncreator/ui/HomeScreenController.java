@@ -2,27 +2,29 @@ package com.agustinbenitez.addoncreator.ui;
 
 import com.agustinbenitez.addoncreator.core.GitManager;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
+import com.agustinbenitez.addoncreator.core.SettingsManager;
 import com.agustinbenitez.addoncreator.models.Project;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
+import javafx.scene.shape.SVGPath;
+import javafx.scene.shape.Circle;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.paint.Color;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -51,6 +53,9 @@ public class HomeScreenController {
     private Button settingsButton;
 
     @FXML
+    private Button loginButton;
+
+    @FXML
     private VBox headerContainer;
 
     @FXML
@@ -66,8 +71,7 @@ public class HomeScreenController {
         projectManager = new ProjectManager();
         gitManager = new GitManager();
 
-        // Make FlowPane responsive - bind wrap length to ScrollPane width
-        // Subtracting padding to prevent horizontal scroll
+        // Make FlowPane responsive
         if (projectsScrollPane != null) {
             projectsGrid.prefWrapLengthProperty().bind(projectsScrollPane.widthProperty().subtract(50));
         } else {
@@ -83,9 +87,105 @@ public class HomeScreenController {
         createProjectButton.setOnAction(e -> handleCreateProject());
         openProjectButton.setOnAction(e -> handleOpenProject());
         settingsButton.setOnAction(e -> handleSettings());
+        if (loginButton != null) {
+            loginButton.setOnAction(e -> handleLogin());
+        }
+
+        // Check for saved credentials and update avatar
+        String savedUser = SettingsManager.getInstance().getGitUser();
+        if (savedUser != null && !savedUser.isEmpty()) {
+            updateUserAvatar(savedUser);
+        }
 
         // Load and display projects
         loadProjects();
+    }
+
+    private void handleLogin() {
+        // Prevent login dialog if already logged in
+        if (SettingsManager.getInstance().getGitUser() != null && !SettingsManager.getInstance().getGitUser().isEmpty()) {
+            return;
+        }
+
+        LoginDialogHelper.showLoginDialog((user, token) -> {
+            SettingsManager.getInstance().setGitCredentials(user, token);
+            updateUserAvatar(user);
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Login Exitoso");
+            alert.setHeaderText(null);
+            alert.setContentText("Sesión iniciada correctamente como: " + user);
+            alert.showAndWait();
+        });
+    }
+
+    private void updateUserAvatar(String user) {
+        try {
+            String avatarUrl = "https://github.com/" + user + ".png";
+            Image image = new Image(avatarUrl, true);
+            
+            image.progressProperty().addListener((obs, oldV, newV) -> {
+                if (newV.doubleValue() == 1.0 && !image.isError()) {
+                    javafx.application.Platform.runLater(() -> {
+                         // Create Avatar
+                         Circle avatar = new Circle(15, 15, 15);
+                         avatar.setFill(new ImagePattern(image));
+                         
+                         // Create Git Icon
+                         SVGPath gitIcon = new SVGPath();
+                         gitIcon.setContent("M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12");
+                         gitIcon.setFill(Color.WHITE);
+                         gitIcon.setScaleX(0.8);
+                         gitIcon.setScaleY(0.8);
+                         
+                         // Create Container
+                         HBox container = new HBox(8);
+                         container.setAlignment(Pos.CENTER);
+                         container.getChildren().addAll(gitIcon, avatar);
+                         
+                         if (loginButton != null) {
+                            loginButton.setGraphic(container);
+                            
+                            // Setup Context Menu for Logout
+                            ContextMenu contextMenu = new ContextMenu();
+                            MenuItem logoutItem = new MenuItem("Cerrar sesión");
+                            logoutItem.setOnAction(e -> handleLogout());
+                            contextMenu.getItems().add(logoutItem);
+                            
+                            loginButton.setContextMenu(contextMenu);
+                         }
+                    });
+                }
+            });
+        } catch (Exception e) {
+            logger.error("Failed to load avatar", e);
+        }
+    }
+
+    private void handleLogout() {
+        SettingsManager.getInstance().clearGitCredentials();
+        resetLoginButton();
+        
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Sesión Cerrada");
+        alert.setHeaderText(null);
+        alert.setContentText("Has cerrado sesión correctamente.");
+        alert.showAndWait();
+    }
+
+    private void resetLoginButton() {
+        if (loginButton != null) {
+            // Remove Context Menu
+            loginButton.setContextMenu(null);
+            
+            // Restore default icon
+            SVGPath icon = new SVGPath();
+            icon.setContent("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z");
+            icon.setFill(Color.WHITE);
+            icon.setScaleX(1.2);
+            icon.setScaleY(1.2);
+            
+            loginButton.setGraphic(icon);
+        }
     }
 
     private void loadProjects() {
@@ -108,7 +208,7 @@ public class HomeScreenController {
         card.setPrefWidth(250);
         card.setPrefHeight(200);
 
-        // Project icon - load from pack_icon.png
+        // Project icon
         ImageView iconView = new ImageView();
         iconView.setFitWidth(64);
         iconView.setFitHeight(64);
@@ -120,13 +220,11 @@ public class HomeScreenController {
                 Image icon = new Image(iconPath.toUri().toString());
                 iconView.setImage(icon);
             } else {
-                // Use preset logo if pack_icon doesn't exist
                 Image presetIcon = new Image(getClass().getResourceAsStream("/images/preset_logo.png"));
                 iconView.setImage(presetIcon);
             }
         } catch (Exception e) {
             logger.warn("Failed to load pack icon for project: {}", project.getName());
-            // Use preset logo as fallback
             try {
                 Image presetIcon = new Image(getClass().getResourceAsStream("/images/preset_logo.png"));
                 iconView.setImage(presetIcon);
@@ -185,286 +283,32 @@ public class HomeScreenController {
         Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
         confirmDialog.setTitle("Confirmar eliminación");
         confirmDialog.setHeaderText("¿Eliminar proyecto '" + project.getName() + "'?");
-        confirmDialog
-                .setContentText("Esta acción eliminará el proyecto de la lista (no elimina los archivos del disco).");
-
+        confirmDialog.setContentText("Esta acción no se puede deshacer.");
+        
         confirmDialog.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                projectManager.removeProject(project);
-                logger.info("Deleted project: {}", project.getName());
-                loadProjects(); // Reload projects grid
+                projectManager.deleteProject(project.getId());
+                loadProjects();
             }
         });
     }
 
-    private void handleSettings() {
-        NavigationManager.getInstance().showSettingsModal();
+    private void handleCreateProject() {
+        NavigationManager.getInstance().showCreateProject();
     }
 
     private void handleOpenProject() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Abrir Carpeta de Proyecto");
-        File file = directoryChooser.showDialog(openProjectButton.getScene().getWindow());
-
-        if (file != null) {
-            // Check if it's already in the list to avoid duplicates (optional, but good UX)
-            // Ideally we check by path.
-            
-            // For now, just create a project object. We might want to read manifest.json to get name/desc
-            String name = file.getName();
-            String description = "Proyecto importado";
-            
-            // Try to read manifest.json for better name/desc
-            try {
-                File bpManifest = new File(file, "BP/manifest.json");
-                if (bpManifest.exists()) {
-                     String content = Files.readString(bpManifest.toPath());
-                     // Simple parsing or use Gson if available
-                     if (content.contains("\"name\"")) {
-                         // Very basic extraction just to have something better than folder name
-                         // A proper JSON parse is better but let's keep it simple or use the existing Gson if we want
-                     }
-                }
-            } catch (Exception e) {
-                logger.warn("Could not read manifest", e);
-            }
-
-            Project project = new Project(name, description, file.getAbsolutePath());
-            
-            // Check if already exists in manager to update it or add it
-            // ProjectManager doesn't expose "exists", so we just add. 
-            // Depending on implementation of addProject/saveProjects, it might duplicate if ID is new.
-            // But Project constructor generates new UUID.
-            // Ideally we should check if path exists in loaded projects.
-            
-            List<Project> existing = projectManager.loadProjects();
-            boolean exists = false;
-            for (Project p : existing) {
-                if (p.getRootPath().equals(project.getRootPath())) {
-                    project = p; // Use existing
-                    exists = true;
-                    break;
-                }
-            }
-            
-            if (!exists) {
-                projectManager.addProject(project);
-            }
-            
-            NavigationManager.getInstance().showEditor(project);
+        directoryChooser.setTitle("Abrir Proyecto Existente");
+        File selectedDirectory = directoryChooser.showDialog(projectsGrid.getScene().getWindow());
+        
+        if (selectedDirectory != null) {
+             Project project = new Project(selectedDirectory.getName(), "Imported Project", selectedDirectory.getAbsolutePath());
+             NavigationManager.getInstance().showEditor(project);
         }
     }
 
-    @FXML
-    private void handleCreateProject() {
-        logger.info("Create project button clicked");
-
-        // Create dialog
-        Dialog<Project> dialog = new Dialog<>();
-        dialog.setTitle("Crear Nuevo Proyecto");
-        dialog.setHeaderText("Ingresa los detalles del proyecto");
-
-        // Set button types
-        ButtonType createButtonType = new ButtonType("Crear", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(createButtonType, ButtonType.CANCEL);
-
-        // Create form
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
-
-        TextField nameField = new TextField();
-        nameField.setPromptText("Nombre del addon");
-
-        TextArea descArea = new TextArea();
-        descArea.setPromptText("Descripción del addon");
-        descArea.setPrefRowCount(3);
-
-        TextField pathField = new TextField();
-        pathField.setPromptText("Selecciona la carpeta...");
-        pathField.setEditable(false);
-
-        Button browseButton = new Button("Examinar...");
-
-        // Image selection
-        TextField imageField = new TextField();
-        imageField.setPromptText("Usar preset_logo.png por defecto");
-        imageField.setEditable(false);
-
-        Button browseImageButton = new Button("Seleccionar Imagen...");
-
-        final File[] selectedFolder = { null };
-        final File[] selectedImage = { null };
-
-        browseButton.setOnAction(e -> {
-            DirectoryChooser directoryChooser = new DirectoryChooser();
-            directoryChooser.setTitle("Seleccionar Carpeta del Proyecto");
-            File file = directoryChooser.showDialog(browseButton.getScene().getWindow());
-            if (file != null) {
-                selectedFolder[0] = file;
-                pathField.setText(file.getAbsolutePath());
-            }
-        });
-
-        browseImageButton.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Seleccionar Imagen del Pack");
-            fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Imágenes PNG", "*.png"),
-                    new FileChooser.ExtensionFilter("Todas las imágenes", "*.*"));
-            File file = fileChooser.showOpenDialog(browseImageButton.getScene().getWindow());
-            if (file != null) {
-                selectedImage[0] = file;
-                imageField.setText(file.getName());
-            }
-        });
-
-        // Git Init CheckBox
-        CheckBox gitInitCheckBox = new CheckBox("Inicializar repositorio Git");
-        gitInitCheckBox.setSelected(false);
-
-        grid.add(new Label("Nombre:"), 0, 0);
-        grid.add(nameField, 1, 0);
-        grid.add(new Label("Descripción:"), 0, 1);
-        grid.add(descArea, 1, 1);
-        grid.add(new Label("Ubicación:"), 0, 2);
-        grid.add(pathField, 1, 2);
-        grid.add(browseButton, 2, 2);
-        grid.add(new Label("Imagen:"), 0, 3);
-        grid.add(imageField, 1, 3);
-        grid.add(browseImageButton, 2, 3);
-        grid.add(gitInitCheckBox, 1, 4);
-
-        dialog.getDialogPane().setContent(grid);
-
-        // Convert result
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == createButtonType) {
-                String name = nameField.getText().trim();
-                String desc = descArea.getText().trim();
-
-                if (name.isEmpty() || desc.isEmpty() || selectedFolder[0] == null) {
-                    showError("Error de Validación", "Por favor completa todos los campos");
-                    return null;
-                }
-
-                return new Project(name, desc, selectedFolder[0].getAbsolutePath());
-            }
-            return null;
-        });
-
-        // Show dialog and process result
-        dialog.showAndWait().ifPresent(project -> {
-            projectManager.addProject(project);
-            logger.info("Created new project: {}", project.getName());
-
-            // Copy pack icon and create manifests
-            try {
-                Path projectPath = Paths.get(project.getRootPath());
-                Path bpPath = projectPath.resolve("BP");
-                Path rpPath = projectPath.resolve("RP");
-                Path bpIconPath = bpPath.resolve("pack_icon.png");
-                Path rpIconPath = rpPath.resolve("pack_icon.png");
-
-                // Ensure directories exist
-                Files.createDirectories(bpPath);
-                Files.createDirectories(rpPath);
-
-                // Copy pack icons
-                if (selectedImage[0] != null) {
-                    // Copy selected image
-                    Files.copy(selectedImage[0].toPath(), bpIconPath, StandardCopyOption.REPLACE_EXISTING);
-                    Files.copy(selectedImage[0].toPath(), rpIconPath, StandardCopyOption.REPLACE_EXISTING);
-                } else {
-                    // Copy preset logo
-                    var presetStream = getClass().getResourceAsStream("/images/preset_logo.png");
-                    if (presetStream != null) {
-                        Files.copy(presetStream, bpIconPath, StandardCopyOption.REPLACE_EXISTING);
-                        presetStream = getClass().getResourceAsStream("/images/preset_logo.png");
-                        Files.copy(presetStream, rpIconPath, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-
-                // Create manifest.json for BP (Behavior Pack)
-                String bpManifest = createManifestJson(
-                        project.getName(),
-                        project.getDescription(),
-                        "data",
-                        java.util.UUID.randomUUID().toString(),
-                        java.util.UUID.randomUUID().toString());
-                Files.writeString(bpPath.resolve("manifest.json"), bpManifest);
-
-                // Create manifest.json for RP (Resource Pack)
-                String rpManifest = createManifestJson(
-                        project.getName(),
-                        project.getDescription(),
-                        "resources",
-                        java.util.UUID.randomUUID().toString(),
-                        java.util.UUID.randomUUID().toString());
-                Files.writeString(rpPath.resolve("manifest.json"), rpManifest);
-
-                logger.info("Created manifest files for project: {}", project.getName());
-
-                // Initialize Git if requested
-                if (gitInitCheckBox.isSelected()) {
-                    try {
-                        gitManager.initRepository(new File(project.getRootPath()));
-                        gitManager.addAll();
-                        gitManager.commit("Initial commit");
-                        logger.info("Initialized Git repository for project: {}", project.getName());
-                    } catch (Exception e) {
-                        logger.error("Failed to initialize Git repository", e);
-                        showError("Error Git", "No se pudo inicializar el repositorio Git: " + e.getMessage());
-                    }
-                }
-
-            } catch (IOException ex) {
-                logger.error("Failed to create project files", ex);
-                showError("Error", "No se pudieron crear los archivos del proyecto");
-            }
-
-            loadProjects(); // Reload projects grid
-
-            showSuccess("Proyecto creado exitosamente!");
-        });
-    }
-
-    private String createManifestJson(String name, String description, String type, String uuid1, String uuid2) {
-        return String.format("""
-                {
-                  "format_version": 2,
-                  "header": {
-                    "name": "%s",
-                    "description": "%s",
-                    "uuid": "%s",
-                    "version": [1, 0, 0],
-                    "min_engine_version": [1, 20, 0]
-                  },
-                  "modules": [
-                    {
-                      "type": "%s",
-                      "uuid": "%s",
-                      "version": [1, 0, 0]
-                    }
-                  ]
-                }
-                """, name, description, uuid1, type, uuid2);
-    }
-
-    private void showError(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
-    private void showSuccess(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    private void handleSettings() {
+        NavigationManager.getInstance().showSettingsModal();
     }
 }
