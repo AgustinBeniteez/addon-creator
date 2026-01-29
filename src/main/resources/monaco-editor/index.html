@@ -17,6 +17,7 @@
     
     require(['vs/editor/editor.main'], function() {
         // Configure JSON validation to be more permissive for Bedrock addons
+        // Disabling validation to prevent false positives with Minecraft JSON files
         monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
             validate: true,
             allowComments: true,
@@ -27,7 +28,7 @@
 
         editor = monaco.editor.create(document.getElementById('container'), {
             value: "",
-            language: 'javascript',
+            language: 'json',
             theme: 'vs-dark',
             automaticLayout: true,
             minimap: { enabled: true },
@@ -46,6 +47,19 @@
         });
     });
     
+    function initEditor(content, lang) {
+        if (editor) {
+            editor.setValue(content);
+            monaco.editor.setModelLanguage(editor.getModel(), lang);
+            setTimeout(function() {
+                editor.getAction('editor.action.formatDocument').run();
+            }, 100);
+        } else {
+            // Wait for editor to initialize
+            setTimeout(function() { initEditor(content, lang); }, 100);
+        }
+    }
+
     function setContent(content) {
         if (editor) {
             // Disable listener temporarily to avoid triggering change event on load

@@ -1265,7 +1265,8 @@ public class EditorController {
                         window.setMember("javaApp", new JavaBridge(content));
                         
                         String lang = getMonacoLanguage(filePath.getFileName().toString());
-                        webEngine.executeScript("setTimeout(function() { if(typeof setContent === 'function') { setContent(javaApp.getContent()); setLanguage('" + lang + "'); } }, 200);");
+                        // Use initEditor for robust loading, fallback to old method if not found (though it should be)
+                        webEngine.executeScript("setTimeout(function() { if(typeof initEditor === 'function') { initEditor(javaApp.getContent(), '" + lang + "'); } else { setContent(javaApp.getContent()); setLanguage('" + lang + "'); } }, 200);");
                         
                         // Fade out loading overlay
                         FadeTransition ft = new FadeTransition(Duration.millis(300), loadingOverlay);
