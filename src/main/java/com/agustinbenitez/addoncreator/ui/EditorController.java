@@ -642,7 +642,7 @@ public class EditorController {
         btnExplorer.setOnAction(e -> handleExplorer());
         btnSearch.setOnAction(e -> handleSearch());
         if (btnGit != null) btnGit.setOnAction(e -> handleGit());
-        btnSave.setOnAction(e -> handleSave());
+        if (btnSave != null) btnSave.setOnAction(e -> handleSave());
         btnFormat.setOnAction(e -> handleFormat());
         btnExport.setOnAction(e -> handleExport());
         btnTest.setOnAction(e -> handleTest());
@@ -2131,7 +2131,7 @@ public class EditorController {
             }
         }
 
-        btnSave.setDisable(!shouldEnable);
+        if (btnSave != null) btnSave.setDisable(!shouldEnable);
         menuSave.setDisable(!shouldEnable);
     }
 
