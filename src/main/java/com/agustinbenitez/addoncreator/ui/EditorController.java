@@ -1827,19 +1827,63 @@ public class EditorController {
                 imageView.setFitWidth(image.getWidth());
             }
 
+            // Zoom State
+            final double[] currentZoom = {1.0};
+            final double ZOOM_STEP = 0.1;
+            final double MIN_ZOOM = 0.1;
+            final double MAX_ZOOM = 5.0;
+
             // Create zoom controls
             Label zoomLabel = new Label("100%");
-            zoomLabel.setStyle("-fx-text-fill: white; -fx-background-color: rgba(0,0,0,0.5); -fx-padding: 5; -fx-background-radius: 5;");
+            zoomLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px; -fx-padding: 0 10; -fx-font-family: 'Segoe UI', sans-serif;");
             
-            Slider zoomSlider = new Slider(0.1, 5.0, 1.0);
-            zoomSlider.setMaxWidth(200);
-            zoomSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                double zoom = newVal.doubleValue();
-                imageView.setScaleX(zoom);
-                imageView.setScaleY(zoom);
-                zoomLabel.setText(String.format("%.0f%%", zoom * 100));
+            // Icons
+            SVGPath zoomOutIcon = new SVGPath();
+            zoomOutIcon.setContent("M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z");
+            zoomOutIcon.setFill(Color.WHITE);
+            zoomOutIcon.setScaleX(0.9); zoomOutIcon.setScaleY(0.9);
+
+            SVGPath zoomInIcon = new SVGPath();
+            zoomInIcon.setContent("M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z");
+            zoomInIcon.setFill(Color.WHITE);
+            zoomInIcon.setScaleX(0.9); zoomInIcon.setScaleY(0.9);
+
+            // Buttons
+            Button zoomOutBtn = new Button();
+            zoomOutBtn.setGraphic(zoomOutIcon);
+            zoomOutBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;");
+            
+            Button zoomInBtn = new Button();
+            zoomInBtn.setGraphic(zoomInIcon);
+            zoomInBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;");
+
+            Runnable updateZoom = () -> {
+                imageView.setScaleX(currentZoom[0]);
+                imageView.setScaleY(currentZoom[0]);
+                zoomLabel.setText(String.format("%.0f%%", currentZoom[0] * 100));
+            };
+
+            zoomOutBtn.setOnAction(e -> {
+                if (currentZoom[0] > MIN_ZOOM) {
+                    currentZoom[0] = Math.max(MIN_ZOOM, currentZoom[0] - ZOOM_STEP);
+                    updateZoom.run();
+                }
             });
+
+            zoomInBtn.setOnAction(e -> {
+                if (currentZoom[0] < MAX_ZOOM) {
+                    currentZoom[0] = Math.min(MAX_ZOOM, currentZoom[0] + ZOOM_STEP);
+                    updateZoom.run();
+                }
+            });
+
+            // Hover effects for buttons
+            zoomOutBtn.setOnMouseEntered(e -> zoomOutBtn.setStyle("-fx-background-color: rgba(255,255,255,0.1); -fx-cursor: hand; -fx-padding: 5; -fx-background-radius: 3;"));
+            zoomOutBtn.setOnMouseExited(e -> zoomOutBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;"));
             
+            zoomInBtn.setOnMouseEntered(e -> zoomInBtn.setStyle("-fx-background-color: rgba(255,255,255,0.1); -fx-cursor: hand; -fx-padding: 5; -fx-background-radius: 3;"));
+            zoomInBtn.setOnMouseExited(e -> zoomInBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;"));
+
             // Zoom with scroll wheel
             javafx.scene.layout.StackPane imageContainer = new javafx.scene.layout.StackPane(imageView);
             imageContainer.setStyle("-fx-background-color: #1e1e1e; -fx-alignment: center;");
@@ -1847,14 +1891,14 @@ public class EditorController {
             imageContainer.setOnScroll(e -> {
                 if (e.isControlDown()) {
                     double delta = e.getDeltaY();
-                    double zoomFactor = 1.05;
-                    double currentZoom = zoomSlider.getValue();
+                    double zoomFactor = 1.1; // Slightly smoother
                     
                     if (delta < 0) {
-                        zoomSlider.setValue(currentZoom / zoomFactor);
+                        currentZoom[0] = Math.max(MIN_ZOOM, currentZoom[0] / zoomFactor);
                     } else {
-                        zoomSlider.setValue(currentZoom * zoomFactor);
+                        currentZoom[0] = Math.min(MAX_ZOOM, currentZoom[0] * zoomFactor);
                     }
+                    updateZoom.run();
                     e.consume();
                 }
             });
@@ -1865,18 +1909,21 @@ public class EditorController {
             scrollPane.setFitToHeight(true);
             scrollPane.setStyle("-fx-background-color: #1e1e1e; -fx-background: #1e1e1e;");
             
-            // Layout with controls
-            VBox mainLayout = new VBox();
+            // Zoom Controls Container
+            HBox zoomControls = new HBox(5);
+            zoomControls.setAlignment(javafx.geometry.Pos.CENTER);
+            zoomControls.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 20; -fx-padding: 5 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0); -fx-border-color: #3e3e3e; -fx-border-radius: 20; -fx-border-width: 1;");
+            zoomControls.setMaxWidth(Region.USE_PREF_SIZE);
+            zoomControls.setMaxHeight(Region.USE_PREF_SIZE);
+            zoomControls.getChildren().addAll(zoomOutBtn, zoomLabel, zoomInBtn);
+
+            // Main Layout (StackPane to overlay controls)
+            StackPane mainLayout = new StackPane();
             mainLayout.setStyle("-fx-background-color: #1e1e1e;");
-            
-            HBox controls = new HBox(10);
-            controls.setAlignment(javafx.geometry.Pos.CENTER);
-            controls.setPadding(new javafx.geometry.Insets(10));
-            controls.setStyle("-fx-background-color: #2d2d2d;");
-            controls.getChildren().addAll(new Label("Zoom:"), zoomSlider, zoomLabel);
-            
-            mainLayout.getChildren().addAll(controls, scrollPane);
-            VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
+            mainLayout.getChildren().add(scrollPane);
+            mainLayout.getChildren().add(zoomControls);
+            StackPane.setAlignment(zoomControls, javafx.geometry.Pos.BOTTOM_RIGHT);
+            StackPane.setMargin(zoomControls, new javafx.geometry.Insets(20));
 
             Tab tab = new Tab(imagePath.getFileName().toString());
             setupTab(tab, imagePath);
