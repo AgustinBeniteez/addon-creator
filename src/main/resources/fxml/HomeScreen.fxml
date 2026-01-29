@@ -13,9 +13,9 @@
     
     <!-- Top: Header with Image -->
     <top>
-        <VBox styleClass="home-header" alignment="CENTER">
+        <VBox fx:id="headerContainer" styleClass="home-header" alignment="CENTER" minWidth="0">
             <!-- Header Image -->
-            <ImageView fitWidth="2000" preserveRatio="false" fitHeight="200">
+            <ImageView fx:id="headerImageView" preserveRatio="true">
                 <image>
                     <Image url="@../images/header_image.png"/>
                 </image>
@@ -55,7 +55,7 @@
                 </Label>
                 
                 <!-- Projects Grid in ScrollPane -->
-                <ScrollPane fitToWidth="true" styleClass="projects-scroll" 
+                <ScrollPane fx:id="projectsScrollPane" fitToWidth="true" styleClass="projects-scroll" 
                            VBox.vgrow="ALWAYS" hbarPolicy="NEVER">
                     <FlowPane fx:id="projectsGrid" 
                              hgap="20" vgap="20" 

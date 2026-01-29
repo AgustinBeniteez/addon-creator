@@ -36,10 +36,19 @@ public class HomeScreenController {
     private FlowPane projectsGrid;
 
     @FXML
+    private ScrollPane projectsScrollPane;
+
+    @FXML
     private Button createProjectButton;
 
     @FXML
     private Button settingsButton;
+
+    @FXML
+    private VBox headerContainer;
+
+    @FXML
+    private ImageView headerImageView;
 
     private ProjectManager projectManager;
 
@@ -49,8 +58,18 @@ public class HomeScreenController {
 
         projectManager = new ProjectManager();
 
-        // Make FlowPane responsive - bind wrap length to width
-        projectsGrid.prefWrapLengthProperty().bind(projectsGrid.widthProperty());
+        // Make FlowPane responsive - bind wrap length to ScrollPane width
+        // Subtracting padding to prevent horizontal scroll
+        if (projectsScrollPane != null) {
+            projectsGrid.prefWrapLengthProperty().bind(projectsScrollPane.widthProperty().subtract(50));
+        } else {
+             projectsGrid.prefWrapLengthProperty().bind(projectsGrid.widthProperty());
+        }
+        
+        // Make Header Image responsive
+        if (headerImageView != null && headerContainer != null) {
+            headerImageView.fitWidthProperty().bind(headerContainer.widthProperty());
+        }
 
         // Setup button action
         createProjectButton.setOnAction(e -> handleCreateProject());
