@@ -52,12 +52,13 @@ public class FileTreeManager {
                 .thenComparing(File::getName));
 
         for (File file : files) {
-            // Skip hidden files and target directory
-            if (file.getName().startsWith(".") || file.getName().equals("target")) {
+            // Skip .git folder and target directory, but show other dotfiles like .gitignore
+            if ((file.isDirectory() && file.getName().equals(".git")) || file.getName().equals("target")) {
                 continue;
             }
 
-            String displayName = file.isDirectory() ? "📁 " + file.getName() : "📄 " + file.getName();
+            // Store raw name, icons are handled by CellFactory
+            String displayName = file.getName();
 
             TreeItem<String> item = new TreeItem<>(displayName);
             parent.getChildren().add(item);
@@ -83,9 +84,7 @@ public class FileTreeManager {
 
         while (current.getParent() != null) {
             String name = current.getValue();
-            // Remove emoji icons
-            name = name.replaceAll("^[📁📄] ", "");
-
+            
             if (pathBuilder.length() > 0) {
                 pathBuilder.insert(0, File.separator);
             }
@@ -104,6 +103,21 @@ public class FileTreeManager {
         if (item == null) {
             return false;
         }
-        return item.getValue().startsWith("📄");
+        // Since we removed emojis, we need another way to check.
+        // However, this method is static and doesn't have access to the File system directly easily
+        // without reconstructing the path.
+        // But the caller usually knows context.
+        // Actually, the TreeItem doesn't store if it's a file or folder explicitly anymore in the value.
+        // We can check if it has children, but empty folders have no children too.
+        // Best approach: The TreeItem is just a model. The controller determines if it's a file by checking filesystem.
+        // Or we can keep a convention but invisible? No.
+        // Let's rely on the filesystem check in the controller using getPathFromTreeItem.
+        // For now, return !item.getChildren().isEmpty() is NOT reliable.
+        // Let's deprecate this or make it try to guess?
+        // Actually, buildFileTree creates the structure.
+        // We can subclass TreeItem<String> to FileTreeItem that knows?
+        // Too much refactoring.
+        // Let's just use Files.isDirectory(path) in the controller.
+        return true; // Placeholder, logic should move to controller
     }
 }

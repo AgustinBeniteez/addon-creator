@@ -19,6 +19,7 @@
                     <MenuItem fx:id="menuNewFile" text="New File" accelerator="Ctrl+N"/>
                     <MenuItem fx:id="menuSave" text="Save" accelerator="Ctrl+S"/>
                     <MenuItem fx:id="menuSaveAll" text="Save All" accelerator="Ctrl+Shift+S"/>
+                    <CheckMenuItem fx:id="menuAutoSave" text="Auto Save"/>
                     <SeparatorMenuItem/>
                     <MenuItem fx:id="menuExport" text="Export Project" accelerator="Ctrl+E"/>
                     <SeparatorMenuItem/>

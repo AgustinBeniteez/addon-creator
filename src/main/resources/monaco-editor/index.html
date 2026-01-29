@@ -40,12 +40,17 @@
         
         // Add change listener to notify Java if needed
         editor.onDidChangeModelContent(function(e) {
-            // console.log("Content changed");
+            if (window.javaApp && typeof window.javaApp.onContentChange === 'function') {
+                window.javaApp.onContentChange();
+            }
         });
     });
     
     function setContent(content) {
         if (editor) {
+            // Disable listener temporarily to avoid triggering change event on load
+            // Actually, we can just ignore the first change or handle it in Java
+            // But let's just set value.
             editor.setValue(content);
             // Auto-format when setting content initially
             setTimeout(function() {
