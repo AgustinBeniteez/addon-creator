@@ -43,6 +43,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+import java.io.UncheckedIOException;
+
 /**
  * Controller for the IDE-style editor screen
  * 
@@ -88,6 +95,10 @@ public class EditorController {
     @FXML
     private Button btnBack;
     @FXML
+    private Button btnExplorer;
+    @FXML
+    private Button btnSearch;
+    @FXML
     private Button btnSave;
     @FXML
     private Button btnFormat;
@@ -101,6 +112,19 @@ public class EditorController {
     private Label projectNameToolbar;
 
     // Sidebar
+    @FXML
+    private VBox projectExplorerView;
+    @FXML
+    private VBox searchView;
+    @FXML
+    private TextField searchField;
+    @FXML
+    private Button btnDoSearch;
+    @FXML
+    private Label searchStatusLabel;
+    @FXML
+    private ListView<String> searchResultsList;
+
     @FXML
     private Button btnAddElement;
     @FXML
@@ -128,6 +152,7 @@ public class EditorController {
     private Map<Tab, Boolean> tabDirtyMap; // Map tabs to their dirty state
     private boolean consoleVisible = true;
     private boolean autoSaveEnabled = false;
+    private PauseTransition searchDebounce;
 
     @FXML
     public void initialize() {
@@ -143,8 +168,108 @@ public class EditorController {
         setupConsole();
         setupAddElementButton();
         setupNewFileButton();
+        setupSearch();
+        
+        // Tab selection listener to update save button state
+        editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            updateSaveButtonState();
+        });
+        
+        // Initial state
+        updateSaveButtonState();
 
         log("IDE initialized successfully");
+    }
+
+    private void setupSearch() {
+        // Debounce setup: wait 400ms after typing stops before searching
+        searchDebounce = new PauseTransition(Duration.millis(400));
+        searchDebounce.setOnFinished(e -> performSearch());
+
+        // Listen for text changes
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            searchDebounce.playFromStart();
+        });
+
+        // Highlight matching text in results
+        searchResultsList.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    // Item format: "filename:line - content |fullpath"
+                    String displayPart = item;
+                    String fullPath = "";
+                    if (item.contains("|")) {
+                        int pipeIndex = item.lastIndexOf("|");
+                        displayPart = item.substring(0, pipeIndex);
+                        fullPath = item.substring(pipeIndex + 1);
+                    }
+
+                    // Create TextFlow for highlighting
+                    TextFlow textFlow = new TextFlow();
+                    String lowerDisplay = displayPart.toLowerCase();
+                    String query = searchField.getText().trim().toLowerCase();
+                    
+                    if (!query.isEmpty() && lowerDisplay.contains(query)) {
+                        int index = lowerDisplay.indexOf(query);
+                        while (index >= 0) {
+                            // Text before match
+                            if (index > 0) {
+                                Text before = new Text(displayPart.substring(0, index));
+                                before.setFill(Color.WHITE);
+                                textFlow.getChildren().add(before);
+                            }
+                            
+                            // Matched text
+                            Text match = new Text(displayPart.substring(index, index + query.length()));
+                            match.setFill(Color.web("#3B82F6")); // Blue highlight
+                            match.setStyle("-fx-font-weight: bold;");
+                            textFlow.getChildren().add(match);
+                            
+                            // Prepare for next iteration
+                            displayPart = displayPart.substring(index + query.length());
+                            lowerDisplay = displayPart.toLowerCase();
+                            index = lowerDisplay.indexOf(query);
+                        }
+                        // Remaining text
+                        if (!displayPart.isEmpty()) {
+                            Text after = new Text(displayPart);
+                            after.setFill(Color.WHITE);
+                            textFlow.getChildren().add(after);
+                        }
+                    } else {
+                        // No match or empty query
+                        Text text = new Text(displayPart);
+                        text.setFill(Color.WHITE);
+                        textFlow.getChildren().add(text);
+                    }
+                    
+                    // Add Icon
+                    HBox hbox = new HBox(6);
+                    hbox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                    
+                    if (!fullPath.isEmpty()) {
+                         try {
+                             Path path = Paths.get(fullPath);
+                             String fileName = path.getFileName().toString();
+                             javafx.scene.Node icon = FileIconFactory.createIcon(fileName, false);
+                             hbox.getChildren().add(icon);
+                         } catch (Exception e) {
+                             // Fallback if path is invalid
+                         }
+                    }
+                    
+                    hbox.getChildren().add(textFlow);
+                    
+                    setGraphic(hbox);
+                    setText(null);
+                }
+            }
+        });
     }
 
     public void setProject(Project project) {
@@ -193,12 +318,230 @@ public class EditorController {
 
     private void setupToolbarActions() {
         btnBack.setOnAction(e -> handleClose());
+        btnExplorer.setOnAction(e -> handleExplorer());
+        btnSearch.setOnAction(e -> handleSearch());
         btnSave.setOnAction(e -> handleSave());
         btnFormat.setOnAction(e -> handleFormat());
         btnExport.setOnAction(e -> handleExport());
         btnTest.setOnAction(e -> handleTest());
         btnSettings.setOnAction(e -> handleSettings());
+        
+        // Search View Actions
+        btnDoSearch.setOnAction(e -> performSearch());
+        searchField.setOnAction(e -> performSearch()); // Enter key
+        
+        searchResultsList.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                String selected = searchResultsList.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    openSearchResult(selected);
+                }
+            }
+        });
     }
+
+    private void handleExplorer() {
+        projectExplorerView.setVisible(true);
+        searchView.setVisible(false);
+    }
+
+    private void handleSearch() {
+        projectExplorerView.setVisible(false);
+        searchView.setVisible(true);
+        searchField.requestFocus();
+    }
+    
+    private void performSearch() {
+        if (currentProject == null) {
+            searchStatusLabel.setText("No project loaded");
+            return;
+        }
+
+        String query = searchField.getText().trim();
+        if (query.isEmpty()) {
+            searchResultsList.getItems().clear();
+            searchStatusLabel.setText("Ready to search");
+            return;
+        }
+        
+        searchResultsList.getItems().clear();
+        searchStatusLabel.setText("Searching in project...");
+        
+        // Capture root path outside the thread
+        String rootPath = currentProject.getRootPath();
+        
+        new Thread(() -> {
+            try {
+                Path root = Paths.get(rootPath);
+                if (!Files.exists(root)) {
+                     javafx.application.Platform.runLater(() -> 
+                        searchStatusLabel.setText("Project root not found")
+                     );
+                     return;
+                }
+
+                AtomicInteger resultsCount = new AtomicInteger(0);
+                int MAX_RESULTS = 500;
+
+                try {
+                    Files.walk(root)
+                        .filter(Files::isRegularFile)
+                        .forEach(file -> {
+                            // Stop processing if we have enough results (optimization)
+                            if (resultsCount.get() >= MAX_RESULTS) return;
+
+                            String fileName = file.getFileName().toString();
+                            boolean foundInFile = false;
+
+                            // 1. Filename Match
+                            if (fileName.toLowerCase().contains(query.toLowerCase())) {
+                                String result = fileName + " (File Match)";
+                                String fullPath = file.toAbsolutePath().toString();
+                                String displayStr = result + " |" + fullPath;
+                                
+                                if (resultsCount.incrementAndGet() <= MAX_RESULTS) {
+                                    javafx.application.Platform.runLater(() -> searchResultsList.getItems().add(displayStr));
+                                }
+                                foundInFile = true;
+                            }
+
+                            // 2. Content Match (skip binaries)
+                            if (!isBinary(fileName)) {
+                                try (Stream<String> stream = Files.lines(file)) {
+                                    AtomicInteger lineNum = new AtomicInteger(0);
+                                    stream.forEach(line -> {
+                                        if (resultsCount.get() >= MAX_RESULTS) return;
+
+                                        int currentLine = lineNum.incrementAndGet();
+                                        if (line.toLowerCase().contains(query.toLowerCase())) {
+                                            // Limit line length for display
+                                            String displayLine = line.trim();
+                                            if (displayLine.length() > 80) displayLine = displayLine.substring(0, 80) + "...";
+                                            
+                                            String result = fileName + ":" + currentLine + " - " + displayLine;
+                                            String fullPath = file.toAbsolutePath().toString();
+                                            String displayStr = result + " |" + fullPath;
+                                            
+                                            if (resultsCount.incrementAndGet() <= MAX_RESULTS) {
+                                                javafx.application.Platform.runLater(() -> searchResultsList.getItems().add(displayStr));
+                                            }
+                                        }
+                                    });
+                                } catch (IOException | UncheckedIOException e) {
+                                    // Ignore read errors
+                                }
+                            }
+                        });
+                } catch (IOException | UncheckedIOException e) {
+                    logger.error("Error walking file tree", e);
+                }
+                    
+                javafx.application.Platform.runLater(() -> {
+                    int count = resultsCount.get();
+                    String status = "Found " + count + (count >= MAX_RESULTS ? "+" : "") + " results";
+                    searchStatusLabel.setText(status);
+                });
+                
+            } catch (Exception e) {
+                logger.error("Search failed", e);
+                javafx.application.Platform.runLater(() -> searchStatusLabel.setText("Search error: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private boolean isBinary(String fileName) {
+        String lower = fileName.toLowerCase();
+        return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || 
+               lower.endsWith(".gif") || lower.endsWith(".jar") || lower.endsWith(".zip") || 
+               lower.endsWith(".exe") || lower.endsWith(".dll") || lower.endsWith(".class") ||
+               lower.endsWith(".pdf");
+    }
+    
+    private void openSearchResult(String resultItem) {
+        // Format: "filename:line - content |fullpath"
+        if (resultItem.contains("|")) {
+            String fullPath = resultItem.substring(resultItem.lastIndexOf("|") + 1);
+            Path path = Paths.get(fullPath);
+            if (Files.exists(path)) {
+                openFileByPath(path);
+            }
+        }
+    }
+    
+    private void openFileByPath(Path filePath) {
+        // Check if file is already open
+        for (Tab tab : editorTabs.getTabs()) {
+            if (tabFileMap.get(tab).equals(filePath)) {
+                editorTabs.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
+        // Check if it's an image file
+        String fileName = filePath.getFileName().toString().toLowerCase();
+        if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")
+                || fileName.endsWith(".gif")) {
+            openImageInEditor(filePath);
+            return;
+        }
+
+        // Check if it's a 3D model
+        if (fileName.endsWith(".bbmodel") || fileName.endsWith(".geo.json")) {
+            openModelInEditor(filePath);
+            return;
+        }
+
+        // Open text file
+        try {
+            String content = Files.readString(filePath);
+
+            Tab tab = new Tab(filePath.getFileName().toString());
+            setupTab(tab, filePath);
+            
+            WebView webView = new WebView();
+            WebEngine webEngine = webView.getEngine();
+            
+            // Disable context menu
+            webView.setContextMenuEnabled(false);
+            
+            // Load local Monaco editor
+            java.net.URL url = getClass().getResource("/monaco-editor/index.html");
+            if (url == null) {
+                log("✗ Error: No se encontró monaco-editor/index.html");
+                // Fallback to TextArea if Monaco is missing
+                TextArea editor = new TextArea(content);
+                editor.setStyle("-fx-font-family: 'Consolas', 'Monaco', monospace; -fx-font-size: 13px;");
+                tab.setContent(editor);
+            } else {
+                String editorUrl = url.toExternalForm();
+                
+                webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                    if (newState == Worker.State.SUCCEEDED) {
+                        JSObject window = (JSObject) webEngine.executeScript("window");
+                        window.setMember("javaApp", new JavaBridge(content));
+                        
+                        String lang = getMonacoLanguage(filePath.getFileName().toString());
+                        webEngine.executeScript("setTimeout(function() { if(typeof setContent === 'function') { setContent(javaApp.getContent()); setLanguage('" + lang + "'); } }, 200);");
+                    }
+                });
+                
+                webEngine.load(editorUrl);
+                tab.setContent(webView);
+            }
+
+            tabFileMap.put(tab, filePath);
+            tabDirtyMap.put(tab, false); // Not dirty initially
+            editorTabs.getTabs().add(tab);
+            editorTabs.getSelectionModel().select(tab);
+
+            log("Archivo abierto: " + filePath.getFileName());
+
+        } catch (IOException ex) {
+            logger.error("Failed to open file", ex);
+            log("✗ Error al abrir archivo: " + ex.getMessage());
+        }
+    }
+
 
     private void handleFormat() {
         Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
@@ -644,78 +987,7 @@ public class EditorController {
 
     private void openFileInEditor(TreeItem<String> fileItem) {
         Path filePath = FileTreeManager.getPathFromTreeItem(fileItem, Paths.get(currentProject.getRootPath()));
-
-        // Check if file is already open
-        for (Tab tab : editorTabs.getTabs()) {
-            if (tabFileMap.get(tab).equals(filePath)) {
-                editorTabs.getSelectionModel().select(tab);
-                return;
-            }
-        }
-
-        // Check if it's an image file
-        String fileName = filePath.getFileName().toString().toLowerCase();
-        if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")
-                || fileName.endsWith(".gif")) {
-            openImageInEditor(filePath);
-            return;
-        }
-
-        // Check if it's a 3D model
-        if (fileName.endsWith(".bbmodel") || fileName.endsWith(".geo.json")) {
-            openModelInEditor(filePath);
-            return;
-        }
-
-        // Open text file
-        try {
-            String content = Files.readString(filePath);
-
-            Tab tab = new Tab(filePath.getFileName().toString());
-            setupTab(tab, filePath);
-            
-            WebView webView = new WebView();
-            WebEngine webEngine = webView.getEngine();
-            
-            // Disable context menu
-            webView.setContextMenuEnabled(false);
-            
-            // Load local Monaco editor
-            java.net.URL url = getClass().getResource("/monaco-editor/index.html");
-            if (url == null) {
-                log("✗ Error: No se encontró monaco-editor/index.html");
-                // Fallback to TextArea if Monaco is missing
-                TextArea editor = new TextArea(content);
-                editor.setStyle("-fx-font-family: 'Consolas', 'Monaco', monospace; -fx-font-size: 13px;");
-                tab.setContent(editor);
-            } else {
-                String editorUrl = url.toExternalForm();
-                
-                webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
-                    if (newState == Worker.State.SUCCEEDED) {
-                        JSObject window = (JSObject) webEngine.executeScript("window");
-                        window.setMember("javaApp", new JavaBridge(content));
-                        
-                        String lang = getMonacoLanguage(filePath.getFileName().toString());
-                        webEngine.executeScript("setTimeout(function() { if(typeof setContent === 'function') { setContent(javaApp.getContent()); setLanguage('" + lang + "'); } }, 200);");
-                    }
-                });
-                
-                webEngine.load(editorUrl);
-                tab.setContent(webView);
-            }
-
-            tabFileMap.put(tab, filePath);
-            tabDirtyMap.put(tab, false); // Not dirty initially
-            editorTabs.getTabs().add(tab);
-            editorTabs.getSelectionModel().select(tab);
-
-            log("Archivo abierto: " + filePath.getFileName());
-
-        } catch (IOException ex) {
-            logger.error("Failed to open file", ex);
-            log("✗ Error al abrir archivo: " + ex.getMessage());
-        }
+        openFileByPath(filePath);
     }
 
     private void openImageInEditor(Path imagePath) {
@@ -939,6 +1211,27 @@ public class EditorController {
         }
     }
 
+    private void updateSaveButtonState() {
+        Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
+        boolean shouldEnable = false;
+
+        if (selectedTab != null) {
+            Path filePath = tabFileMap.get(selectedTab);
+            if (filePath != null) {
+                String fileName = filePath.getFileName().toString().toLowerCase();
+                boolean isImage = fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".gif");
+                
+                // Only enable if not an image AND is dirty
+                if (!isImage && tabDirtyMap.getOrDefault(selectedTab, false)) {
+                    shouldEnable = true;
+                }
+            }
+        }
+
+        btnSave.setDisable(!shouldEnable);
+        menuSave.setDisable(!shouldEnable);
+    }
+
     private void handleSave() {
         Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
         if (selectedTab == null) {
@@ -970,6 +1263,7 @@ public class EditorController {
             if (selectedTab.getUserData() instanceof Runnable) {
                 ((Runnable) selectedTab.getUserData()).run();
             }
+            updateSaveButtonState();
             
         } catch (IOException e) {
             logger.error("Failed to save file", e);
@@ -1013,7 +1307,7 @@ public class EditorController {
     }
 
     private void handleSettings() {
-        NavigationManager.getInstance().showSettings(() -> NavigationManager.getInstance().showEditor(currentProject));
+        NavigationManager.getInstance().showSettingsModal();
     }
 
     private void handleClose() {
@@ -1256,6 +1550,7 @@ public class EditorController {
                             if (selectedTab.getUserData() instanceof Runnable) {
                                 ((Runnable) selectedTab.getUserData()).run();
                             }
+                            updateSaveButtonState();
                         }
                     }
                 }
@@ -1269,12 +1564,9 @@ public class EditorController {
         private static final String FILE_BODY = "M14 2H6C4.89 2 4 2.9 4 4V20C4 21.1 4.89 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z";
         private static final String FILE_CORNER = "M14 2V8H20";
         
-        // 3D Model Icon Paths
-        private static final String MODEL_PATH_1 = "M12 2L2 7l10 5 10-5-10-5z";
-        private static final String MODEL_PATH_2 = "M2 17l10 5 10-5";
-        private static final String MODEL_PATH_3 = "M2 7v10";
-        private static final String MODEL_PATH_4 = "M12 12v10";
-        private static final String MODEL_PATH_5 = "M22 7v10";
+        // 3D Model Icon Paths (Deprecated/Replaced)
+        // private static final String MODEL_PATH_1 = "M12 2L2 7l10 5 10-5-10-5z";
+        // ...
         
         public static javafx.scene.Node createIcon(String filename, boolean isDir) {
             if (isDir) {
@@ -1398,25 +1690,22 @@ public class EditorController {
             if (nameLower.endsWith(".bbmodel") || nameLower.endsWith(".geo.json")) {
                 Group g = new Group();
                 
-                // Helper to create path
-                java.util.function.Function<String, SVGPath> createPath = (d) -> {
-                    SVGPath p = new SVGPath();
-                    p.setContent(d);
-                    p.setFill(Color.TRANSPARENT);
-                    p.setStroke(Color.WHITE);
-                    p.setStrokeWidth(2);
-                    p.setStrokeLineCap(StrokeLineCap.ROUND);
-                    p.setStrokeLineJoin(StrokeLineJoin.ROUND);
-                    return p;
-                };
+                // Cara superior
+                SVGPath top = new SVGPath();
+                top.setContent("M12 2 L22 7 L12 12 L2 7 Z");
+                top.setFill(Color.web("#3B82F6"));
+                
+                // Cara izquierda
+                SVGPath left = new SVGPath();
+                left.setContent("M2 7 L12 12 L12 22 L2 17 Z");
+                left.setFill(Color.web("#2563EB"));
+                
+                // Cara derecha
+                SVGPath right = new SVGPath();
+                right.setContent("M22 7 L12 12 L12 22 L22 17 Z");
+                right.setFill(Color.web("#60A5FA"));
 
-                g.getChildren().addAll(
-                    createPath.apply(MODEL_PATH_1),
-                    createPath.apply(MODEL_PATH_2),
-                    createPath.apply(MODEL_PATH_3),
-                    createPath.apply(MODEL_PATH_4),
-                    createPath.apply(MODEL_PATH_5)
-                );
+                g.getChildren().addAll(top, left, right);
                 
                 return createScaledIcon(g);
             }

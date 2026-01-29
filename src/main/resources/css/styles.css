@@ -150,6 +150,40 @@
     -fx-background-color: #094771;
 }
 
+/* ===== LIST VIEW (Search Results) ===== */
+
+.file-tree .list-cell {
+    -fx-background-color: #252526;
+    -fx-text-fill: white;
+    -fx-padding: 4 8;
+    -fx-font-size: 13px;
+}
+
+.file-tree .list-cell:even {
+    -fx-background-color: #252526;
+}
+
+.file-tree .list-cell:odd {
+    -fx-background-color: #252526;
+}
+
+.file-tree .list-cell:filled:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.file-tree .list-cell:filled:selected {
+    -fx-background-color: #094771;
+    -fx-text-fill: white;
+}
+
+.file-tree .list-cell:empty {
+    -fx-background-color: #252526;
+}
+
+.file-tree .viewport {
+    -fx-background-color: #252526;
+}
+
 /* ===== EDITOR AREA ===== */
 
 .editor-area {
@@ -535,3 +569,45 @@
 .back-button:hover {
     -fx-background-color: rgba(255, 255, 255, 0.2);
 }
+/* ===== ACTIVITY BAR (VS Code Style) ===== */
+
+.activity-bar {
+    -fx-background-color: #333333;
+    -fx-border-color: #252526;
+    -fx-border-width: 0 1 0 0;
+}
+
+.activity-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #999999;
+    -fx-padding: 10;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 2;
+    -fx-cursor: hand;
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+}
+
+.activity-button:hover {
+    -fx-text-fill: white;
+}
+
+.activity-button:hover .activity-icon {
+    -fx-fill: white;
+}
+
+.activity-button:pressed {
+    -fx-border-color: white; 
+}
+
+.activity-icon {
+    -fx-fill: #999999;
+}
+
+.tooltip {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #454545;
+    -fx-font-size: 12px;
+}
+

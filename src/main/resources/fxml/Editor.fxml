@@ -4,17 +4,18 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.Group?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.agustinbenitez.addoncreator.ui.EditorController"
             styleClass="ide-root">
     
-    <!-- Top: Menu Bar and Toolbar -->
+    <!-- Top: Menu Bar and Project Name -->
     <top>
-        <VBox>
-            <!-- Menu Bar -->
-            <MenuBar styleClass="ide-menubar">
+        <HBox alignment="CENTER_LEFT" styleClass="title-bar" style="-fx-background-color: #333333;">
+            <MenuBar styleClass="ide-menubar" HBox.hgrow="ALWAYS">
                 <Menu text="File">
                     <MenuItem fx:id="menuNewFile" text="New File" accelerator="Ctrl+N"/>
                     <MenuItem fx:id="menuSave" text="Save" accelerator="Ctrl+S"/>
@@ -45,67 +46,151 @@
                     <MenuItem fx:id="menuLicenses" text="Licencias"/>
                 </Menu>
             </MenuBar>
-            
-            <!-- Toolbar -->
-            <ToolBar styleClass="ide-toolbar">
-                <Button fx:id="btnBack" text="← Inicio" styleClass="toolbar-button"/>
-                <Separator orientation="VERTICAL"/>
-                <Button fx:id="btnSave" text="💾 Save" styleClass="toolbar-button"/>
-                <Separator orientation="VERTICAL"/>
-                <Button fx:id="btnFormat" text="🧹 Format" styleClass="toolbar-button"/>
-                <Separator orientation="VERTICAL"/>
-                <Button fx:id="btnExport" text="📦 Export" styleClass="toolbar-button"/>
-                <Button fx:id="btnTest" text="▶ Test" styleClass="toolbar-button"/>
-                <Separator orientation="VERTICAL"/>
-                <Button fx:id="btnSettings" text="⚙ Settings" styleClass="toolbar-button"/>
-                <Separator orientation="VERTICAL"/>
-                <Label fx:id="projectNameToolbar" text="Project Name" styleClass="toolbar-label">
-                    <font>
-                        <Font name="System Bold" size="12"/>
-                    </font>
-                </Label>
-            </ToolBar>
-        </VBox>
+            <Label fx:id="projectNameToolbar" text="Project Name" styleClass="toolbar-label" textFill="WHITE">
+                <font>
+                    <Font name="System Bold" size="12"/>
+                </font>
+                <padding>
+                    <Insets right="15" left="15"/>
+                </padding>
+            </Label>
+        </HBox>
     </top>
+    
+    <!-- Left: Activity Bar (Vertical Menu) -->
+    <left>
+        <VBox styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="50" maxWidth="50" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
+            
+            <Button fx:id="btnBack" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Inicio"/></tooltip>
+                <graphic>
+                    <SVGPath content="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnExplorer" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Explorer"/></tooltip>
+                <graphic>
+                    <SVGPath content="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnSearch" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Search"/></tooltip>
+                <graphic>
+                    <SVGPath content="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnSave" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Save"/></tooltip>
+                <graphic>
+                    <SVGPath content="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnFormat" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Format"/></tooltip>
+                <graphic>
+                    <Group scaleX="0.8" scaleY="0.8">
+                        <SVGPath content="M 6 6 L 20 6 M 10 11 L 20 11 M 6 16 L 16 16 M 3 9 L 5 11 L 3 13" 
+                                 stroke="WHITE" strokeWidth="2" strokeLineCap="ROUND" strokeLineJoin="ROUND" fill="TRANSPARENT"/>
+                    </Group>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnExport" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Export"/></tooltip>
+                <graphic>
+                    <SVGPath content="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnTest" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Test"/></tooltip>
+                <graphic>
+                    <SVGPath content="M8 5v14l11-7z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Region VBox.vgrow="ALWAYS"/>
+            
+            <Button fx:id="btnSettings" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Settings"/></tooltip>
+                <graphic>
+                    <SVGPath content="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.04.24.24.41.48.41h3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+        </VBox>
+    </left>
     
     <!-- Center: Main IDE Area -->
     <center>
         <SplitPane dividerPositions="0.2" styleClass="ide-splitpane">
             
-            <!-- Left: Sidebar with File Explorer -->
-            <VBox styleClass="ide-sidebar">
-                <padding>
-                    <Insets top="5" right="5" bottom="5" left="5"/>
-                </padding>
-                
-                <!-- Add Element Button -->
-                <Button fx:id="btnAddElement" text="+ Add Element" 
-                        styleClass="add-element-button" maxWidth="Infinity">
-                    <font>
-                        <Font name="System Bold" size="13"/>
-                    </font>
-                </Button>
-                
-                <Separator/>
-                
-                <!-- File Explorer Header -->
-                <HBox alignment="CENTER_LEFT" spacing="5">
+            <!-- Left: Sidebar Container -->
+            <StackPane minWidth="200">
+                <!-- Project Explorer View -->
+                <VBox fx:id="projectExplorerView" styleClass="ide-sidebar" spacing="5">
                     <padding>
-                        <Insets top="10" bottom="5"/>
+                        <Insets top="5" right="5" bottom="5" left="5"/>
                     </padding>
-                    <Label text="PROJECT EXPLORER" styleClass="sidebar-section-title">
+                    
+                    <!-- Add Element Button -->
+                    <Button fx:id="btnAddElement" text="+ Add Element" 
+                            styleClass="add-element-button" maxWidth="Infinity">
+                        <font>
+                            <Font name="System Bold" size="13"/>
+                        </font>
+                    </Button>
+                    
+                    <Separator/>
+                    
+                    <!-- File Explorer Header -->
+                    <HBox alignment="CENTER_LEFT" spacing="5">
+                        <padding>
+                            <Insets top="10" bottom="5"/>
+                        </padding>
+                        <Label text="PROJECT EXPLORER" styleClass="sidebar-section-title">
+                            <font>
+                                <Font name="System Bold" size="11"/>
+                            </font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="btnNewFile" text="+" styleClass="tree-action-button"/>
+                    </HBox>
+                    
+                    <!-- File Tree -->
+                    <TreeView fx:id="fileTree" VBox.vgrow="ALWAYS" 
+                             styleClass="file-tree"/>
+                </VBox>
+                
+                <!-- Search View -->
+                <VBox fx:id="searchView" styleClass="ide-sidebar" spacing="10" visible="false">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    <Label text="SEARCH" styleClass="sidebar-section-title">
                         <font>
                             <Font name="System Bold" size="11"/>
                         </font>
                     </Label>
-                    <Region HBox.hgrow="ALWAYS"/>
-                    <Button fx:id="btnNewFile" text="+" styleClass="tree-action-button"/>
-                </HBox>
-                
-                <!-- File Tree -->
-                <TreeView fx:id="fileTree" VBox.vgrow="ALWAYS" 
-                         styleClass="file-tree"/>
-            </VBox>
+                    
+                    <HBox spacing="5">
+                        <TextField fx:id="searchField" promptText="Search in Project..." HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="btnDoSearch" styleClass="console-button" contentDisplay="GRAPHIC_ONLY">
+                    <graphic>
+                        <SVGPath content="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="white" />
+                    </graphic>
+                </Button>
+                    </HBox>
+                    
+                    <Label fx:id="searchStatusLabel" text="No results" textFill="#888888"/>
+                    
+                    <ListView fx:id="searchResultsList" VBox.vgrow="ALWAYS" styleClass="file-tree"/>
+                </VBox>
+            </StackPane>
             
             <!-- Right: Code Editor Area -->
             <BorderPane styleClass="editor-area">
@@ -135,6 +220,13 @@
                     <Insets top="5" right="10" bottom="5" left="10"/>
                 </padding>
                 
+                <Group scaleX="0.8" scaleY="0.8">
+                    <Rectangle x="2" y="4" width="20" height="16" arcWidth="2" arcHeight="2" fill="#2D2D2D"/>
+                    <SVGPath content="M 2 7 H 22" stroke="#4A4A4A" strokeWidth="1"/>
+                    <SVGPath content="M 7 11 L 10 13 L 7 15" stroke="#3B82F6" strokeWidth="2" strokeLineCap="ROUND" strokeLineJoin="ROUND" fill="TRANSPARENT"/>
+                    <SVGPath content="M 12 15 H 16" stroke="#F8F8F2" strokeWidth="2" strokeLineCap="ROUND"/>
+                </Group>
+                
                 <Label text="CONSOLE" styleClass="console-title">
                     <font>
                         <Font name="System Bold" size="11"/>
@@ -143,7 +235,17 @@
                 
                 <Region HBox.hgrow="ALWAYS"/>
                 
-                <Button fx:id="btnClearConsole" text="🗑" styleClass="console-button"/>
+                <Button fx:id="btnClearConsole" styleClass="console-button" contentDisplay="GRAPHIC_ONLY">
+                    <graphic>
+                        <Group scaleX="0.8" scaleY="0.8">
+                            <SVGPath content="M5 6H19" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
+                            <SVGPath content="M9 6V4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V6" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
+                            <SVGPath content="M18.8334 7L17.5739 19.5952C17.4828 20.5061 16.7127 21.2 15.7969 21.2H8.20311C7.28732 21.2 6.51718 20.5061 6.42612 19.5952L5.16669 7" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
+                            <SVGPath content="M10 11V17" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
+                            <SVGPath content="M14 11V17" stroke="white" strokeWidth="2" strokeLineCap="ROUND"/>
+                        </Group>
+                    </graphic>
+                </Button>
                 <Button fx:id="btnToggleConsole" text="▼" styleClass="console-button"/>
             </HBox>
             

@@ -18,9 +18,7 @@ public class SettingsController {
     private ComboBox<String> languageComboBox;
 
     @FXML
-    private Button btnBack;
-
-    private Runnable backAction;
+    private Button btnClose;
 
     @FXML
     public void initialize() {
@@ -44,18 +42,13 @@ public class SettingsController {
             }
         });
 
-        // Setup Back Button
-        btnBack.setOnAction(e -> {
-            if (backAction != null) {
-                backAction.run();
-            } else {
-                logger.warn("No back action defined");
-                NavigationManager.getInstance().showHomeScreen(); // Fallback
-            }
-        });
+        // Setup Close Button
+        btnClose.setOnAction(e -> closeWindow());
     }
 
-    public void setBackAction(Runnable backAction) {
-        this.backAction = backAction;
+    private void closeWindow() {
+        if (btnClose.getScene() != null && btnClose.getScene().getWindow() != null) {
+            btnClose.getScene().getWindow().hide();
+        }
     }
 }

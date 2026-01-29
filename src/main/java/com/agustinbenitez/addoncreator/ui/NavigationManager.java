@@ -9,6 +9,8 @@ import com.agustinbenitez.addoncreator.models.Project;
 
 import java.io.IOException;
 
+import javafx.stage.Modality;
+
 /**
  * Manages navigation between different screens
  * 
@@ -84,29 +86,30 @@ public class NavigationManager {
     }
 
     /**
-     * Navigate to settings screen
-     * 
-     * @param backAction Action to execute when back button is pressed
+     * Show settings as a modal dialog
      */
-    public void showSettings(Runnable backAction) {
+    public void showSettingsModal() {
         try {
-            logger.info("Navigating to settings screen");
+            logger.info("Opening settings modal");
 
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/Settings.fxml"));
-            Scene scene = new Scene(loader.load(), 1200, 800);
+            Scene scene = new Scene(loader.load());
             scene.getStylesheets().add(
                     getClass().getResource("/css/styles.css").toExternalForm());
 
-            SettingsController controller = loader.getController();
-            controller.setBackAction(backAction);
-
-            primaryStage.setScene(scene);
-            primaryStage.setTitle("Addon Creator - Settings");
+            Stage modalStage = new Stage();
+            modalStage.initModality(Modality.APPLICATION_MODAL);
+            modalStage.initOwner(primaryStage);
+            modalStage.setTitle("Settings");
+            modalStage.setScene(scene);
+            modalStage.setResizable(false);
+            
+            modalStage.showAndWait();
 
         } catch (IOException e) {
-            logger.error("Failed to load settings screen", e);
-            throw new RuntimeException("Failed to load settings screen", e);
+            logger.error("Failed to load settings modal", e);
+            throw new RuntimeException("Failed to load settings modal", e);
         }
     }
 }

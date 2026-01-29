@@ -8,12 +8,13 @@
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.agustinbenitez.addoncreator.ui.SettingsController"
-            styleClass="root">
+            styleClass="root"
+            prefWidth="500" prefHeight="350">
     
     <center>
         <VBox alignment="CENTER" spacing="20" styleClass="home-content">
             <padding>
-                <Insets top="40" right="40" bottom="40" left="40"/>
+                <Insets top="20" right="20" bottom="20" left="20"/>
             </padding>
             
             <Label text="Ajustes / Settings" styleClass="section-title">
@@ -22,10 +23,12 @@
                 </font>
             </Label>
             
+            <Separator prefWidth="200" />
+            
             <GridPane vgap="15" hgap="20" alignment="CENTER">
-                <Label text="Idioma / Language:" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <Label text="Idioma / Language:" GridPane.columnIndex="0" GridPane.rowIndex="0" textFill="white">
                     <font>
-                        <Font size="16"/>
+                        <Font size="14"/>
                     </font>
                 </Label>
                 
@@ -33,11 +36,11 @@
                 
             </GridPane>
             
-            <Region prefHeight="20"/>
+            <Region VBox.vgrow="ALWAYS"/>
             
-            <Button fx:id="btnBack" text="← Volver / Back" styleClass="create-project-button">
+            <Button fx:id="btnClose" text="Cerrar" styleClass="create-project-button">
                  <font>
-                    <Font size="16"/>
+                    <Font size="14"/>
                 </font>
             </Button>
             

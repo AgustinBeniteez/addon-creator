@@ -170,7 +170,7 @@ public class HomeScreenController {
     }
 
     private void handleSettings() {
-        NavigationManager.getInstance().showSettings(() -> NavigationManager.getInstance().showHomeScreen());
+        NavigationManager.getInstance().showSettingsModal();
     }
 
     @FXML
