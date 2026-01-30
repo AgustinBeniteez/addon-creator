@@ -33,6 +33,14 @@
                 </Label>
                 
                 <ComboBox fx:id="languageComboBox" prefWidth="200" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                <Label text="Tamaño / Size:" GridPane.columnIndex="0" GridPane.rowIndex="1" textFill="white">
+                    <font>
+                        <Font size="14"/>
+                    </font>
+                </Label>
+                
+                <ComboBox fx:id="windowSizeComboBox" prefWidth="200" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
                 
             </GridPane>
             

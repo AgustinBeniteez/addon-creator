@@ -46,11 +46,18 @@ public class NavigationManager {
 
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/HomeScreen.fxml"));
-            Scene scene = new Scene(loader.load(), 1200, 800);
+            
+            // Preserve current window state
+            double width = primaryStage.getScene() != null ? primaryStage.getScene().getWidth() : 1200;
+            double height = primaryStage.getScene() != null ? primaryStage.getScene().getHeight() : 800;
+            boolean maximized = primaryStage.isMaximized();
+
+            Scene scene = new Scene(loader.load(), width, height);
             scene.getStylesheets().add(
                     getClass().getResource("/css/styles.css").toExternalForm());
 
             primaryStage.setScene(scene);
+            primaryStage.setMaximized(maximized);
             primaryStage.setTitle("Addon Creator - Home");
 
         } catch (IOException e) {
@@ -68,7 +75,13 @@ public class NavigationManager {
 
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/Editor.fxml"));
-            Scene scene = new Scene(loader.load(), 1200, 800);
+            
+            // Preserve current window state
+            double width = primaryStage.getScene() != null ? primaryStage.getScene().getWidth() : 1200;
+            double height = primaryStage.getScene() != null ? primaryStage.getScene().getHeight() : 800;
+            boolean maximized = primaryStage.isMaximized();
+
+            Scene scene = new Scene(loader.load(), width, height);
             scene.getStylesheets().add(
                     getClass().getResource("/css/styles.css").toExternalForm());
 
@@ -77,6 +90,7 @@ public class NavigationManager {
             controller.setProject(project);
 
             primaryStage.setScene(scene);
+            primaryStage.setMaximized(maximized);
             primaryStage.setTitle("Addon Creator - " + project.getName());
 
         } catch (IOException e) {
@@ -94,11 +108,18 @@ public class NavigationManager {
 
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/MainWindow.fxml"));
-            Scene scene = new Scene(loader.load(), 1200, 800);
+            
+            // Preserve current window state
+            double width = primaryStage.getScene() != null ? primaryStage.getScene().getWidth() : 1200;
+            double height = primaryStage.getScene() != null ? primaryStage.getScene().getHeight() : 800;
+            boolean maximized = primaryStage.isMaximized();
+
+            Scene scene = new Scene(loader.load(), width, height);
             scene.getStylesheets().add(
                     getClass().getResource("/css/styles.css").toExternalForm());
 
             primaryStage.setScene(scene);
+            primaryStage.setMaximized(maximized);
             primaryStage.setTitle("Addon Creator - New Project");
 
         } catch (IOException e) {
@@ -116,7 +137,13 @@ public class NavigationManager {
 
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/MainWindow.fxml"));
-            Scene scene = new Scene(loader.load(), 1200, 800);
+            
+            // Preserve current window state
+            double width = primaryStage.getScene() != null ? primaryStage.getScene().getWidth() : 1200;
+            double height = primaryStage.getScene() != null ? primaryStage.getScene().getHeight() : 800;
+            boolean maximized = primaryStage.isMaximized();
+
+            Scene scene = new Scene(loader.load(), width, height);
             scene.getStylesheets().add(
                     getClass().getResource("/css/styles.css").toExternalForm());
 
@@ -124,6 +151,7 @@ public class NavigationManager {
             controller.setProjectToEdit(project);
 
             primaryStage.setScene(scene);
+            primaryStage.setMaximized(maximized);
             primaryStage.setTitle("Addon Creator - Edit Project");
 
         } catch (IOException e) {

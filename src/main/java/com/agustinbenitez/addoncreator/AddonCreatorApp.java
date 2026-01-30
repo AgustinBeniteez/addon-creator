@@ -1,6 +1,7 @@
 package com.agustinbenitez.addoncreator;
 
 import com.agustinbenitez.addoncreator.ui.NavigationManager;
+import com.agustinbenitez.addoncreator.core.SettingsManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -20,8 +21,6 @@ public class AddonCreatorApp extends Application {
 
     private static final Logger logger = LoggerFactory.getLogger(AddonCreatorApp.class);
     private static final String APP_TITLE = "Addon Creator - Minecraft Bedrock";
-    private static final int WINDOW_WIDTH = 1200;
-    private static final int WINDOW_HEIGHT = 800;
 
     @Override
     public void start(Stage primaryStage) {
@@ -45,8 +44,11 @@ public class AddonCreatorApp extends Application {
                     getClass().getResource("/fxml/HomeScreen.fxml"));
             BorderPane root = loader.load();
 
-            // Create scene
-            Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
+            // Create scene with saved dimensions
+            double width = SettingsManager.getInstance().getWindowWidth();
+            double height = SettingsManager.getInstance().getWindowHeight();
+            Scene scene = new Scene(root, width, height);
+            
             scene.getStylesheets().add(
                     getClass().getResource("/css/styles.css").toExternalForm());
 
@@ -58,6 +60,11 @@ public class AddonCreatorApp extends Application {
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);
+            
+            if (SettingsManager.getInstance().isWindowMaximized()) {
+                primaryStage.setMaximized(true);
+            }
+            
             primaryStage.show();
 
             logger.info("Application started successfully");

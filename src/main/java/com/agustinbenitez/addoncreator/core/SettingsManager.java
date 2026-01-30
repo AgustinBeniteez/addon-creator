@@ -20,6 +20,9 @@ public class SettingsManager {
     public static final String KEY_THEME = "theme";
     public static final String KEY_GIT_USER = "git_user";
     public static final String KEY_GIT_TOKEN = "git_token";
+    public static final String KEY_WINDOW_WIDTH = "window_width";
+    public static final String KEY_WINDOW_HEIGHT = "window_height";
+    public static final String KEY_WINDOW_MAXIMIZED = "window_maximized";
 
     private SettingsManager() {
         properties = new Properties();
@@ -35,6 +38,33 @@ public class SettingsManager {
             }
         }
         return instance;
+    }
+
+    public double getWindowWidth() {
+        return Double.parseDouble(properties.getProperty(KEY_WINDOW_WIDTH, "1200"));
+    }
+
+    public void setWindowWidth(double width) {
+        properties.setProperty(KEY_WINDOW_WIDTH, String.valueOf(width));
+        saveSettings();
+    }
+
+    public double getWindowHeight() {
+        return Double.parseDouble(properties.getProperty(KEY_WINDOW_HEIGHT, "800"));
+    }
+
+    public void setWindowHeight(double height) {
+        properties.setProperty(KEY_WINDOW_HEIGHT, String.valueOf(height));
+        saveSettings();
+    }
+
+    public boolean isWindowMaximized() {
+        return Boolean.parseBoolean(properties.getProperty(KEY_WINDOW_MAXIMIZED, "true"));
+    }
+
+    public void setWindowMaximized(boolean maximized) {
+        properties.setProperty(KEY_WINDOW_MAXIMIZED, String.valueOf(maximized));
+        saveSettings();
     }
 
     private void loadSettings() {
