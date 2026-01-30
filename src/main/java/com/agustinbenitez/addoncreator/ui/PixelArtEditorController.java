@@ -49,6 +49,8 @@ public class PixelArtEditorController implements Initializable {
     @FXML private Label statusLabel;
     
     @FXML private Button btnExport;
+    @FXML private Button btnSettings;
+    @FXML private ComboBox<String> toolSizeCombo;
     
     // Layer UI
     @FXML private ListView<Layer> layerList;
@@ -60,6 +62,7 @@ public class PixelArtEditorController implements Initializable {
     private int artWidth = 32;
     private int artHeight = 32;
     private double zoom = 10.0;
+    private int toolSize = 1;
     
     // Layer System
     private ObservableList<Layer> layers = FXCollections.observableArrayList();
@@ -112,6 +115,32 @@ public class PixelArtEditorController implements Initializable {
     // Mouse state
     private Color currentDrawColor;
     
+    // Project context
+    private File projectRoot;
+
+    public void setProjectRoot(File projectRoot) {
+        this.projectRoot = projectRoot;
+    }
+
+    public void setStandaloneMode(boolean isStandalone) {
+        if (isStandalone) {
+            if (btnSettings != null) {
+                btnSettings.setVisible(true);
+                btnSettings.setManaged(true);
+                
+                // Add Settings Icon
+                SVGPath settingsIcon = new SVGPath();
+                settingsIcon.setContent("M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.04.24.24.41.48.41h-3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z");
+                settingsIcon.setFill(Color.WHITE);
+                settingsIcon.setScaleX(0.8);
+                settingsIcon.setScaleY(0.8);
+                btnSettings.setGraphic(settingsIcon);
+                
+                btnSettings.setOnAction(e -> NavigationManager.getInstance().showSettingsModal());
+            }
+        }
+    }
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupControls(); // Setup UI and listeners first
@@ -119,6 +148,32 @@ public class PixelArtEditorController implements Initializable {
         setupCanvas();
         setupEvents();
         setupKeyEvents();
+        
+        // Setup Tool Size Combo
+        if (toolSizeCombo != null) {
+            toolSizeCombo.getItems().addAll("1px", "2px", "4px", "6px", "8px");
+            toolSizeCombo.setValue("1px");
+            toolSizeCombo.setOnAction(e -> {
+                String val = toolSizeCombo.getValue();
+                if (val != null) {
+                    toolSize = Integer.parseInt(val.replace("px", ""));
+                }
+            });
+        }
+        
+        // Setup Export Button Icon
+        if (btnExport != null) {
+            SVGPath exportIcon = new SVGPath();
+            exportIcon.setContent("M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z");
+            exportIcon.setFill(Color.WHITE);
+            exportIcon.setScaleX(0.8);
+            exportIcon.setScaleY(0.8);
+            
+            btnExport.setGraphic(exportIcon);
+            btnExport.setText("Exportar");
+            btnExport.setContentDisplay(ContentDisplay.LEFT);
+            btnExport.setGraphicTextGap(8);
+        }
     }
     
     private void setupKeyEvents() {
@@ -951,7 +1006,36 @@ public class PixelArtEditorController implements Initializable {
 
     private void drawPixel(int x, int y, Color color) {
         if (activeLayer != null && activeLayer.isVisible()) {
-            activeLayer.getImage().getPixelWriter().setColor(x, y, color);
+            PixelWriter pw = activeLayer.getImage().getPixelWriter();
+            
+            // Draw square based on toolSize
+            // Center the square on the mouse position (approximate for even sizes)
+            int offset = (toolSize - 1) / 2;
+            int startX = x - offset;
+            int startY = y - offset;
+            
+            for (int i = 0; i < toolSize; i++) {
+                for (int j = 0; j < toolSize; j++) {
+                    int px = startX + i;
+                    int py = startY + j;
+                    
+                    // Boundary check
+                    if (px >= 0 && px < artWidth && py >= 0 && py < artHeight) {
+                         // Selection check
+                         if (hasSelection) {
+                             if (lassoPoints.isEmpty()) { // Rect selection
+                                 boolean inRect = px >= Math.min(selectStartX, selectEndX) && px <= Math.max(selectStartX, selectEndX) &&
+                                                  py >= Math.min(selectStartY, selectEndY) && py <= Math.max(selectStartY, selectEndY);
+                                 if (!inRect) continue;
+                             } else { // Lasso selection
+                                  if (!isInsideLasso(px, py)) continue;
+                             }
+                         }
+                         
+                         pw.setColor(px, py, color);
+                    }
+                }
+            }
             drawCanvas(); 
         }
     }
@@ -1232,6 +1316,18 @@ public class PixelArtEditorController implements Initializable {
             new FileChooser.ExtensionFilter("PNG Images", "*.png"),
             new FileChooser.ExtensionFilter("All Files", "*.*")
         );
+        
+        // Set initial directory based on project context
+        if (projectRoot != null && projectRoot.exists() && projectRoot.isDirectory()) {
+            fileChooser.setInitialDirectory(projectRoot);
+        } else {
+            // Default to user home or system default
+            String userHome = System.getProperty("user.home");
+            if (userHome != null) {
+                fileChooser.setInitialDirectory(new File(userHome));
+            }
+        }
+        
         File file = fileChooser.showSaveDialog(canvas.getScene().getWindow());
         if (file != null) {
             try {

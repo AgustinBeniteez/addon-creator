@@ -5,19 +5,25 @@ import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.core.SettingsManager;
 import com.agustinbenitez.addoncreator.models.Project;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.Group;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.paint.Color;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
 import javafx.geometry.Pos;
 import javafx.geometry.Insets;
 import javafx.animation.PauseTransition;
@@ -61,6 +67,9 @@ public class HomeScreenController {
 
     @FXML
     private Button openProjectButton;
+
+    @FXML
+    private Button pixelArtButton;
 
     @FXML
     private Button settingsButton;
@@ -108,6 +117,32 @@ public class HomeScreenController {
         // Setup button action
         createProjectButton.setOnAction(e -> handleCreateProject());
         openProjectButton.setOnAction(e -> handleOpenProject());
+        
+        if (pixelArtButton != null) {
+            pixelArtButton.setOnAction(e -> handleOpenPixelArtEditor());
+            
+            // Create Pixel Art Icon
+            Group group = new Group();
+            
+            // Frame: <rect x="1" y="1" width="22" height="22" fill="none" stroke="#9A9A9A" stroke-width="2"/>
+            Rectangle frame = new Rectangle(1, 1, 22, 22);
+            frame.setFill(Color.TRANSPARENT);
+            frame.setStroke(Color.WHITE);
+            frame.setStrokeWidth(2);
+    
+            // Sun: <rect x="15" y="5" width="3" height="3" fill="#9A9A9A"/>
+            Rectangle sun = new Rectangle(15, 5, 3, 3);
+            sun.setFill(Color.WHITE);
+    
+            // Mountain: <path d="M4 17 L9 11 L13 15 L16 12 L20 17 Z" fill="#9A9A9A"/>
+            SVGPath mountain = new SVGPath();
+            mountain.setContent("M4 17 L9 11 L13 15 L16 12 L20 17 Z");
+            mountain.setFill(Color.WHITE);
+    
+            group.getChildren().addAll(frame, sun, mountain);
+            pixelArtButton.setGraphic(group);
+        }
+
         settingsButton.setOnAction(e -> handleSettings());
         if (sortProjectsButton != null) {
             logger.info("Sort button initialized");
@@ -458,6 +493,40 @@ public class HomeScreenController {
                  projectManager.addProject(project);
                  NavigationManager.getInstance().showEditor(project);
              }
+        }
+    }
+
+    private void handleOpenPixelArtEditor() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PixelArtEditor.fxml"));
+            Parent root = loader.load();
+            
+            Stage stage = new Stage();
+            stage.setTitle("Pixel Art Editor - Standalone");
+            stage.setScene(new Scene(root));
+            
+            // Set Application Icon
+            try {
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            } catch (Exception ex) {
+                // Ignore if icon not found
+            }
+            
+            stage.setWidth(1000);
+            stage.setHeight(800);
+            
+            // Enable Standalone Mode (shows Settings button)
+            PixelArtEditorController controller = loader.getController();
+            controller.setStandaloneMode(true);
+            
+            stage.show();
+        } catch (Exception e) {
+            logger.error("Failed to open Pixel Art Editor", e);
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("No se pudo abrir el editor");
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
         }
     }
 

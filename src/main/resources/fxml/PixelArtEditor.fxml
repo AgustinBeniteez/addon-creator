@@ -68,6 +68,8 @@
                     <ColorPicker fx:id="secondaryColorPicker" styleClass="button"/>
                 </VBox>
             </HBox>
+            <Label text="Tool Size:" textFill="white"/>
+            <ComboBox fx:id="toolSizeCombo" prefWidth="70" styleClass="combo-box"/>
             <Separator orientation="VERTICAL"/>
             <Label text="Size:" textFill="white"/>
             <TextField fx:id="widthField" text="32" prefWidth="50"/>
@@ -79,6 +81,10 @@
             <Label fx:id="zoomLabel" text="10x" textFill="white"/>
             <Separator orientation="VERTICAL"/>
             <Button fx:id="btnExport" text="Export" styleClass="pixel-art-action-button"/>
+            <Separator orientation="VERTICAL"/>
+            <Button fx:id="btnSettings" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-action-button" visible="false" managed="false">
+                <tooltip><Tooltip text="Settings"/></tooltip>
+            </Button>
         </ToolBar>
     </top>
 

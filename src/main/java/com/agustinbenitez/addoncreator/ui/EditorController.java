@@ -4285,6 +4285,11 @@ public class EditorController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PixelArtEditor.fxml"));
             javafx.scene.Parent root = loader.load();
             PixelArtEditorController controller = loader.getController();
+            
+            // Pass project context
+            if (currentProject != null) {
+                controller.setProjectRoot(new File(currentProject.getRootPath()));
+            }
 
             if (file != null) {
                 // Load image
