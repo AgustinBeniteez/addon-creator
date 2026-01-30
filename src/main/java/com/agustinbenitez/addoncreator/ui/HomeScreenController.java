@@ -395,9 +395,15 @@ public class HomeScreenController {
         // Context menu for delete
         card.setOnContextMenuRequested(e -> {
             ContextMenu menu = new ContextMenu();
+            
+            MenuItem editItem = new MenuItem("✎ Editar Proyecto");
+            editItem.setOnAction(event -> NavigationManager.getInstance().showEditProject(project));
+            menu.getItems().add(editItem);
+            
             MenuItem deleteItem = new MenuItem("🗑 Eliminar Proyecto");
             deleteItem.setOnAction(event -> handleDeleteProject(project));
             menu.getItems().add(deleteItem);
+            
             menu.show(card, e.getScreenX(), e.getScreenY());
         });
 

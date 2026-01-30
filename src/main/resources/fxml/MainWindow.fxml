@@ -20,7 +20,7 @@
             </padding>
             <Button fx:id="btnBack" text="← Back" styleClass="button-secondary"/>
             <VBox>
-                <Label text="New Project" styleClass="title">
+                <Label fx:id="titleLabel" text="New Project" styleClass="title">
                     <font>
                         <Font name="System Bold" size="28"/>
                     </font>

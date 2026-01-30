@@ -31,6 +31,9 @@ public class MainWindowController {
     private Button btnBack;
 
     @FXML
+    private Label titleLabel;
+
+    @FXML
     private TextField addonNameField;
 
     @FXML
@@ -74,6 +77,7 @@ public class MainWindowController {
 
     private File selectedFolder;
     private File selectedLogoFile;
+    private Project editingProject;
 
     @FXML
     public void initialize() {
@@ -160,6 +164,41 @@ public class MainWindowController {
         }
     }
 
+    public void setProjectToEdit(Project project) {
+        this.editingProject = project;
+        this.selectedFolder = new File(project.getRootPath());
+        
+        // Update UI for Edit Mode
+        if (titleLabel != null) titleLabel.setText("Edit Project");
+        addonNameField.setText(project.getName());
+        descriptionArea.setText(project.getDescription());
+        folderPathField.setText(project.getRootPath());
+        
+        // Hide/Disable immutable fields
+        if (projectTypeCombo != null) {
+            projectTypeCombo.getParent().setVisible(false);
+            projectTypeCombo.getParent().setManaged(false);
+        }
+        
+        if (folderPathField != null) {
+            folderPathField.getParent().getParent().setVisible(false);
+            folderPathField.getParent().getParent().setManaged(false);
+        }
+        
+        generateButton.setText("Save Changes");
+        
+        // Load existing logo
+        try {
+            Path iconPath = selectedFolder.toPath().resolve("BP/pack_icon.png");
+            if (Files.exists(iconPath)) {
+                Image icon = new Image(iconPath.toUri().toString());
+                logoImageView.setImage(icon);
+            }
+        } catch (Exception e) {
+            log("Failed to load existing logo: " + e.getMessage());
+        }
+    }
+
     @FXML
     private void handleGenerate() {
         // Validate inputs
@@ -171,6 +210,35 @@ public class MainWindowController {
             String addonName = addonNameField.getText().trim();
             String description = descriptionArea.getText().trim();
             Path rootPath = selectedFolder.toPath();
+            
+            // If Editing, just update metadata and logo
+            if (editingProject != null) {
+                log("Updating project: " + addonName);
+                
+                // Update Logo if changed
+                if (selectedLogoFile != null) {
+                    Path packIconPathBP = rootPath.resolve("BP/pack_icon.png");
+                    Path packIconPathRP = rootPath.resolve("RP/pack_icon.png");
+                    Files.copy(selectedLogoFile.toPath(), packIconPathBP, StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(selectedLogoFile.toPath(), packIconPathRP, StandardCopyOption.REPLACE_EXISTING);
+                    log("✓ Logo updated");
+                }
+                
+                // Update Project Metadata
+                editingProject.setName(addonName);
+                editingProject.setDescription(description);
+                // Note: Not updating rootPath as it is fixed in edit mode
+                
+                ProjectManager projectManager = new ProjectManager();
+                projectManager.updateProject(editingProject);
+                
+                log("✓ Project updated successfully!");
+                
+                // Navigate back
+                NavigationManager.getInstance().showHomeScreen();
+                return;
+            }
+
             String projectType = projectTypeCombo.getValue();
             boolean initGit = gitConnectCheck.isSelected();
             String gitRemote = gitRepoField.getText().trim();

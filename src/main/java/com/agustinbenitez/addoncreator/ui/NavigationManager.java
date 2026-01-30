@@ -108,6 +108,31 @@ public class NavigationManager {
     }
 
     /**
+     * Show edit project screen
+     */
+    public void showEditProject(Project project) {
+        try {
+            logger.info("Navigating to edit project screen for: {}", project.getName());
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/MainWindow.fxml"));
+            Scene scene = new Scene(loader.load(), 1200, 800);
+            scene.getStylesheets().add(
+                    getClass().getResource("/css/styles.css").toExternalForm());
+
+            MainWindowController controller = loader.getController();
+            controller.setProjectToEdit(project);
+
+            primaryStage.setScene(scene);
+            primaryStage.setTitle("Addon Creator - Edit Project");
+
+        } catch (IOException e) {
+            logger.error("Failed to load edit project screen", e);
+            throw new RuntimeException("Failed to load edit project screen", e);
+        }
+    }
+
+    /**
      * Show settings as a modal dialog
      */
     public void showSettingsModal() {
