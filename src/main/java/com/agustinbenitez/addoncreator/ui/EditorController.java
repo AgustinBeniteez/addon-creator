@@ -11,7 +11,10 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.TransferMode;
+import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.MouseEvent;
@@ -1906,6 +1909,7 @@ public class EditorController {
 
         // --- Editor (Monaco) ---
         WebView editorWebView = new WebView();
+        enableWebViewCopyPaste(editorWebView);
         WebEngine editorEngine = editorWebView.getEngine();
         editorWebView.setContextMenuEnabled(false);
         
@@ -2128,6 +2132,7 @@ public class EditorController {
             setupTab(tab, filePath);
             
             WebView webView = new WebView();
+            enableWebViewCopyPaste(webView);
             WebEngine webEngine = webView.getEngine();
             
             // Disable context menu
@@ -3454,23 +3459,25 @@ public class EditorController {
         StringBuilder content = new StringBuilder();
         
         // Project License
-        try {
-            java.net.URL projectUrl = getClass().getResource("/LICENSE");
-            if (projectUrl != null) {
+        try (java.io.InputStream is = getClass().getResourceAsStream("/LICENSE")) {
+            if (is != null) {
                 content.append("=== ADDON CREATOR LICENSE ===\n\n");
-                content.append(Files.readString(Paths.get(projectUrl.toURI())));
+                content.append(new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
                 content.append("\n\n");
+            } else {
+                logger.warn("Project license file not found: /LICENSE");
             }
         } catch (Exception e) {
             logger.error("Failed to load project license", e);
         }
 
         // Monaco License
-        try {
-            java.net.URL monacoUrl = getClass().getResource("/monaco-editor/LICENSE.txt");
-            if (monacoUrl != null) {
+        try (java.io.InputStream is = getClass().getResourceAsStream("/monaco-editor/LICENSE.txt")) {
+            if (is != null) {
                 content.append("=== MONACO EDITOR LICENSE ===\n\n");
-                content.append(Files.readString(Paths.get(monacoUrl.toURI())));
+                content.append(new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+            } else {
+                logger.warn("Monaco license file not found: /monaco-editor/LICENSE.txt");
             }
         } catch (Exception e) {
             logger.error("Failed to load Monaco license", e);
@@ -3630,12 +3637,103 @@ public class EditorController {
         return "plaintext";
     }
 
+    private void enableWebViewCopyPaste(WebView webView) {
+        // Setup Context Menu
+        setupWebViewContextMenu(webView);
+
+        // Setup Keyboard Shortcuts (Ctrl+C, Ctrl+V, Ctrl+X)
+        webView.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+            if (event.isShortcutDown()) {
+                if (event.getCode() == KeyCode.C) {
+                    performCopy(webView);
+                    event.consume();
+                } else if (event.getCode() == KeyCode.V) {
+                    performPaste(webView);
+                    event.consume();
+                } else if (event.getCode() == KeyCode.X) {
+                    performCut(webView);
+                    event.consume();
+                }
+            }
+        });
+    }
+
+    private void setupWebViewContextMenu(WebView webView) {
+        ContextMenu contextMenu = new ContextMenu();
+
+        MenuItem cutItem = new MenuItem("Cortar"); // Cut
+        cutItem.setOnAction(e -> performCut(webView));
+        cutItem.setAccelerator(new KeyCodeCombination(KeyCode.X, KeyCombination.CONTROL_DOWN));
+
+        MenuItem copyItem = new MenuItem("Copiar"); // Copy
+        copyItem.setOnAction(e -> performCopy(webView));
+        copyItem.setAccelerator(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN));
+
+        MenuItem pasteItem = new MenuItem("Pegar"); // Paste
+        pasteItem.setOnAction(e -> performPaste(webView));
+        pasteItem.setAccelerator(new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN));
+
+        contextMenu.getItems().addAll(cutItem, copyItem, new SeparatorMenuItem(), pasteItem);
+        
+        // Attach context menu to WebView
+        webView.setOnContextMenuRequested(e -> {
+            contextMenu.show(webView, e.getScreenX(), e.getScreenY());
+        });
+    }
+
+    private void performCopy(WebView webView) {
+        webView.getEngine().executeScript(
+            "if(typeof editor !== 'undefined' && editor.getModel()) { " +
+            "   var selection = editor.getModel().getValueInRange(editor.getSelection()); " +
+            "   if(selection) { javaApp.copyToClipboard(selection); } " +
+            "}"
+        );
+    }
+
+    private void performCut(WebView webView) {
+        webView.getEngine().executeScript(
+            "if(typeof editor !== 'undefined' && editor.getModel()) { " +
+            "   var selection = editor.getModel().getValueInRange(editor.getSelection()); " +
+            "   if(selection) { " +
+            "       javaApp.copyToClipboard(selection); " +
+            "       editor.executeEdits('source', [{range: editor.getSelection(), text: ''}]); " +
+            "   } " +
+            "}"
+        );
+    }
+
+    private void performPaste(WebView webView) {
+        Clipboard clipboard = Clipboard.getSystemClipboard();
+        if (clipboard.hasString()) {
+            String text = clipboard.getString();
+            if (text != null) {
+                // Use Gson to safely escape string for JS
+                String jsonText = new Gson().toJson(text);
+                webView.getEngine().executeScript(
+                    "if(typeof editor !== 'undefined') { " +
+                    "   var selection = editor.getSelection();" +
+                    "   var op = {range: selection, text: " + jsonText + ", forceMoveMarkers: true};" +
+                    "   editor.executeEdits('source', [op]);" +
+                    "}"
+                );
+            }
+        }
+    }
+
     public class JavaBridge {
         private String content;
         private java.util.function.Consumer<String> onContentChangeCallback;
 
         public JavaBridge(String content) {
             this.content = content;
+        }
+
+        public void copyToClipboard(String text) {
+            javafx.application.Platform.runLater(() -> {
+                ClipboardContent content = new ClipboardContent();
+                content.putString(text);
+                Clipboard.getSystemClipboard().setContent(content);
+            });
         }
 
         public void setOnContentChangeCallback(java.util.function.Consumer<String> callback) {

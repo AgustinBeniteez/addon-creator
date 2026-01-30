@@ -7,7 +7,7 @@
 
     <groupId>com.agustinbenitez</groupId>
     <artifactId>addon-creator</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <name>Addon Creator</name>
@@ -141,9 +141,19 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.agustinbenitez.addoncreator.AddonCreatorApp</mainClass>
+                                    <mainClass>com.agustinbenitez.addoncreator.Launcher</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

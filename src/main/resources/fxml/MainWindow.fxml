@@ -27,6 +27,16 @@
                 </Label>
                 <Label text="Configure your new Minecraft Bedrock Addon" styleClass="subtitle"/>
             </VBox>
+            
+            <Region HBox.hgrow="ALWAYS"/>
+            
+            <!-- Generate Button -->
+            <Button fx:id="generateButton" text="CREATE" prefWidth="200" prefHeight="45"
+                    style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-background-radius: 25; -fx-cursor: hand;">
+                <effect>
+                     <javafx.scene.effect.DropShadow color="rgba(0,122,204,0.4)" radius="15" spread="0.2"/>
+                </effect>
+            </Button>
         </HBox>
     </top>
     
@@ -115,13 +125,8 @@
 
                     </VBox>
                     
-                    <!-- Generate Button -->
-                    <Button fx:id="generateButton" text="CREATE PROJECT" prefWidth="250" prefHeight="50"
-                            style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-background-radius: 25; -fx-cursor: hand;">
-                        <effect>
-                             <javafx.scene.effect.DropShadow color="rgba(0,122,204,0.4)" radius="15" spread="0.2"/>
-                        </effect>
-                    </Button>
+                    <!-- Generate Button moved to top header -->
+
 
                 </VBox>
 
