@@ -29,6 +29,10 @@ import javafx.scene.SubScene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.util.Duration;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -160,7 +164,11 @@ public class EditorController {
     @FXML
     private VBox projectExplorerView;
     @FXML
-    private VBox uiEzModeView; // New Ez Mode View
+    private BorderPane uiEzModeView; // New Ez Mode View
+    @FXML
+    private VBox ezLogicPalette;
+    @FXML
+    private Pane ezCanvas;
     @FXML
     private SplitPane ideSplitPane; // Code Mode View
     @FXML
@@ -280,6 +288,10 @@ public class EditorController {
     private boolean autoSaveEnabled = false;
     private PauseTransition searchDebounce;
     private Set<String> stagedFiles = new HashSet<>();
+    
+    // Drag variables
+    private double mouseAnchorX, mouseAnchorY;
+    private double initialNodeX, initialNodeY;
 
     @FXML
     public void initialize() {
@@ -295,6 +307,7 @@ public class EditorController {
         setupModeSwitch();
         setupAddEzButton();
         setupEzModeNavigation();
+        setupVisualEditor();
         setupFileTree();
         setupConsole();
         setupTerminal();
@@ -375,6 +388,72 @@ public class EditorController {
         if (ezBlocksContainer != null) ezBlocksContainer.setVisible("blocks".equals(section));
     }
 
+    private void setupVisualEditor() {
+        if (ezLogicPalette != null) {
+            // Add sample blocks to palette
+            ezLogicPalette.getChildren().clear();
+            ezLogicPalette.getChildren().add(new VisualBlock("On Interact", "EVENT", Color.web("#FFC107"), true));
+            ezLogicPalette.getChildren().add(new VisualBlock("On Tick", "EVENT", Color.web("#FFC107"), true));
+            ezLogicPalette.getChildren().add(new VisualBlock("Spawn Entity", "ACTION", Color.web("#2196F3"), true));
+            ezLogicPalette.getChildren().add(new VisualBlock("Give Item", "ACTION", Color.web("#2196F3"), true));
+            ezLogicPalette.getChildren().add(new VisualBlock("Play Sound", "ACTION", Color.web("#2196F3"), true));
+            ezLogicPalette.getChildren().add(new VisualBlock("Has Tag", "CONDITION", Color.web("#4CAF50"), true));
+        }
+
+        if (ezCanvas != null) {
+            ezCanvas.setOnDragOver(event -> {
+                if (event.getGestureSource() != ezCanvas && event.getDragboard().hasString()) {
+                    event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+                }
+                event.consume();
+            });
+
+            ezCanvas.setOnDragDropped(event -> {
+                Dragboard db = event.getDragboard();
+                boolean success = false;
+                if (db.hasString()) {
+                    String content = db.getString();
+                    String[] parts = content.split(":");
+                    if (parts.length >= 2) {
+                        String type = parts[0];
+                        String name = parts[1];
+                        
+                        Color color = Color.GRAY;
+                        if (type.equals("EVENT")) color = Color.web("#FFC107");
+                        else if (type.equals("ACTION")) color = Color.web("#2196F3");
+                        else if (type.equals("CONDITION")) color = Color.web("#4CAF50");
+
+                        VisualBlock newBlock = new VisualBlock(name, type, color, false);
+                        newBlock.setLayoutX(event.getX());
+                        newBlock.setLayoutY(event.getY());
+                        
+                        // Make draggable on canvas
+                        makeDraggable(newBlock);
+
+                        ezCanvas.getChildren().add(newBlock);
+                        success = true;
+                    }
+                }
+                event.setDropCompleted(success);
+                event.consume();
+            });
+        }
+    }
+
+    private void makeDraggable(Node node) {
+        node.setOnMousePressed(e -> {
+            mouseAnchorX = e.getSceneX();
+            mouseAnchorY = e.getSceneY();
+            initialNodeX = node.getLayoutX();
+            initialNodeY = node.getLayoutY();
+            node.toFront();
+        });
+        node.setOnMouseDragged(e -> {
+            node.setLayoutX(initialNodeX + e.getSceneX() - mouseAnchorX);
+            node.setLayoutY(initialNodeY + e.getSceneY() - mouseAnchorY);
+        });
+    }
+
 
     private void toggleMode() {
         boolean isEzMode = uiEzModeView.isVisible();
@@ -404,9 +483,9 @@ public class EditorController {
             // Set Icon to "UI Ez" (Monitor) - indicating click to go to Ez Mode
             SVGPath icon = new SVGPath();
             icon.setContent("M4 4h56v40H4z M8 8h22v10H8z M8 22h22v8H8z M34 8h18v14H34z M34 26h18 M34 30h18");
-            icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 2;");
-            icon.setScaleX(0.4); 
-            icon.setScaleY(0.4);
+            icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 4;");
+            icon.setScaleX(0.35); 
+            icon.setScaleY(0.35);
             btnModeSwitch.setGraphic(icon);
             btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
         } else {
@@ -436,8 +515,8 @@ public class EditorController {
             SVGPath icon = new SVGPath();
             icon.setContent("M3 4h18v14H3z M9 9l-3 3 3 3 M15 9l3 3-3 3");
             icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 2;");
-            icon.setScaleX(0.8);
-            icon.setScaleY(0.8);
+            icon.setScaleX(1.1);
+            icon.setScaleY(1.1);
             btnModeSwitch.setGraphic(icon);
             btnModeSwitch.getTooltip().setText("Switch to Code Mode");
 
@@ -2022,6 +2101,12 @@ public class EditorController {
             return;
         }
 
+        // Check for Audio
+        if (fileName.endsWith(".mp3") || fileName.endsWith(".ogg") || fileName.endsWith(".wav")) {
+            openAudioPreview(filePath);
+            return;
+        }
+
         // Check if it's an image file
         if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")
                 || fileName.endsWith(".gif")) {
@@ -2352,7 +2437,7 @@ public class EditorController {
             terminalProcess.destroy();
         }
         
-        new Thread(() -> {
+        Thread terminalThread = new Thread(() -> {
             try {
                 // Determine OS and shell
                 String os = System.getProperty("os.name").toLowerCase();
@@ -2389,7 +2474,9 @@ public class EditorController {
             } catch (IOException e) {
                 log("Error starting terminal: " + e.getMessage());
             }
-        }).start();
+        });
+        terminalThread.setDaemon(true);
+        terminalThread.start();
     }
 
     private void handleTerminalInput() {
@@ -2760,6 +2847,180 @@ public class EditorController {
             logger.error("Failed to open image", ex);
             log("✗ Error al abrir imagen: " + ex.getMessage());
         }
+    }
+
+    private void openAudioPreview(Path audioPath) {
+        try {
+            Media media = new Media(audioPath.toUri().toString());
+            MediaPlayer mediaPlayer = new MediaPlayer(media);
+            
+            // Root Container (Full Tab Background)
+            VBox rootContainer = new VBox();
+            rootContainer.setAlignment(Pos.CENTER);
+            rootContainer.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 20;");
+            
+            // Card Container (The "Div" in the middle)
+            VBox card = new VBox(20);
+            card.setMaxWidth(600);
+            card.setAlignment(Pos.CENTER);
+            card.setStyle("-fx-background-color: #252526; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 5); -fx-padding: 30;");
+
+            // --- Card Content ---
+            
+            // Top Section: Icon + Filename + Time
+            HBox infoSection = new HBox(20);
+            infoSection.setAlignment(Pos.CENTER_LEFT);
+            
+            // Icon
+            javafx.scene.Node iconNode = FileIconFactory.createIcon(audioPath.getFileName().toString(), false);
+            iconNode.setScaleX(4.0);
+            iconNode.setScaleY(4.0);
+            StackPane iconPane = new StackPane(iconNode);
+            iconPane.setPrefSize(80, 80);
+            iconPane.setAlignment(Pos.CENTER);
+            
+            // Text Info
+            VBox textInfo = new VBox(5);
+            textInfo.setAlignment(Pos.CENTER_LEFT);
+            
+            Label nameLabel = new Label(audioPath.getFileName().toString());
+            nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+            nameLabel.setWrapText(true);
+            
+            Label timeLabel = new Label("00:00 / 00:00");
+            timeLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px; -fx-font-family: 'Consolas', monospace;");
+            
+            textInfo.getChildren().addAll(nameLabel, timeLabel);
+            HBox.setHgrow(textInfo, Priority.ALWAYS);
+            
+            infoSection.getChildren().addAll(iconPane, textInfo);
+            
+            // Controls Section
+            VBox controlsSection = new VBox(15);
+            controlsSection.setAlignment(Pos.CENTER);
+            
+            // Progress Slider
+            Slider progressSlider = new Slider();
+            progressSlider.setMaxWidth(Double.MAX_VALUE);
+            progressSlider.setStyle("-fx-cursor: hand;");
+            
+            // Buttons Row
+            HBox buttonsRow = new HBox(20);
+            buttonsRow.setAlignment(Pos.CENTER);
+            
+            Button playBtn = new Button("▶");
+            playBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 32px; -fx-cursor: hand; -fx-padding: 0;");
+            
+            // Volume Control
+            HBox volBox = new HBox(10);
+            volBox.setAlignment(Pos.CENTER);
+            Label volIcon = new Label("🔊");
+            volIcon.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
+            Slider volSlider = new Slider(0, 1, 1);
+            volSlider.setPrefWidth(100);
+            volBox.getChildren().addAll(volIcon, volSlider);
+            
+            buttonsRow.getChildren().addAll(playBtn, volBox);
+            
+            controlsSection.getChildren().addAll(progressSlider, buttonsRow);
+            
+            // Add all to Card
+            card.getChildren().addAll(infoSection, new Separator(), controlsSection);
+            
+            // Add Card to Root
+            rootContainer.getChildren().add(card);
+            
+            // Logic
+            playBtn.setOnAction(e -> {
+                MediaPlayer.Status status = mediaPlayer.getStatus();
+                if (status == MediaPlayer.Status.UNKNOWN || status == MediaPlayer.Status.HALTED) {
+                    return;
+                }
+                if (status == MediaPlayer.Status.PAUSED || status == MediaPlayer.Status.READY || status == MediaPlayer.Status.STOPPED) {
+                    mediaPlayer.play();
+                    playBtn.setText("⏸");
+                } else {
+                    mediaPlayer.pause();
+                    playBtn.setText("▶");
+                }
+            });
+            
+            mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
+                if (!progressSlider.isValueChanging()) {
+                    progressSlider.setValue(newTime.toMillis() / media.getDuration().toMillis() * 100.0);
+                }
+                updateTimeLabel(timeLabel, newTime, media.getDuration());
+            });
+            
+            progressSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (progressSlider.isValueChanging()) {
+                    mediaPlayer.seek(media.getDuration().multiply(newVal.doubleValue() / 100.0));
+                }
+            });
+            
+            progressSlider.setOnMouseReleased(e -> {
+                 mediaPlayer.seek(media.getDuration().multiply(progressSlider.getValue() / 100.0));
+            });
+            
+            volSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                mediaPlayer.setVolume(newVal.doubleValue());
+                if (newVal.doubleValue() == 0) {
+                    volIcon.setText("🔇");
+                } else if (newVal.doubleValue() < 0.5) {
+                    volIcon.setText("🔉");
+                } else {
+                    volIcon.setText("🔊");
+                }
+            });
+            
+            mediaPlayer.setOnEndOfMedia(() -> {
+                mediaPlayer.stop();
+                playBtn.setText("▶");
+                progressSlider.setValue(0);
+            });
+            
+            mediaPlayer.setOnReady(() -> {
+                 updateTimeLabel(timeLabel, mediaPlayer.getCurrentTime(), media.getDuration());
+            });
+
+            // Tab Setup
+            Tab tab = new Tab(audioPath.getFileName().toString());
+            setupTab(tab, audioPath);
+            tab.setContent(rootContainer);
+            
+            // Cleanup on close
+            tab.setOnClosed(e -> {
+                mediaPlayer.stop();
+                mediaPlayer.dispose();
+                tabFileMap.remove(tab);
+                tabDirtyMap.remove(tab);
+            });
+
+            tabFileMap.put(tab, audioPath);
+            editorTabs.getTabs().add(tab);
+            editorTabs.getSelectionModel().select(tab);
+
+            log("Audio abierto: " + audioPath.getFileName());
+
+        } catch (Exception ex) {
+            logger.error("Failed to open audio", ex);
+            log("✗ Error al abrir audio: " + ex.getMessage());
+        }
+    }
+
+    private void updateTimeLabel(Label label, Duration current, Duration total) {
+        if (total == null || current == null) return;
+        String currStr = formatDuration(current);
+        String totalStr = formatDuration(total);
+        label.setText(currStr + " / " + totalStr);
+    }
+
+    private String formatDuration(Duration duration) {
+        if (duration == null) return "00:00";
+        int seconds = (int) duration.toSeconds();
+        int minutes = seconds / 60;
+        seconds = seconds % 60;
+        return String.format("%02d:%02d", minutes, seconds);
     }
 
     private void openModelInEditor(Path modelPath) {
@@ -3527,6 +3788,10 @@ public class EditorController {
         private static final String FILE_CORNER = "M14 2V8H20";
         private static final String TODO_PATH = "M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z";
         
+        // Audio Icon Paths
+        private static final String AUDIO_BODY = "M14 2H6C4.89 2 4 2.9 4 4V20C4 21.1 4.89 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z";
+        private static final String AUDIO_CORNER = "M14 2V8H20";
+
         // 3D Model Icon Paths (Deprecated/Replaced)
         // private static final String MODEL_PATH_1 = "M12 2L2 7l10 5 10-5-10-5z";
         // ...
@@ -3559,6 +3824,26 @@ public class EditorController {
             
             String ext = getExtension(filename);
             
+            // Audio Files
+            if (nameLower.endsWith(".mp3") || nameLower.endsWith(".ogg") || nameLower.endsWith(".wav")) {
+                SVGPath body = new SVGPath();
+                body.setContent(AUDIO_BODY);
+                body.setFill(Color.web("#4F46E5"));
+                
+                SVGPath corner = new SVGPath();
+                corner.setContent(AUDIO_CORNER);
+                corner.setFill(Color.web("#3730A3"));
+                
+                Text note = new Text("♫");
+                note.setFill(Color.WHITE);
+                note.setFont(Font.font("Arial", FontWeight.BOLD, 10));
+                note.setX(6);
+                note.setY(18);
+                
+                Group group = new Group(body, corner, note);
+                return createScaledIcon(group);
+            }
+
             // Check specific filenames first
             if (nameLower.startsWith("readme")) {
                 // Info Icon

@@ -1,6 +1,8 @@
 package com.agustinbenitez.addoncreator.ui;
 
 import com.agustinbenitez.addoncreator.core.ProjectGenerator;
+import com.agustinbenitez.addoncreator.core.ProjectManager;
+import com.agustinbenitez.addoncreator.models.Project;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
@@ -118,7 +120,13 @@ public class MainWindowController {
             log("✓ RP folder created at: " + rootPath.resolve("RP"));
             log("✓ Manifests generated with unique UUIDs");
 
-            showSuccess("Addon created successfully!\n\nLocation: " + rootPath);
+            // Register project
+            Project newProject = new Project(addonName, rootPath.toString(), description);
+            ProjectManager projectManager = new ProjectManager();
+            projectManager.addProject(newProject);
+
+            // Auto-Navigate to Editor
+            NavigationManager.getInstance().showEditor(newProject);
 
         } catch (Exception e) {
             logger.error("Failed to generate addon", e);

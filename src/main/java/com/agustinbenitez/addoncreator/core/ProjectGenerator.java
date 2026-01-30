@@ -175,12 +175,23 @@ public class ProjectGenerator {
      * Creates a placeholder pack_icon.png file
      */
     private static void createPackIcon(Path packPath) throws IOException {
-        // For now, just create an empty file
-        // In the future, we can generate a default icon
         Path iconPath = packPath.resolve("pack_icon.png");
         if (!Files.exists(iconPath)) {
-            Files.createFile(iconPath);
-            logger.debug("Created placeholder pack_icon.png");
+            try (java.io.InputStream is = ProjectGenerator.class.getResourceAsStream("/images/preset_logo.png")) {
+                if (is != null) {
+                    Files.copy(is, iconPath);
+                    logger.debug("Copied default pack_icon.png");
+                } else {
+                    logger.warn("Default icon not found in resources, creating empty file");
+                    Files.createFile(iconPath);
+                }
+            } catch (IOException e) {
+                logger.error("Failed to copy default icon", e);
+                // Fallback to empty file if copy fails
+                if (!Files.exists(iconPath)) {
+                    Files.createFile(iconPath);
+                }
+            }
         }
     }
 }

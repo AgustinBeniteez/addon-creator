@@ -71,6 +71,7 @@ public class AddonCreatorApp extends Application {
     @Override
     public void stop() {
         logger.info("Shutting down Addon Creator application");
+        System.exit(0);
     }
 
     private void showErrorAndExit(String message) {
