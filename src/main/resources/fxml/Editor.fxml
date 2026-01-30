@@ -7,7 +7,7 @@
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.Group?>
 
-<BorderPane xmlns="http://javafx.com/javafx/21"
+<BorderPane fx:id="mainLayout" xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.agustinbenitez.addoncreator.ui.EditorController"
             styleClass="ide-root">

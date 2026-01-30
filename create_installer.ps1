@@ -12,19 +12,34 @@ if ($LASTEXITCODE -ne 0) {
 # 2. Define variables
 $APP_NAME = "AddonCreator"
 $APP_VERSION = "1.0.1"
-$INPUT_DIR = "target"
+$BUILD_DIR = "target"
+$STAGING_DIR = Join-Path $BUILD_DIR "installer_input"
 $MAIN_JAR = "addon-creator-1.0.1.jar"
 $MAIN_CLASS = "com.agustinbenitez.addoncreator.Launcher"
 $OUTPUT_DIR = "installer"
 
-# 2.5 Copy templates to target directory (so they are included in the installer)
+# 2.1 Prepare staging directory
+Write-Host "Preparing staging directory at $STAGING_DIR..."
+if (Test-Path $STAGING_DIR) {
+    Remove-Item -Path $STAGING_DIR -Recurse -Force
+}
+New-Item -ItemType Directory -Path $STAGING_DIR | Out-Null
+
+# 2.2 Copy Main Jar
+$JAR_SOURCE = Join-Path $BUILD_DIR $MAIN_JAR
+if (Test-Path $JAR_SOURCE) {
+    Copy-Item -Path $JAR_SOURCE -Destination $STAGING_DIR
+    Write-Host "Copied $MAIN_JAR to staging directory."
+} else {
+    Write-Host "Error: Main JAR not found at $JAR_SOURCE" -ForegroundColor Red
+    exit 1
+}
+
+# 2.3 Copy templates to staging directory
 $TEMPLATES_SRC = "templates"
-$TEMPLATES_DEST = Join-Path $INPUT_DIR "plantillas"
+$TEMPLATES_DEST = Join-Path $STAGING_DIR "plantillas"
 if (Test-Path $TEMPLATES_SRC) {
-    Write-Host "Copying templates to build directory..."
-    if (Test-Path $TEMPLATES_DEST) {
-        Remove-Item -Path $TEMPLATES_DEST -Recurse -Force
-    }
+    Write-Host "Copying templates..."
     Copy-Item -Path $TEMPLATES_SRC -Destination $TEMPLATES_DEST -Recurse -Force
 }
 
@@ -45,7 +60,7 @@ if (!(Test-Path -Path $OUTPUT_DIR)) {
 # Note: --icon requires an .ico file on Windows.
 jpackage `
   --type exe `
-  --input $INPUT_DIR `
+  --input $STAGING_DIR `
   --name $APP_NAME `
   --app-version $APP_VERSION `
   --main-jar $MAIN_JAR `
