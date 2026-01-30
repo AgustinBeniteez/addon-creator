@@ -4,144 +4,135 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.image.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.agustinbenitez.addoncreator.ui.MainWindowController"
             styleClass="root">
     
-    <!-- Top: Header -->
+    <!-- Top: Header with Back Button -->
     <top>
-        <VBox styleClass="header">
+        <HBox alignment="CENTER_LEFT" spacing="20" styleClass="header">
             <padding>
-                <Insets top="20" right="20" bottom="20" left="20"/>
+                <Insets top="20" right="20" bottom="10" left="20"/>
             </padding>
-            <Label text="Addon Creator" styleClass="title">
-                <font>
-                    <Font name="System Bold" size="32"/>
-                </font>
-            </Label>
-            <Label text="Create Minecraft Bedrock Addons" styleClass="subtitle">
-                <font>
-                    <Font size="14"/>
-                </font>
-            </Label>
-        </VBox>
+            <Button fx:id="btnBack" text="← Back" styleClass="button-secondary"/>
+            <VBox>
+                <Label text="New Project" styleClass="title">
+                    <font>
+                        <Font name="System Bold" size="28"/>
+                    </font>
+                </Label>
+                <Label text="Configure your new Minecraft Bedrock Addon" styleClass="subtitle"/>
+            </VBox>
+        </HBox>
     </top>
     
     <!-- Center: Main Form -->
     <center>
-        <ScrollPane fitToWidth="true" styleClass="content-scroll">
-            <VBox spacing="20" styleClass="content">
+        <ScrollPane fitToWidth="true" styleClass="content-scroll" style="-fx-background-color: transparent;">
+            <VBox spacing="25" styleClass="content" maxWidth="800" alignment="TOP_CENTER">
                 <padding>
-                    <Insets top="20" right="20" bottom="20" left="20"/>
+                    <Insets top="20" right="40" bottom="40" left="40"/>
                 </padding>
                 
-                <!-- Addon Information Section -->
-                <VBox spacing="10" styleClass="section">
-                    <Label text="Addon Information" styleClass="section-title">
-                        <font>
-                            <Font name="System Bold" size="18"/>
-                        </font>
-                    </Label>
+                <!-- Main Info Card -->
+                <VBox styleClass="card" spacing="20" style="-fx-background-color: #2b2b2b; -fx-background-radius: 10; -fx-padding: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);">
                     
-                    <GridPane hgap="10" vgap="10">
-                        <columnConstraints>
-                            <ColumnConstraints minWidth="120" prefWidth="120"/>
-                            <ColumnConstraints hgrow="ALWAYS"/>
-                        </columnConstraints>
+                    <!-- Row 1: Name/Desc and Logo -->
+                    <HBox spacing="30">
+                        <!-- Left Col: Text Inputs -->
+                        <VBox spacing="15" HBox.hgrow="ALWAYS">
+                            <VBox spacing="5">
+                                <Label text="PROJECT NAME" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                                <TextField fx:id="addonNameField" promptText="e.g. Super Sword Addon" styleClass="input-field"/>
+                            </VBox>
+                            
+                            <VBox spacing="5" VBox.vgrow="ALWAYS">
+                                <Label text="DESCRIPTION" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                                <TextArea fx:id="descriptionArea" promptText="What does this addon do?" 
+                                          wrapText="true" VBox.vgrow="ALWAYS" styleClass="input-area"/>
+                            </VBox>
+                        </VBox>
                         
-                        <!-- Addon Name -->
-                        <Label text="Addon Name:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-                        <TextField fx:id="addonNameField" promptText="My Awesome Addon" 
-                                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
-                        
-                        <!-- Description -->
-                        <Label text="Description:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                        <TextArea fx:id="descriptionArea" promptText="Enter addon description..." 
-                                  prefRowCount="3" wrapText="true"
-                                  GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-                    </GridPane>
-                </VBox>
-                
-                <!-- Version Section -->
-                <VBox spacing="10" styleClass="section">
-                    <Label text="Version Settings" styleClass="section-title">
-                        <font>
-                            <Font name="System Bold" size="18"/>
-                        </font>
-                    </Label>
-                    
-                    <GridPane hgap="10" vgap="10">
-                        <columnConstraints>
-                            <ColumnConstraints minWidth="120" prefWidth="120"/>
-                            <ColumnConstraints hgrow="ALWAYS"/>
-                        </columnConstraints>
-                        
-                        <!-- Addon Version -->
-                        <Label text="Addon Version:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-                        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                            <TextField fx:id="versionMajorField" prefWidth="60" promptText="1"/>
-                            <Label text="."/>
-                            <TextField fx:id="versionMinorField" prefWidth="60" promptText="0"/>
-                            <Label text="."/>
-                            <TextField fx:id="versionPatchField" prefWidth="60" promptText="0"/>
-                        </HBox>
-                        
-                        <!-- Min Engine Version -->
-                        <Label text="Min Engine:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                        <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                            <TextField fx:id="minEngineMajorField" prefWidth="60" promptText="1"/>
-                            <Label text="."/>
-                            <TextField fx:id="minEngineMinorField" prefWidth="60" promptText="20"/>
-                            <Label text="."/>
-                            <TextField fx:id="minEnginePatchField" prefWidth="60" promptText="0"/>
-                        </HBox>
-                    </GridPane>
-                </VBox>
-                
-                <!-- Folder Selection Section -->
-                <VBox spacing="10" styleClass="section">
-                    <Label text="Output Location" styleClass="section-title">
-                        <font>
-                            <Font name="System Bold" size="18"/>
-                        </font>
-                    </Label>
-                    
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <TextField fx:id="folderPathField" promptText="Select folder..." 
-                                   editable="false" HBox.hgrow="ALWAYS"/>
-                        <Button fx:id="browseFolderButton" text="Browse..." 
-                                styleClass="button-primary"/>
+                        <!-- Right Col: Logo -->
+                        <VBox spacing="10" alignment="TOP_CENTER" minWidth="150">
+                            <StackPane style="-fx-background-color: #3c3c3c; -fx-background-radius: 15; -fx-border-color: #555; -fx-border-radius: 15; -fx-border-width: 2; -fx-border-style: dashed;">
+                                <ImageView fx:id="logoImageView" fitWidth="120" fitHeight="120" preserveRatio="true"/>
+                                <Label text="LOGO" style="-fx-text-fill: #666;" mouseTransparent="true"/>
+                            </StackPane>
+                            <Button fx:id="btnUploadLogo" text="Upload Image" styleClass="button-secondary"/>
+                        </VBox>
                     </HBox>
+                    
+                    <Separator style="-fx-opacity: 0.1;"/>
+
+                    <!-- Row 2: Version -->
+                    <HBox spacing="15" alignment="CENTER_LEFT">
+                        <Label text="VERSION" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                        <HBox spacing="5" alignment="CENTER_LEFT" style="-fx-background-color: #3c3c3c; -fx-background-radius: 5; -fx-padding: 5;">
+                            <TextField fx:id="versionMajorField" prefWidth="50" promptText="1" alignment="CENTER" style="-fx-background-color: transparent; -fx-text-fill: white;"/>
+                            <Label text="." style="-fx-text-fill: #888;"/>
+                            <TextField fx:id="versionMinorField" prefWidth="50" promptText="0" alignment="CENTER" style="-fx-background-color: transparent; -fx-text-fill: white;"/>
+                            <Label text="." style="-fx-text-fill: #888;"/>
+                            <TextField fx:id="versionPatchField" prefWidth="50" promptText="0" alignment="CENTER" style="-fx-background-color: transparent; -fx-text-fill: white;"/>
+                        </HBox>
+                    </HBox>
+
+                    <!-- Row 3: Type -->
+                    <VBox spacing="5">
+                        <Label text="PROJECT TYPE" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                        <ComboBox fx:id="projectTypeCombo" maxWidth="Infinity" styleClass="combo-box"/>
+                    </VBox>
+
+                    <!-- Row 4: Path -->
+                    <VBox spacing="5">
+                        <Label text="PROJECT PATH" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                        <HBox spacing="10">
+                            <TextField fx:id="folderPathField" promptText="C:/..." HBox.hgrow="ALWAYS" editable="false" styleClass="input-field"/>
+                            <Button fx:id="browseFolderButton" text="Browse..." styleClass="button-primary"/>
+                        </HBox>
+                    </VBox>
+                    
+                    <Separator style="-fx-opacity: 0.1;"/>
+
+                    <!-- Row 5: Git -->
+                    <HBox spacing="20" alignment="CENTER_LEFT">
+                        <CheckBox fx:id="gitConnectCheck" text="Connect with Git" styleClass="checkbox"/>
+                        <HBox spacing="10" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                            <Label text="Repo URL:" style="-fx-text-fill: #aaaaaa;"/>
+                            <TextField fx:id="gitRepoField" promptText="https://github.com/user/repo.git" HBox.hgrow="ALWAYS" styleClass="input-field"/>
+                            <StackPane>
+                                <SVGPath content="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" scaleX="1.2" scaleY="1.2" style="-fx-fill: white;"/>
+                            </StackPane>
+                        </HBox>
+                    </HBox>
+
                 </VBox>
                 
                 <!-- Generate Button -->
-                <HBox alignment="CENTER">
-                    <Button fx:id="generateButton" text="Generate Addon" 
-                            styleClass="button-generate">
-                        <font>
-                            <Font name="System Bold" size="16"/>
-                        </font>
-                    </Button>
-                </HBox>
+                <Button fx:id="generateButton" text="CREATE PROJECT" prefWidth="250" prefHeight="50"
+                        style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-background-radius: 25; -fx-cursor: hand;">
+                    <effect>
+                         <javafx.scene.effect.DropShadow color="rgba(0,122,204,0.4)" radius="15" spread="0.2"/>
+                    </effect>
+                </Button>
+
             </VBox>
         </ScrollPane>
     </center>
     
-    <!-- Bottom: Log Area -->
+    <!-- Bottom: Log Area (Hidden or Small) -->
     <bottom>
         <VBox styleClass="log-section">
             <padding>
                 <Insets top="10" right="20" bottom="10" left="20"/>
             </padding>
-            <Label text="Log" styleClass="section-title">
-                <font>
-                    <Font name="System Bold" size="14"/>
-                </font>
-            </Label>
-            <TextArea fx:id="logArea" editable="false" prefRowCount="6" 
-                      wrapText="true" styleClass="log-area"/>
+            <TitledPane text="Console Output" expanded="false">
+                <TextArea fx:id="logArea" editable="false" prefRowCount="6" wrapText="true" styleClass="log-area"/>
+            </TitledPane>
         </VBox>
     </bottom>
     

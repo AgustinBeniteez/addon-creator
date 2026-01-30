@@ -761,178 +761,151 @@
     -fx-spacing: 10;
 }
 
-.project-card-description {
-    -fx-font-size: 13px;
-    -fx-text-fill: #cccccc;
+/* ===== NEW PROJECT SCREEN ===== */
+
+.content-scroll {
+    -fx-background-color: #1e1e1e;
+    -fx-background: #1e1e1e;
+    -fx-border-color: transparent;
 }
 
-.project-card-date {
-    -fx-font-size: 11px;
-    -fx-text-fill: #999999;
+.content-scroll .viewport {
+    -fx-background-color: #1e1e1e;
 }
 
-.section-title {
-    -fx-text-fill: #ffffff;
-    -fx-font-weight: bold;
-}
-
-/* ===== TEXT INPUTS ===== */
-
-.text-field {
+.input-field {
     -fx-background-color: #3c3c3c;
     -fx-text-fill: #cccccc;
     -fx-border-color: #555555;
-    -fx-border-width: 1;
     -fx-border-radius: 3;
     -fx-background-radius: 3;
-    -fx-padding: 6;
 }
 
-.text-field:focused {
+.input-field:focused {
     -fx-border-color: #007acc;
-    -fx-border-width: 2;
 }
 
-.text-area {
-    -fx-background-color: #1e1e1e;
-    -fx-text-fill: #d4d4d4;
+.input-area {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
     -fx-border-color: #555555;
-    -fx-border-width: 1;
     -fx-border-radius: 3;
     -fx-background-radius: 3;
 }
 
-.text-area:focused {
-    -fx-border-color: #007acc;
-    -fx-border-width: 2;
-}
-
-.text-area .content {
-    -fx-background-color: #1e1e1e;
-}
-
-/* ===== LABELS ===== */
-
-.label {
+.input-area .content {
+    -fx-background-color: #3c3c3c;
     -fx-text-fill: #cccccc;
 }
 
-/* ===== BUTTONS (General) ===== */
-
-.button {
-    -fx-background-color: #0e639c;
-    -fx-text-fill: white;
-    -fx-padding: 8 16;
-    -fx-border-radius: 3;
-    -fx-background-radius: 3;
-    -fx-cursor: hand;
+.input-area:focused {
+    -fx-border-color: #007acc;
 }
 
-.button:hover {
+.combo-box {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #555555;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.combo-box .cell {
+    -fx-text-fill: #cccccc;
+    -fx-background-color: #3c3c3c;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: #094771;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #252526;
+    -fx-border-color: #454545;
+}
+
+.checkbox {
+    -fx-text-fill: #cccccc;
+}
+
+.checkbox .box {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #555555;
+}
+
+.checkbox:selected .mark {
+    -fx-background-color: white;
+}
+
+.button-primary {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-background-radius: 3;
+}
+
+.button-primary:hover {
     -fx-background-color: #1177bb;
 }
 
-.button:pressed {
-    -fx-background-color: #005a9e;
-}
-
-/* ===== BACK BUTTON ===== */
-
-.back-button {
-    -fx-background-color: rgba(255, 255, 255, 0.1);
-    -fx-text-fill: white;
-    -fx-padding: 8 16;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
-    -fx-cursor: hand;
-}
-
-.back-button:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* ===== ACTIVITY BAR (VS Code Style) ===== */
-
-.activity-bar {
-    -fx-background-color: #333333;
-    -fx-border-color: #252526;
-    -fx-border-width: 0 1 0 0;
-}
-
-.activity-button {
-    -fx-background-color: transparent;
-    -fx-text-fill: #999999;
-    -fx-padding: 10;
-    -fx-border-color: transparent;
-    -fx-border-width: 0 0 0 2;
-    -fx-cursor: hand;
-    -fx-pref-width: 48px;
-    -fx-pref-height: 48px;
-}
-
-.activity-button:hover {
-    -fx-text-fill: white;
-}
-
-.activity-button:hover .activity-icon {
-    -fx-fill: white;
-}
-
-.activity-button:pressed {
-    -fx-border-color: white; 
-}
-
-.activity-icon {
-    -fx-fill: #999999;
-}
-
-.tooltip {
-    -fx-background-color: #252526;
+.button-secondary {
+    -fx-background-color: #3c3c3c;
     -fx-text-fill: #cccccc;
-    -fx-border-color: #454545;
-    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-background-radius: 3;
+    -fx-border-color: #555555;
+    -fx-border-radius: 3;
 }
 
-/* ===== GIT PANEL ===== */
-
-.git-panel {
-    -fx-background-color: #252526;
-    -fx-border-color: #1e1e1e;
-    -fx-border-width: 0 1 0 0;
+.button-secondary:hover {
+    -fx-background-color: #4c4c4c;
+    -fx-text-fill: white;
 }
 
-.git-panel-header {
-    -fx-padding: 10;
-    -fx-border-color: #1e1e1e;
-    -fx-border-width: 0 0 1 0;
-}
-
-.git-panel-title {
+.label-header {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-text-fill: #bbbbbb;
+    -fx-text-fill: #aaaaaa;
 }
 
-.git-file-list {
-    -fx-background-color: transparent;
+.title {
+    -fx-text-fill: white;
 }
 
-.git-file-list .list-cell {
-    -fx-background-color: transparent;
+.subtitle {
+    -fx-text-fill: #888888;
+}
+
+/* TitledPane for Log */
+.titled-pane {
     -fx-text-fill: #cccccc;
-    -fx-padding: 2 5;
 }
 
-.git-file-list .list-cell:hover {
-    -fx-background-color: #2a2d2e;
+.titled-pane > .title {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #3e3e3e;
+    -fx-border-radius: 3 3 0 0;
+    -fx-background-radius: 3 3 0 0;
 }
 
-.git-action-bar {
-    -fx-padding: 5;
-    -fx-spacing: 5;
+.titled-pane > .title .arrow-button .arrow {
+    -fx-background-color: #cccccc;
 }
 
-.git-commit-area {
-    -fx-padding: 10;
-    -fx-spacing: 10;
+.titled-pane > .content {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #3e3e3e;
+    -fx-border-radius: 0 0 3 3;
+    -fx-background-radius: 0 0 3 3;
+}
+
+.log-area {
+    -fx-font-family: "Consolas", monospace;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-background-color: #1e1e1e;
 }
