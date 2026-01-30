@@ -120,6 +120,8 @@ public class EditorController {
     @FXML
     private Button btnBack;
     @FXML
+    private Button btnModeSwitch; // New Toggle Button
+    @FXML
     private Button btnExplorer;
     @FXML
     private Button btnSearch;
@@ -139,6 +141,29 @@ public class EditorController {
     // Sidebar
     @FXML
     private VBox projectExplorerView;
+    @FXML
+    private VBox uiEzModeView; // New Ez Mode View
+    @FXML
+    private SplitPane ideSplitPane; // Code Mode View
+    @FXML
+    private ToggleButton btnEzEntities;
+    @FXML
+    private ToggleButton btnEzItems;
+    @FXML
+    private ToggleButton btnEzBlocks;
+    @FXML
+    private VBox ezEntitiesContainer;
+    @FXML
+    private VBox ezItemsContainer;
+    @FXML
+    private VBox ezBlocksContainer;
+    @FXML
+    private ListView<String> ezEntitiesList;
+    @FXML
+    private ListView<String> ezItemsList;
+    @FXML
+    private ListView<String> ezBlocksList;
+
     @FXML
     private VBox searchView;
     @FXML
@@ -243,6 +268,8 @@ public class EditorController {
 
         setupMenuActions();
         setupToolbarActions();
+        setupModeSwitch();
+        setupEzModeNavigation();
         setupFileTree();
         setupConsole();
         setupTerminal();
@@ -263,6 +290,83 @@ public class EditorController {
         updateSaveButtonState();
 
         log("IDE initialized successfully");
+    }
+
+    private void setupModeSwitch() {
+        if (btnModeSwitch != null) {
+            btnModeSwitch.setOnAction(e -> toggleMode());
+        }
+    }
+
+    private void setupEzModeNavigation() {
+        ToggleGroup group = new ToggleGroup();
+        if (btnEzEntities != null) {
+            btnEzEntities.setToggleGroup(group);
+            btnEzEntities.setOnAction(e -> showEzSection("entities"));
+        }
+        if (btnEzItems != null) {
+            btnEzItems.setToggleGroup(group);
+            btnEzItems.setOnAction(e -> showEzSection("items"));
+        }
+        if (btnEzBlocks != null) {
+            btnEzBlocks.setToggleGroup(group);
+            btnEzBlocks.setOnAction(e -> showEzSection("blocks"));
+        }
+    }
+
+    private void showEzSection(String section) {
+        if (ezEntitiesContainer != null) ezEntitiesContainer.setVisible("entities".equals(section));
+        if (ezItemsContainer != null) ezItemsContainer.setVisible("items".equals(section));
+        if (ezBlocksContainer != null) ezBlocksContainer.setVisible("blocks".equals(section));
+    }
+
+
+    private void toggleMode() {
+        boolean isEzMode = uiEzModeView.isVisible();
+        if (isEzMode) {
+            // Switch to Code Mode
+            uiEzModeView.setVisible(false);
+            ideSplitPane.setVisible(true);
+            
+            // Set Icon to "UI Ez" (Monitor) - indicating click to go to Ez Mode
+            SVGPath icon = new SVGPath();
+            icon.setContent("M4 4h56v40H4z M8 8h22v10H8z M8 22h22v8H8z M34 8h18v14H34z M34 26h18 M34 30h18");
+            icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 2;");
+            icon.setScaleX(0.4); 
+            icon.setScaleY(0.4);
+            btnModeSwitch.setGraphic(icon);
+            btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
+        } else {
+            // Switch to Ez Mode
+            uiEzModeView.setVisible(true);
+            ideSplitPane.setVisible(false);
+            
+            // Set Icon to "Code" (Editor) - indicating click to go to Code Mode
+            SVGPath icon = new SVGPath();
+            icon.setContent("M3 4h18v14H3z M9 9l-3 3 3 3 M15 9l3 3-3 3");
+            icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 2;");
+            icon.setScaleX(0.8);
+            icon.setScaleY(0.8);
+            btnModeSwitch.setGraphic(icon);
+            btnModeSwitch.getTooltip().setText("Switch to Code Mode");
+
+            // Populate Lists
+            populateEzLists();
+        }
+    }
+
+    private void populateEzLists() {
+        if (currentProject == null) return;
+        
+        if (ezEntitiesList != null) {
+            ezEntitiesList.getItems().setAll(currentProject.getEntities());
+        }
+        if (ezItemsList != null) {
+            ezItemsList.getItems().setAll(currentProject.getItems());
+        }
+        if (ezBlocksList != null) {
+            ezBlocksList.getItems().setAll(currentProject.getBlocks());
+        }
     }
 
     private void setupGitList() {

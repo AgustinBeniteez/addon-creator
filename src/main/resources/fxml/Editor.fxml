@@ -67,6 +67,16 @@
     <left>
         <VBox styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="50" maxWidth="50" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
             
+            <Button fx:id="btnModeSwitch" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Switch to Easy Mode"/></tooltip>
+                <graphic>
+                    <SVGPath content="M4 4h56v40H4z M8 8h22v10H8z M8 22h22v8H8z M34 8h18v14H34z M34 26h18 M34 30h18" 
+                             style="-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 2;" scaleX="0.4" scaleY="0.4"/>
+                </graphic>
+            </Button>
+
+            <Separator/>
+            
             <Button fx:id="btnExplorer" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
                 <tooltip><Tooltip text="Explorer"/></tooltip>
                 <graphic>
@@ -129,7 +139,49 @@
     
     <!-- Center: Main IDE Area -->
     <center>
-        <SplitPane dividerPositions="0.2" styleClass="ide-splitpane">
+        <StackPane>
+            <!-- Easy Mode View -->
+            <VBox fx:id="uiEzModeView" visible="false" styleClass="ide-root" spacing="20" style="-fx-padding: 20; -fx-background-color: #1e1e1e;">
+                 <!-- Header -->
+                 <HBox alignment="CENTER_LEFT" spacing="20">
+                     <Label text="Easy Mode" textFill="WHITE">
+                         <font>
+                             <Font name="System Bold" size="24"/>
+                         </font>
+                     </Label>
+                 </HBox>
+
+                 <!-- Navigation -->
+                 <HBox spacing="10" alignment="CENTER_LEFT">
+                     <ToggleButton fx:id="btnEzEntities" text="Entities" selected="true" styleClass="button-primary"/>
+                     <ToggleButton fx:id="btnEzItems" text="Items" styleClass="button-primary"/>
+                     <ToggleButton fx:id="btnEzBlocks" text="Blocks" styleClass="button-primary"/>
+                 </HBox>
+
+                 <!-- Content -->
+                 <StackPane VBox.vgrow="ALWAYS">
+                     <!-- Entities -->
+                     <VBox fx:id="ezEntitiesContainer" visible="true" spacing="10" style="-fx-background-color: #252526; -fx-padding: 10; -fx-background-radius: 5;">
+                         <Label text="Entities" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+                         <ListView fx:id="ezEntitiesList" VBox.vgrow="ALWAYS" styleClass="file-tree"/>
+                     </VBox>
+
+                     <!-- Items -->
+                     <VBox fx:id="ezItemsContainer" visible="false" spacing="10" style="-fx-background-color: #252526; -fx-padding: 10; -fx-background-radius: 5;">
+                         <Label text="Items" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+                         <ListView fx:id="ezItemsList" VBox.vgrow="ALWAYS" styleClass="file-tree"/>
+                     </VBox>
+
+                     <!-- Blocks -->
+                     <VBox fx:id="ezBlocksContainer" visible="false" spacing="10" style="-fx-background-color: #252526; -fx-padding: 10; -fx-background-radius: 5;">
+                         <Label text="Blocks" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+                         <ListView fx:id="ezBlocksList" VBox.vgrow="ALWAYS" styleClass="file-tree"/>
+                     </VBox>
+                 </StackPane>
+            </VBox>
+
+            <!-- Original SplitPane (Code Mode) -->
+            <SplitPane fx:id="ideSplitPane" dividerPositions="0.2" styleClass="ide-splitpane">
             
             <!-- Left: Sidebar Container -->
             <StackPane minWidth="200">
@@ -263,7 +315,8 @@
                 
             </BorderPane>
             
-        </SplitPane>
+            </SplitPane>
+        </StackPane>
     </center>
     
     <!-- Bottom: Collapsible Console and Status Bar -->
