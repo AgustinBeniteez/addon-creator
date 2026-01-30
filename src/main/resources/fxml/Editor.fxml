@@ -60,6 +60,20 @@
                     <Insets right="15" left="15"/>
                 </padding>
             </Label>
+            
+            <Button fx:id="btnExport" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0 10;" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Export Project"/></tooltip>
+                <graphic>
+                    <SVGPath content="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" style="-fx-fill: #CCCCCC;" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
+            
+            <Button fx:id="btnTest" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0 10;" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Test Addon"/></tooltip>
+                <graphic>
+                    <SVGPath content="M8 5v14l11-7z" style="-fx-fill: #CCCCCC;" scaleX="0.8" scaleY="0.8"/>
+                </graphic>
+            </Button>
         </HBox>
     </top>
     
@@ -122,20 +136,6 @@
                         <SVGPath content="M 6 6 L 20 6 M 10 11 L 20 11 M 6 16 L 16 16 M 3 9 L 5 11 L 3 13" 
                                  stroke="WHITE" strokeWidth="2" strokeLineCap="ROUND" strokeLineJoin="ROUND" fill="TRANSPARENT"/>
                     </Group>
-                </graphic>
-            </Button>
-            
-            <Button fx:id="btnExport" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
-                <tooltip><Tooltip text="Export"/></tooltip>
-                <graphic>
-                    <SVGPath content="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
-                </graphic>
-            </Button>
-            
-            <Button fx:id="btnTest" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
-                <tooltip><Tooltip text="Test"/></tooltip>
-                <graphic>
-                    <SVGPath content="M8 5v14l11-7z" styleClass="activity-icon" scaleX="0.8" scaleY="0.8"/>
                 </graphic>
             </Button>
             
