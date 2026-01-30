@@ -1,13 +1,21 @@
 package com.agustinbenitez.addoncreator.ui;
 
+import com.agustinbenitez.addoncreator.core.AddonTemplate;
 import com.agustinbenitez.addoncreator.core.GitManager;
 import com.agustinbenitez.addoncreator.core.ProjectGenerator;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.models.Project;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import org.slf4j.Logger;
@@ -17,6 +25,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Controller for the main application window
@@ -75,9 +86,17 @@ public class MainWindowController {
     @FXML
     private TextArea logArea;
 
+    @FXML
+    private FlowPane templatesContainer;
+    
+    @FXML
+    private VBox templatesSection;
+
     private File selectedFolder;
     private File selectedLogoFile;
     private Project editingProject;
+    private List<AddonTemplate> allTemplates;
+    private AddonTemplate selectedTemplate;
 
     @FXML
     public void initialize() {
@@ -117,7 +136,111 @@ public class MainWindowController {
             // Ignore if default logo missing
         }
 
+        // Initialize Templates
+        initializeTemplates();
+        if (templatesContainer != null) {
+            renderTemplates("All");
+        }
+
         log("Addon Creator initialized - Ready to create addons!");
+    }
+
+    private void initializeTemplates() {
+        allTemplates = new ArrayList<>();
+        // "herramientas, block, HUD, texture pack"
+        allTemplates.add(new AddonTemplate("tools", "Mining Tools Addon", "Adds new pickaxes and drills.", "Both (Addon)", "Tools", null));
+        allTemplates.add(new AddonTemplate("blocks", "Custom Blocks", "Adds decorative blocks.", "Both (Addon)", "Blocks", null));
+        allTemplates.add(new AddonTemplate("hud", "Custom HUD", "Modifies the game HUD.", "Resource Pack", "Utility", null));
+        allTemplates.add(new AddonTemplate("texture", "Texture Pack", "Changes vanilla textures.", "Resource Pack", "Utility", null));
+        
+        // Add a few more for the mockup feel
+        allTemplates.add(new AddonTemplate("mobs", "Knight Armor Mod", "Adds new armor sets.", "Both (Addon)", "Armor", null));
+        allTemplates.add(new AddonTemplate("magic", "Magic Spells", "Learn powerful spells.", "Both (Addon)", "Magic", null));
+    }
+
+    private void renderTemplates(String categoryFilter) {
+        templatesContainer.getChildren().clear();
+
+        List<AddonTemplate> filtered = allTemplates.stream()
+            .filter(t -> categoryFilter.equals("All") || t.getCategory().equalsIgnoreCase(categoryFilter))
+            .collect(Collectors.toList());
+
+        for (AddonTemplate template : filtered) {
+            VBox card = createTemplateCard(template);
+            templatesContainer.getChildren().add(card);
+        }
+    }
+
+    private VBox createTemplateCard(AddonTemplate template) {
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(15));
+        card.setPrefWidth(200);
+        card.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
+        
+        // Placeholder Icon
+        HBox iconContainer = new HBox();
+        iconContainer.setAlignment(Pos.CENTER_LEFT);
+        Rectangle placeholderIcon = new Rectangle(40, 40, Color.web("#3c3c3c"));
+        placeholderIcon.setArcWidth(10);
+        placeholderIcon.setArcHeight(10);
+        
+        VBox textContainer = new VBox(5);
+        Label title = new Label(template.getName());
+        title.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");
+        title.setWrapText(true);
+        
+        Label desc = new Label(template.getDescription());
+        desc.setStyle("-fx-text-fill: #888; -fx-font-size: 11px;");
+        desc.setWrapText(true);
+        desc.setPrefHeight(40); // Fixed height for alignment
+        
+        textContainer.getChildren().addAll(title, desc);
+        
+        HBox header = new HBox(10);
+        header.getChildren().addAll(placeholderIcon, textContainer);
+        
+        Button useBtn = new Button("Use Template");
+        useBtn.setMaxWidth(Double.MAX_VALUE);
+        useBtn.getStyleClass().add("button-primary");
+        useBtn.setStyle("-fx-background-color: #0e639c; -fx-text-fill: white; -fx-font-size: 11px;");
+        
+        useBtn.setOnAction(e -> selectTemplate(template));
+
+        card.getChildren().addAll(header, useBtn);
+        
+        // Hover effect
+        card.setOnMouseEntered(e -> card.setStyle("-fx-background-color: #333; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 8, 0, 0, 0);"));
+        card.setOnMouseExited(e -> {
+            if (selectedTemplate != template) {
+                card.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
+            } else {
+                card.setStyle("-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
+            }
+        });
+
+        // Selection style
+        if (selectedTemplate == template) {
+            card.setStyle("-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
+        }
+
+        return card;
+    }
+
+    private void selectTemplate(AddonTemplate template) {
+        this.selectedTemplate = template;
+        
+        // Update UI to reflect selection
+        projectTypeCombo.setValue(template.getProjectType());
+        
+        // Optionally update description if empty
+        if (descriptionArea.getText().isEmpty()) {
+            descriptionArea.setText(template.getDescription());
+        }
+        
+        // Re-render to show selection state
+        renderTemplates("All"); // Or keep current filter
+        
+        log("Selected template: " + template.getName());
     }
 
     @FXML
@@ -183,6 +306,12 @@ public class MainWindowController {
         if (folderPathField != null) {
             folderPathField.getParent().getParent().setVisible(false);
             folderPathField.getParent().getParent().setManaged(false);
+        }
+        
+        // Hide Templates Section in Edit Mode
+        if (templatesSection != null) {
+            templatesSection.setVisible(false);
+            templatesSection.setManaged(false);
         }
         
         generateButton.setText("Save Changes");
@@ -254,11 +383,33 @@ public class MainWindowController {
             log("Type: " + projectType);
             log("Version: " + version);
             log("Location: " + rootPath);
+            if (selectedTemplate != null) {
+                log("Using Template: " + selectedTemplate.getName());
+            }
 
             // Generate the project structure
             // Note: ProjectGenerator currently generates both BP and RP.
             // Future improvement: Pass projectType to generate only what's needed.
             ProjectGenerator.generateProject(rootPath, addonName, description);
+            
+            // Handle Template Generation (Simple File Stubs for now)
+            if (selectedTemplate != null) {
+                try {
+                    if (selectedTemplate.getId().equals("tools")) {
+                         // Add a sample pickaxe JSON
+                         ProjectGenerator.createItemFolder(rootPath);
+                         // TODO: Write actual JSON content
+                         log("✓ Added sample tool files");
+                    } else if (selectedTemplate.getId().equals("blocks")) {
+                         // Add a sample block JSON
+                         ProjectGenerator.createBlockFolder(rootPath);
+                         log("✓ Added sample block files");
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to apply template", e);
+                    log("⚠ Failed to apply template files: " + e.getMessage());
+                }
+            }
             
             // Handle Logo Copy
             if (selectedLogoFile != null) {
@@ -344,4 +495,11 @@ public class MainWindowController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    @FXML private void handleFilterAll() { renderTemplates("All"); }
+    @FXML private void handleFilterTools() { renderTemplates("Tools"); }
+    @FXML private void handleFilterBlocks() { renderTemplates("Blocks"); }
+    @FXML private void handleFilterArmor() { renderTemplates("Armor"); }
+    @FXML private void handleFilterMagic() { renderTemplates("Magic"); }
+    @FXML private void handleFilterUtility() { renderTemplates("Utility"); }
 }
