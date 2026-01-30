@@ -3011,6 +3011,11 @@ public class EditorController {
             scrollPane.setFitToHeight(true);
             scrollPane.setStyle("-fx-background-color: #1e1e1e; -fx-background: #1e1e1e;");
             
+            // Main Layout (StackPane to overlay controls)
+            StackPane mainLayout = new StackPane();
+            mainLayout.setStyle("-fx-background-color: #1e1e1e;");
+            mainLayout.getChildren().add(scrollPane);
+
             // Zoom Controls Container
             HBox zoomControls = new HBox(5);
             zoomControls.setAlignment(javafx.geometry.Pos.CENTER);
@@ -3019,6 +3024,24 @@ public class EditorController {
             zoomControls.setMaxHeight(Region.USE_PREF_SIZE);
             zoomControls.getChildren().addAll(zoomOutBtn, zoomLabel, zoomInBtn);
             
+            // Helper for opening editor with spinner
+            java.util.function.Consumer<File> openEditorWithSpinner = (file) -> {
+                Node loadingOverlay = LoadingSpinnerHelper.createOverlay("Cargando editor...");
+                mainLayout.getChildren().add(loadingOverlay);
+                
+                // Use PauseTransition to allow the UI to render the spinner
+                PauseTransition pause = new PauseTransition(Duration.millis(100));
+                pause.setOnFinished(ev -> {
+                    try {
+                        openPixelArtEditor(file);
+                    } finally {
+                        // Remove spinner after opening
+                        mainLayout.getChildren().remove(loadingOverlay);
+                    }
+                });
+                pause.play();
+            };
+
             // Edit Button (Bottom Left)
             Button editBtn = new Button();
             SVGPath editIcon = new SVGPath();
@@ -3027,7 +3050,7 @@ public class EditorController {
             editBtn.setGraphic(editIcon);
             editBtn.setStyle("-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);");
             editBtn.setTooltip(new Tooltip("Abrir en Editor"));
-            editBtn.setOnAction(e -> openPixelArtEditor(imagePath.toFile()));
+            editBtn.setOnAction(e -> openEditorWithSpinner.accept(imagePath.toFile()));
             
             // Hover effect
             editBtn.setOnMouseEntered(e -> editBtn.setStyle("-fx-background-color: #0098ff; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
@@ -3036,18 +3059,14 @@ public class EditorController {
             // Context Menu
             ContextMenu contextMenu = new ContextMenu();
             MenuItem openInEditorItem = new MenuItem("Abrir en Editor");
-            openInEditorItem.setOnAction(e -> openPixelArtEditor(imagePath.toFile()));
+            openInEditorItem.setOnAction(e -> openEditorWithSpinner.accept(imagePath.toFile()));
             contextMenu.getItems().add(openInEditorItem);
 
             imageView.setOnContextMenuRequested(e -> {
                 contextMenu.show(imageView, e.getScreenX(), e.getScreenY());
             });
 
-
-            // Main Layout (StackPane to overlay controls)
-            StackPane mainLayout = new StackPane();
-            mainLayout.setStyle("-fx-background-color: #1e1e1e;");
-            mainLayout.getChildren().add(scrollPane);
+            // Add controls to Main Layout
             mainLayout.getChildren().add(zoomControls);
             mainLayout.getChildren().add(editBtn);
             StackPane.setAlignment(zoomControls, javafx.geometry.Pos.BOTTOM_RIGHT);
@@ -3699,7 +3718,7 @@ public class EditorController {
 
                     // Check if already on left (index 0)
                     if (ideSplitPane.getItems().indexOf(sidebarContainer) == 0) {
-                        ideSplitPane.setDividerPositions(0.2);
+                        ideSplitPane.setDividerPositions(0.15);
                         return;
                     }
 
@@ -3709,7 +3728,7 @@ public class EditorController {
                     newItems.add(0, sidebarContainer);
                     
                     ideSplitPane.getItems().setAll(newItems);
-                    ideSplitPane.setDividerPositions(0.2);
+                    ideSplitPane.setDividerPositions(0.15);
                 } catch (Exception ex) {
                     logger.error("Error setting divider position or moving components", ex);
                 }
@@ -3763,7 +3782,7 @@ public class EditorController {
 
                     // Check if already on right (last index)
                     if (ideSplitPane.getItems().indexOf(sidebarContainer) == ideSplitPane.getItems().size() - 1) {
-                        ideSplitPane.setDividerPositions(0.8);
+                        ideSplitPane.setDividerPositions(0.85);
                         return;
                     }
 
@@ -3773,7 +3792,7 @@ public class EditorController {
                     newItems.add(sidebarContainer); // Adds to end
                     
                     ideSplitPane.getItems().setAll(newItems);
-                    ideSplitPane.setDividerPositions(0.8);
+                    ideSplitPane.setDividerPositions(0.85);
                 } catch (Exception ex) {
                     logger.error("Error setting divider position or moving components", ex);
                 }

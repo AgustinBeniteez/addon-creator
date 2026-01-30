@@ -235,10 +235,10 @@
             </BorderPane>
 
             <!-- Original SplitPane (Code Mode) -->
-            <SplitPane fx:id="ideSplitPane" dividerPositions="0.2" styleClass="ide-splitpane">
+            <SplitPane fx:id="ideSplitPane" dividerPositions="0.15" styleClass="ide-splitpane">
             
             <!-- Left: Sidebar Container -->
-            <StackPane fx:id="sidebarContainer" minWidth="200">
+            <StackPane fx:id="sidebarContainer" minWidth="150">
                 <!-- Project Explorer View -->
                 <VBox fx:id="projectExplorerView" styleClass="ide-sidebar" spacing="5">
                     <padding>
