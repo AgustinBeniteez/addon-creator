@@ -564,10 +564,30 @@
 .projects-scroll {
     -fx-background-color: #2d2d2d;
     -fx-border-color: transparent;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 10; /* Add padding to prevent content from touching the rounded corners */
 }
 
 .projects-scroll .viewport {
     -fx-background-color: #2d2d2d;
+    -fx-background-radius: 15;
+}
+
+.home-search-field {
+    -fx-font-size: 16px;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-padding: 10 20;
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+}
+
+.home-search-field:focused {
+    -fx-border-color: #007acc;
+    -fx-background-insets: 0;
 }
 
 .projects-grid {

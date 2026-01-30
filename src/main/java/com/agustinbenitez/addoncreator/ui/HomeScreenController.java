@@ -432,8 +432,21 @@ public class HomeScreenController {
         File selectedDirectory = directoryChooser.showDialog(projectsGrid.getScene().getWindow());
         
         if (selectedDirectory != null) {
-             Project project = new Project(selectedDirectory.getName(), "Imported Project", selectedDirectory.getAbsolutePath());
-             NavigationManager.getInstance().showEditor(project);
+             String path = selectedDirectory.getAbsolutePath();
+             
+             // Check if project is already known to avoid duplicates
+             java.util.Optional<Project> existingProject = allProjects.stream()
+                 .filter(p -> p.getRootPath().equals(path))
+                 .findFirst();
+                 
+             if (existingProject.isPresent()) {
+                 NavigationManager.getInstance().showEditor(existingProject.get());
+             } else {
+                 // Create new project entry and save it
+                 Project project = new Project(selectedDirectory.getName(), "Imported Project", path);
+                 projectManager.addProject(project);
+                 NavigationManager.getInstance().showEditor(project);
+             }
         }
     }
 
