@@ -4,6 +4,7 @@ import com.agustinbenitez.addoncreator.core.FileTreeManager;
 import com.agustinbenitez.addoncreator.core.GitManager;
 import com.agustinbenitez.addoncreator.core.ProjectGenerator;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
+import com.agustinbenitez.addoncreator.core.TodoManager;
 import com.agustinbenitez.addoncreator.models.Project;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
@@ -48,9 +49,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.List;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
+import org.commonmark.ext.gfm.tables.TablesExtension;
+import java.util.Enumeration;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
+
+import java.util.zip.ZipFile;
+import java.util.zip.ZipEntry;
+import java.io.InputStream;
+import java.awt.Desktop;
 
 import javafx.animation.PauseTransition;
 import javafx.animation.FadeTransition;
@@ -60,6 +70,10 @@ import javafx.scene.Node;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import java.io.UncheckedIOException;
+
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
+import org.commonmark.ext.gfm.tables.TablesExtension;
 
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Priority;
@@ -122,9 +136,13 @@ public class EditorController {
     @FXML
     private Button btnModeSwitch; // New Toggle Button
     @FXML
+    private Button btnAddEz; // New Add Button for Ez Mode
+    @FXML
     private Button btnExplorer;
     @FXML
     private Button btnSearch;
+    @FXML
+    private Button btnTodo;
     @FXML
     private Button btnSave;
     @FXML
@@ -174,6 +192,11 @@ public class EditorController {
     private Label searchStatusLabel;
     @FXML
     private ListView<String> searchResultsList;
+    
+    @FXML
+    private VBox todoView;
+    @FXML
+    private StackPane todoContentArea;
     
     // Git
     @FXML
@@ -248,6 +271,7 @@ public class EditorController {
     private Project currentProject;
     private ProjectManager projectManager;
     private GitManager gitManager;
+    private TodoManager todoManager;
     private Map<Tab, Path> tabFileMap; // Map tabs to their file paths
     private Map<Tab, Boolean> tabDirtyMap; // Map tabs to their dirty state
     private boolean consoleVisible = true;
@@ -269,6 +293,7 @@ public class EditorController {
         setupMenuActions();
         setupToolbarActions();
         setupModeSwitch();
+        setupAddEzButton();
         setupEzModeNavigation();
         setupFileTree();
         setupConsole();
@@ -276,6 +301,7 @@ public class EditorController {
         setupAddElementButton();
         setupNewFileButton();
         setupSearch();
+        setupTodo();
         setupGitList();
         setupLanguageStatus();
         setupErrorStatus();
@@ -295,6 +321,35 @@ public class EditorController {
     private void setupModeSwitch() {
         if (btnModeSwitch != null) {
             btnModeSwitch.setOnAction(e -> toggleMode());
+        }
+    }
+
+    private void setupAddEzButton() {
+        if (btnAddEz != null) {
+            btnAddEz.setOnAction(e -> {
+                ContextMenu contextMenu = new ContextMenu();
+                
+                MenuItem addEntity = new MenuItem("Entity");
+                addEntity.setOnAction(ev -> {
+                    if (menuAddEntity != null) menuAddEntity.fire();
+                });
+                
+                MenuItem addItem = new MenuItem("Item");
+                addItem.setOnAction(ev -> {
+                    if (menuAddItem != null) menuAddItem.fire();
+                });
+                
+                MenuItem addBlock = new MenuItem("Block");
+                addBlock.setOnAction(ev -> {
+                    if (menuAddBlock != null) menuAddBlock.fire();
+                });
+                
+                contextMenu.getItems().addAll(addEntity, addItem, addBlock);
+                
+                // Show to the right of the button
+                javafx.geometry.Bounds bounds = btnAddEz.localToScreen(btnAddEz.getBoundsInLocal());
+                contextMenu.show(btnAddEz, bounds.getMaxX(), bounds.getMinY());
+            });
         }
     }
 
@@ -328,6 +383,24 @@ public class EditorController {
             uiEzModeView.setVisible(false);
             ideSplitPane.setVisible(true);
             
+            // Sidebar buttons management
+            if (btnExplorer != null) {
+                btnExplorer.setVisible(true);
+                btnExplorer.setManaged(true);
+            }
+            if (btnSearch != null) {
+                btnSearch.setVisible(true);
+                btnSearch.setManaged(true);
+            }
+            if (btnFormat != null) {
+                btnFormat.setVisible(true);
+                btnFormat.setManaged(true);
+            }
+            if (btnAddEz != null) {
+                btnAddEz.setVisible(false);
+                btnAddEz.setManaged(false);
+            }
+            
             // Set Icon to "UI Ez" (Monitor) - indicating click to go to Ez Mode
             SVGPath icon = new SVGPath();
             icon.setContent("M4 4h56v40H4z M8 8h22v10H8z M8 22h22v8H8z M34 8h18v14H34z M34 26h18 M34 30h18");
@@ -340,6 +413,24 @@ public class EditorController {
             // Switch to Ez Mode
             uiEzModeView.setVisible(true);
             ideSplitPane.setVisible(false);
+
+            // Sidebar buttons management
+            if (btnExplorer != null) {
+                btnExplorer.setVisible(false);
+                btnExplorer.setManaged(false);
+            }
+            if (btnSearch != null) {
+                btnSearch.setVisible(false);
+                btnSearch.setManaged(false);
+            }
+            if (btnFormat != null) {
+                btnFormat.setVisible(false);
+                btnFormat.setManaged(false);
+            }
+            if (btnAddEz != null) {
+                btnAddEz.setVisible(true);
+                btnAddEz.setManaged(true);
+            }
             
             // Set Icon to "Code" (Editor) - indicating click to go to Code Mode
             SVGPath icon = new SVGPath();
@@ -367,6 +458,175 @@ public class EditorController {
         if (ezBlocksList != null) {
             ezBlocksList.getItems().setAll(currentProject.getBlocks());
         }
+    }
+
+    private void setupTodo() {
+        if (btnTodo != null) {
+            btnTodo.setOnAction(e -> toggleTodoView());
+        }
+    }
+
+    private void toggleTodoView() {
+        if (todoView == null) return;
+        
+        boolean isVisible = todoView.isVisible();
+        
+        // Hide all views first
+        projectExplorerView.setVisible(false);
+        projectExplorerView.setManaged(false);
+        searchView.setVisible(false);
+        searchView.setManaged(false);
+        if (gitView != null) {
+            gitView.setVisible(false);
+            gitView.setManaged(false);
+        }
+        todoView.setVisible(false);
+        todoView.setManaged(false);
+
+        // Toggle requested view
+        if (!isVisible) {
+            todoView.setVisible(true);
+            todoView.setManaged(true);
+            updateTodoView();
+        } else {
+            // Default back to explorer if closing
+            projectExplorerView.setVisible(true);
+            projectExplorerView.setManaged(true);
+        }
+    }
+
+    private void updateTodoView() {
+        if (todoContentArea == null) return;
+        
+        if (currentProject == null) {
+             todoContentArea.getChildren().clear();
+             Label label = new Label("Open a project to view tasks");
+             label.setTextFill(Color.GRAY);
+             todoContentArea.getChildren().add(label);
+             return;
+        }
+
+        if (todoManager == null) {
+             todoManager = new TodoManager(Paths.get(currentProject.getRootPath()));
+        }
+        
+        // Check if todo is initialized
+        if (!todoManager.isInitialized()) {
+            todoContentArea.getChildren().clear();
+            
+            VBox box = new VBox(15);
+            box.setAlignment(Pos.CENTER);
+            
+            Label label = new Label("No task list found");
+            label.setTextFill(Color.WHITE);
+            
+            Button createBtn = new Button("Create Task List");
+            createBtn.getStyleClass().add("primary-button");
+            createBtn.setOnAction(e -> {
+                try {
+                    todoManager.initialize();
+                    updateTodoView();
+                } catch (IOException ex) {
+                    logger.error("Failed to initialize todo list", ex);
+                }
+            });
+            
+            box.getChildren().addAll(label, createBtn);
+            todoContentArea.getChildren().add(box);
+        } else {
+            // Show Task List
+            try {
+                todoManager.loadTasks();
+                showTaskList();
+            } catch (IOException e) {
+                 logger.error("Failed to load tasks", e);
+            }
+        }
+    }
+    
+    private void showTaskList() {
+        todoContentArea.getChildren().clear();
+        
+        VBox mainBox = new VBox(10);
+        mainBox.setPadding(new Insets(10));
+        VBox.setVgrow(mainBox, Priority.ALWAYS);
+        
+        // Input for new task
+        HBox inputBox = new HBox(5);
+        TextField taskInput = new TextField();
+        taskInput.setPromptText("Add a new task...");
+        taskInput.setStyle("-fx-background-color: #333333; -fx-text-fill: white; -fx-background-radius: 4;");
+        HBox.setHgrow(taskInput, Priority.ALWAYS);
+        
+        Button addBtn = new Button("+");
+        addBtn.getStyleClass().add("primary-button");
+        addBtn.setOnAction(e -> {
+            String text = taskInput.getText().trim();
+            if (!text.isEmpty()) {
+                try {
+                    todoManager.addTask(text);
+                    taskInput.clear();
+                    showTaskList(); // Refresh
+                } catch (IOException ex) {
+                    logger.error("Failed to add task", ex);
+                }
+            }
+        });
+        
+        taskInput.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ENTER) {
+                addBtn.fire();
+            }
+        });
+        
+        inputBox.getChildren().addAll(taskInput, addBtn);
+        
+        // List of tasks
+        ListView<TodoManager.Task> taskListView = new ListView<>();
+        taskListView.setStyle("-fx-background-color: transparent;");
+        taskListView.getItems().addAll(todoManager.getTasks());
+        VBox.setVgrow(taskListView, Priority.ALWAYS);
+        
+        taskListView.setCellFactory(lv -> new ListCell<TodoManager.Task>() {
+             @Override
+             protected void updateItem(TodoManager.Task task, boolean empty) {
+                 super.updateItem(task, empty);
+                 if (empty || task == null) {
+                     setGraphic(null);
+                     setStyle("-fx-background-color: transparent;");
+                 } else {
+                     CheckBox cb = new CheckBox(task.getDescription());
+                     cb.setSelected(task.isCompleted());
+                     // Style
+                     if (task.isCompleted()) {
+                         cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
+                     } else {
+                         cb.setStyle("-fx-text-fill: #cccccc;");
+                     }
+                     
+                     cb.setOnAction(e -> {
+                         task.setCompleted(cb.isSelected());
+                         try {
+                             todoManager.updateTask(task);
+                             // Refresh just the style of this cell if possible, or reload list
+                             if (task.isCompleted()) {
+                                 cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
+                             } else {
+                                 cb.setStyle("-fx-text-fill: #cccccc;");
+                             }
+                         } catch (IOException ex) {
+                             logger.error("Failed to update task", ex);
+                         }
+                     });
+                     
+                     setGraphic(cb);
+                     setStyle("-fx-background-color: transparent; -fx-padding: 5;");
+                 }
+             }
+        });
+        
+        mainBox.getChildren().addAll(inputBox, taskListView);
+        todoContentArea.getChildren().add(mainBox);
     }
 
     private void setupGitList() {
@@ -686,6 +946,9 @@ public class EditorController {
 
     public void setProject(Project project) {
         this.currentProject = project;
+        this.todoManager = null; // Reset todo manager for new project
+        if (todoContentArea != null) todoContentArea.getChildren().clear();
+        
         projectNameToolbar.setText(project.getName());
 
         // Build file tree
@@ -796,21 +1059,48 @@ public class EditorController {
 
     private void handleExplorer() {
         projectExplorerView.setVisible(true);
+        projectExplorerView.setManaged(true);
         searchView.setVisible(false);
-        if (gitView != null) gitView.setVisible(false);
+        searchView.setManaged(false);
+        if (gitView != null) {
+            gitView.setVisible(false);
+            gitView.setManaged(false);
+        }
+        if (todoView != null) {
+            todoView.setVisible(false);
+            todoView.setManaged(false);
+        }
     }
 
     private void handleSearch() {
         projectExplorerView.setVisible(false);
-        if (gitView != null) gitView.setVisible(false);
+        projectExplorerView.setManaged(false);
+        if (gitView != null) {
+            gitView.setVisible(false);
+            gitView.setManaged(false);
+        }
+        if (todoView != null) {
+            todoView.setVisible(false);
+            todoView.setManaged(false);
+        }
         searchView.setVisible(true);
+        searchView.setManaged(true);
         searchField.requestFocus();
     }
     
     private void handleGit() {
         projectExplorerView.setVisible(false);
+        projectExplorerView.setManaged(false);
         searchView.setVisible(false);
-        if (gitView != null) gitView.setVisible(true);
+        searchView.setManaged(false);
+        if (todoView != null) {
+            todoView.setVisible(false);
+            todoView.setManaged(false);
+        }
+        if (gitView != null) {
+            gitView.setVisible(true);
+            gitView.setManaged(true);
+        }
         refreshGitStatus();
     }
     
@@ -1308,7 +1598,408 @@ public class EditorController {
         }
     }
     
+    private void openMcPackPreview(Path filePath) {
+        Tab tab = new Tab(filePath.getFileName().toString());
+        setupTab(tab, filePath);
+
+        VBox contentContainer = new VBox();
+        contentContainer.setAlignment(Pos.CENTER);
+        contentContainer.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 20;");
+
+        // Card Container
+        VBox card = new VBox(20);
+        card.setMaxWidth(600);
+        card.setStyle("-fx-background-color: #252526; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 5); -fx-padding: 30;");
+
+        // Top Section: Icon + Info
+        HBox topSection = new HBox(20);
+        topSection.setAlignment(Pos.CENTER_LEFT);
+
+        // Icon Container
+        StackPane iconContainer = new StackPane();
+        iconContainer.setPrefSize(100, 100);
+        iconContainer.setMinSize(100, 100);
+        iconContainer.setMaxSize(100, 100);
+        
+        String name = "Unknown Pack";
+        String description = "No description available";
+        String version = "0.0.0";
+        String uuid = "Unknown UUID";
+        String type = "Unknown Type";
+        javafx.scene.image.Image loadedIcon = null;
+
+        try (ZipFile zip = new ZipFile(filePath.toFile())) {
+            ZipEntry finalEntry = null;
+            JsonObject finalJson = null;
+            
+            // Temporary storage for Priority
+            ZipEntry bpEntry = null;
+            JsonObject bpJson = null;
+            ZipEntry rpEntry = null;
+            JsonObject rpJson = null;
+            ZipEntry otherEntry = null;
+            JsonObject otherJson = null;
+
+            Enumeration<? extends ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                if (!entry.isDirectory() && entry.getName().endsWith("manifest.json")) {
+                    try (InputStream is = zip.getInputStream(entry)) {
+                        String jsonTxt = new String(is.readAllBytes());
+                        JsonObject json = JsonParser.parseString(jsonTxt).getAsJsonObject();
+                        
+                        String modType = "";
+                        if (json.has("modules")) {
+                            JsonArray modules = json.getAsJsonArray("modules");
+                            if (modules.size() > 0) {
+                                JsonObject module = modules.get(0).getAsJsonObject();
+                                if (module.has("type")) {
+                                    modType = module.get("type").getAsString();
+                                }
+                            }
+                        }
+                        
+                        if ("data".equals(modType)) {
+                            bpEntry = entry;
+                            bpJson = json;
+                            break; // Priority 1: BP found, stop searching (optimization)
+                        } else if ("resources".equals(modType)) {
+                            if (rpEntry == null) {
+                                rpEntry = entry;
+                                rpJson = json;
+                            }
+                        } else {
+                            if (otherEntry == null) {
+                                otherEntry = entry;
+                                otherJson = json;
+                            }
+                        }
+                    } catch (Exception ignore) {}
+                }
+            }
+            
+            // Selection Logic: BP > RP > Other
+            if (bpEntry != null) {
+                finalEntry = bpEntry;
+                finalJson = bpJson;
+            } else if (rpEntry != null) {
+                finalEntry = rpEntry;
+                finalJson = rpJson;
+            } else {
+                finalEntry = otherEntry;
+                finalJson = otherJson;
+            }
+
+            // Extract Data
+            if (finalJson != null) {
+                if (finalJson.has("header")) {
+                    JsonObject header = finalJson.getAsJsonObject("header");
+                    if (header.has("name")) name = header.get("name").getAsString();
+                    if (header.has("description")) description = header.get("description").getAsString();
+                    if (header.has("version")) version = header.get("version").toString();
+                    if (header.has("uuid")) uuid = header.get("uuid").getAsString();
+                }
+                
+                if (finalJson.has("modules")) {
+                    JsonArray modules = finalJson.getAsJsonArray("modules");
+                    if (modules.size() > 0) {
+                        String modType = modules.get(0).getAsJsonObject().get("type").getAsString();
+                        type = modType.equals("resources") ? "Resource Pack" : 
+                               modType.equals("data") ? "Behavior Pack" : modType;
+                    }
+                }
+                
+                // Find Icon relative to manifest
+                if (finalEntry != null) {
+                    String baseDir = "";
+                    String entryName = finalEntry.getName();
+                    if (entryName.contains("/")) {
+                        baseDir = entryName.substring(0, entryName.lastIndexOf("/") + 1);
+                    }
+                    
+                    String iconPath = baseDir + "pack_icon.png";
+                    ZipEntry iconEntry = zip.getEntry(iconPath);
+                    if (iconEntry != null) {
+                        try (InputStream is = zip.getInputStream(iconEntry)) {
+                            loadedIcon = new javafx.scene.image.Image(is);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error reading mcpack", e);
+            name = "Error reading pack";
+            description = e.getMessage();
+        }
+        
+        if (loadedIcon != null) {
+            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(loadedIcon);
+            iv.setFitWidth(100);
+            iv.setFitHeight(100);
+            iv.setPreserveRatio(true);
+            iconContainer.getChildren().add(iv);
+        } else {
+             // Use fallback icon scaled up
+             javafx.scene.Node fallback = FileIconFactory.createMcPackIcon();
+             fallback.setScaleX(4.0);
+             fallback.setScaleY(4.0);
+             iconContainer.getChildren().add(fallback);
+        }
+
+        // Info Box
+        VBox infoBox = new VBox(10);
+        Label nameLabel = new Label(name);
+        nameLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
+        nameLabel.setWrapText(true);
+        
+        Label descLabel = new Label(description);
+        descLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #cccccc;");
+        descLabel.setWrapText(true);
+        
+        Label dataLabel = new Label("Version: " + version + "\nUUID: " + uuid + "\nType: " + type);
+        dataLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 12px; -fx-font-family: 'Consolas', monospace;");
+        
+        infoBox.getChildren().addAll(nameLabel, descLabel, dataLabel);
+        HBox.setHgrow(infoBox, Priority.ALWAYS);
+        
+        topSection.getChildren().addAll(iconContainer, infoBox);
+        
+        // Bottom Section
+        HBox bottomSection = new HBox();
+        bottomSection.setAlignment(Pos.CENTER_LEFT);
+        
+        // Open Button
+        Button openBtn = new Button("Abrir");
+        openBtn.setStyle("-fx-background-color: #0E639C; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;");
+        openBtn.setOnMouseEntered(e -> openBtn.setStyle("-fx-background-color: #1177BB; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;"));
+        openBtn.setOnMouseExited(e -> openBtn.setStyle("-fx-background-color: #0E639C; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;"));
+        
+        openBtn.setOnAction(e -> {
+            try {
+                Desktop.getDesktop().open(filePath.toFile());
+            } catch (IOException ex) {
+                showError("Error", "No se pudo abrir el archivo: " + ex.getMessage());
+            }
+        });
+        
+        // Extension Badge
+        HBox extBadge = new HBox(8);
+        extBadge.setAlignment(Pos.CENTER_RIGHT);
+        
+        String extName = filePath.getFileName().toString();
+        String ext = extName.contains(".") ? extName.substring(extName.lastIndexOf('.')) : "";
+        
+        Label extLabel = new Label(ext);
+        extLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+        
+        javafx.scene.Node badgeIcon = FileIconFactory.createMcPackIcon();
+        badgeIcon.setScaleX(1.5);
+        badgeIcon.setScaleY(1.5);
+        
+        extBadge.getChildren().addAll(badgeIcon, extLabel);
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        bottomSection.getChildren().addAll(openBtn, spacer, extBadge);
+        
+        card.getChildren().addAll(topSection, new Separator(), bottomSection);
+        contentContainer.getChildren().add(card);
+
+        tab.setContent(contentContainer);
+        tabFileMap.put(tab, filePath);
+        tabDirtyMap.put(tab, false);
+        editorTabs.getTabs().add(tab);
+        editorTabs.getSelectionModel().select(tab);
+    }
+
+    private void openMarkdownPreview(Path filePath) {
+        Tab tab = new Tab(filePath.getFileName().toString());
+        setupTab(tab, filePath);
+
+        String content = "";
+        try {
+            content = Files.readString(filePath);
+        } catch (IOException e) {
+            logger.error("Failed to read markdown file", e);
+            content = "Error reading file";
+        }
+
+        // --- Editor (Monaco) ---
+        WebView editorWebView = new WebView();
+        WebEngine editorEngine = editorWebView.getEngine();
+        editorWebView.setContextMenuEnabled(false);
+        
+        // --- Preview (HTML) ---
+        WebView previewWebView = new WebView();
+        WebEngine previewEngine = previewWebView.getEngine();
+
+        // Markdown Parser
+        Parser parser = Parser.builder().extensions(Arrays.asList(TablesExtension.create())).build();
+        HtmlRenderer renderer = HtmlRenderer.builder().extensions(Arrays.asList(TablesExtension.create())).build();
+
+        // Update Preview Logic
+        java.util.function.Consumer<String> updatePreview = (md) -> {
+            String html = renderer.render(parser.parse(md));
+            String fullHtml = "<html><head><style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; color: #d4d4d4; background-color: #1e1e1e; line-height: 1.6; } a { color: #3794ff; text-decoration: none; } a:hover { text-decoration: underline; } code { background-color: #2d2d2d; padding: 2px 5px; border-radius: 4px; font-family: 'Consolas', monospace; color: #ce9178; } pre { background-color: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 5px; overflow: auto; } pre code { background-color: transparent; padding: 0; color: #d4d4d4; } table { border-collapse: collapse; width: 100%; margin: 15px 0; } th, td { border: 1px solid #444; padding: 10px; text-align: left; } th { background-color: #252526; } tr:nth-child(even) { background-color: #252526; } blockquote { border-left: 4px solid #4caf50; padding-left: 15px; color: #858585; margin: 15px 0; } h1, h2, h3, h4, h5, h6 { color: #569cd6; margin-top: 20px; } hr { border: 0; height: 1px; background: #444; margin: 20px 0; } img { max-width: 100%; border-radius: 5px; }</style></head><body>" + html + "</body></html>";
+            javafx.application.Platform.runLater(() -> previewEngine.loadContent(fullHtml));
+        };
+
+        // Load Initial Preview
+        updatePreview.accept(content);
+
+        // Load Monaco
+        java.net.URL url = getClass().getResource("/monaco-editor/index.html");
+        if (url != null) {
+            String editorUrl = url.toExternalForm();
+            JavaBridge bridge = new JavaBridge(content);
+            bridge.setOnContentChangeCallback(updatePreview);
+            
+            editorEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                if (newState == Worker.State.SUCCEEDED) {
+                    JSObject window = (JSObject) editorEngine.executeScript("window");
+                    window.setMember("javaApp", bridge);
+                    
+                    String initScript = "setTimeout(function() { " +
+                        "if(typeof initEditor === 'function') { " +
+                            "var editor = initEditor(javaApp.getContent(), 'markdown'); " +
+                            "editor.onDidChangeModelContent(function() { " +
+                                "javaApp.onMarkdownChange(editor.getValue()); " +
+                            "}); " +
+                        "} " +
+                    "}, 200);";
+                    editorEngine.executeScript(initScript);
+                }
+            });
+            editorEngine.load(editorUrl);
+        } else {
+            editorEngine.loadContent("Error: Monaco Editor not found");
+        }
+
+        // --- Layout & SplitPane ---
+        SplitPane splitPane = new SplitPane(editorWebView, previewWebView);
+        splitPane.setDividerPositions(0.5);
+
+        // --- Toolbar & View Mode ---
+        ComboBox<String> viewMode = new ComboBox<>();
+        viewMode.getItems().addAll("Split View", "Editor Only", "Preview Only");
+        viewMode.setValue("Split View");
+        
+        // Icons
+        SVGPath splitIcon = new SVGPath();
+        splitIcon.setContent("M4 4h16v16H4V4zm7 2H6v12h5V6zm7 0h-5v12h5V6z");
+        splitIcon.setFill(Color.WHITE);
+        
+        SVGPath editorIcon = new SVGPath();
+        editorIcon.setContent("M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z");
+        editorIcon.setFill(Color.WHITE);
+        
+        SVGPath previewIcon = new SVGPath();
+        previewIcon.setContent("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z");
+        previewIcon.setFill(Color.WHITE);
+        
+        viewMode.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(item);
+                    if (item.equals("Split View")) setGraphic(createIcon(splitIcon.getContent()));
+                    else if (item.equals("Editor Only")) setGraphic(createIcon(editorIcon.getContent()));
+                    else if (item.equals("Preview Only")) setGraphic(createIcon(previewIcon.getContent()));
+                    setStyle("-fx-text-fill: white; -fx-background-color: #333;");
+                }
+            }
+        });
+        viewMode.setButtonCell(new ListCell<String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(item);
+                    if (item.equals("Split View")) setGraphic(createIcon(splitIcon.getContent()));
+                    else if (item.equals("Editor Only")) setGraphic(createIcon(editorIcon.getContent()));
+                    else if (item.equals("Preview Only")) setGraphic(createIcon(previewIcon.getContent()));
+                    setStyle("-fx-text-fill: white; -fx-background-color: transparent;");
+                }
+            }
+        });
+
+        // Styles
+        viewMode.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-mark-color: white;");
+        
+        viewMode.setOnAction(e -> {
+            switch (viewMode.getValue()) {
+                case "Split View":
+                    splitPane.getItems().setAll(editorWebView, previewWebView);
+                    splitPane.setDividerPositions(0.5);
+                    break;
+                case "Editor Only":
+                    splitPane.getItems().setAll(editorWebView);
+                    break;
+                case "Preview Only":
+                    splitPane.getItems().setAll(previewWebView);
+                    break;
+            }
+        });
+
+        HBox toolBar = new HBox(10);
+        toolBar.setPadding(new Insets(5));
+        toolBar.setStyle("-fx-background-color: #252526; -fx-border-color: #3e3e42; -fx-border-width: 0 0 1 0;");
+        Label modeLabel = new Label("View Mode:");
+        modeLabel.setTextFill(Color.web("#cccccc"));
+        toolBar.getChildren().addAll(modeLabel, viewMode);
+        toolBar.setAlignment(Pos.CENTER_LEFT);
+
+        VBox container = new VBox(toolBar, splitPane);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
+        
+        // Store editor reference for saving (Required by handleSave)
+        container.setUserData(editorWebView);
+
+        tab.setContent(container);
+        tabFileMap.put(tab, filePath);
+        tabDirtyMap.put(tab, false);
+        editorTabs.getTabs().add(tab);
+        editorTabs.getSelectionModel().select(tab);
+    }
+
+    private SVGPath createIcon(String path) {
+        SVGPath icon = new SVGPath();
+        icon.setContent(path);
+        icon.setFill(Color.web("#cccccc"));
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+        return icon;
+    }
+
     private void openFileByPath(Path filePath) {
+        openFileByPath(filePath, false);
+    }
+
+    private void openFileByPath(Path filePath, boolean forceCodeView) {
+        // Intercept .TODO/tasks.json opening
+        if (!forceCodeView && (filePath.endsWith(Paths.get(".TODO", "tasks.json")) || 
+            (filePath.getFileName().toString().equals("tasks.json") && filePath.getParent() != null && filePath.getParent().getFileName().toString().equals(".TODO")))) {
+            
+            // Ensure sidebar is open
+            if (todoView != null) {
+                if (!todoView.isVisible()) {
+                    toggleTodoView();
+                } else {
+                    // If already visible, just ensure it's updated
+                    updateTodoView();
+                }
+            }
+            return;
+        }
+
         // Check if file is already open
         for (Tab tab : editorTabs.getTabs()) {
             if (tabFileMap.get(tab).equals(filePath)) {
@@ -1317,8 +2008,21 @@ public class EditorController {
             }
         }
 
-        // Check if it's an image file
         String fileName = filePath.getFileName().toString().toLowerCase();
+
+        // Check for .mcpack / .mcaddon
+        if (fileName.endsWith(".mcpack") || fileName.endsWith(".mcaddon")) {
+            openMcPackPreview(filePath);
+            return;
+        }
+
+        // Check for Markdown
+        if (fileName.endsWith(".md") || fileName.equalsIgnoreCase("readme.txt")) {
+            openMarkdownPreview(filePath);
+            return;
+        }
+
+        // Check if it's an image file
         if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")
                 || fileName.endsWith(".gif")) {
             openImageInEditor(filePath);
@@ -1527,13 +2231,25 @@ public class EditorController {
     private void showFileContextMenu(TreeItem<String> item, double x, double y) {
         ContextMenu menu = new ContextMenu();
 
+        MenuItem openItem = new MenuItem("📂 Abrir");
+        openItem.setOnAction(e -> {
+            Path path = FileTreeManager.getPathFromTreeItem(item, Paths.get(currentProject.getRootPath()));
+            if (Files.isRegularFile(path)) {
+                openFileByPath(path, true); // Force code view (skips TODO check)
+            } else if (Files.isDirectory(path)) {
+                if (!item.isExpanded()) {
+                    item.setExpanded(true);
+                }
+            }
+        });
+
         MenuItem renameItem = new MenuItem("✏ Renombrar");
         renameItem.setOnAction(e -> handleRenameFile(item));
 
         MenuItem deleteItem = new MenuItem("🗑 Eliminar");
         deleteItem.setOnAction(e -> handleDeleteFile(item));
 
-        menu.getItems().addAll(renameItem, deleteItem);
+        menu.getItems().addAll(openItem, renameItem, deleteItem);
         menu.show(fileTree, x, y);
     }
 
@@ -2251,6 +2967,11 @@ public class EditorController {
         String content = "";
         javafx.scene.Node node = selectedTab.getContent();
         
+        // Handle wrapped content (like Markdown split view)
+        if (node instanceof Pane && node.getUserData() instanceof javafx.scene.Node) {
+            node = (javafx.scene.Node) node.getUserData();
+        }
+        
         if (node instanceof WebView) {
             WebView webView = (WebView) node;
             Object result = webView.getEngine().executeScript("getContent()");
@@ -2284,6 +3005,11 @@ public class EditorController {
             Path filePath = tabFileMap.get(tab);
             String content = "";
             javafx.scene.Node node = tab.getContent();
+            
+            // Handle wrapped content (like Markdown split view)
+            if (node instanceof Pane && node.getUserData() instanceof javafx.scene.Node) {
+                node = (javafx.scene.Node) node.getUserData();
+            }
             
             if (node instanceof WebView) {
                 WebView webView = (WebView) node;
@@ -2645,9 +3371,14 @@ public class EditorController {
 
     public class JavaBridge {
         private String content;
+        private java.util.function.Consumer<String> onContentChangeCallback;
 
         public JavaBridge(String content) {
             this.content = content;
+        }
+
+        public void setOnContentChangeCallback(java.util.function.Consumer<String> callback) {
+            this.onContentChangeCallback = callback;
         }
 
         public String getContent() {
@@ -2656,6 +3387,13 @@ public class EditorController {
         
         public void log(String msg) {
             EditorController.this.log(msg);
+        }
+
+        public void onMarkdownChange(String newContent) {
+            if (onContentChangeCallback != null) {
+                onContentChangeCallback.accept(newContent);
+            }
+            onContentChange();
         }
 
         public void onContentChange() {
@@ -2787,12 +3525,23 @@ public class EditorController {
         private static final String FOLDER_PATH = "M10 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V8C22 6.9 21.1 6 20 6H12L10 4Z";
         private static final String FILE_BODY = "M14 2H6C4.89 2 4 2.9 4 4V20C4 21.1 4.89 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z";
         private static final String FILE_CORNER = "M14 2V8H20";
+        private static final String TODO_PATH = "M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z";
         
         // 3D Model Icon Paths (Deprecated/Replaced)
         // private static final String MODEL_PATH_1 = "M12 2L2 7l10 5 10-5-10-5z";
         // ...
         
         public static javafx.scene.Node createIcon(String filename, boolean isDir) {
+            String nameLower = filename.toLowerCase();
+            
+            // Special check for .TODO folder
+            if (isDir && nameLower.equals(".todo")) {
+                SVGPath todoIcon = new SVGPath();
+                todoIcon.setContent(TODO_PATH);
+                todoIcon.setFill(Color.web("#FFC107")); // Keep folder color convention but with Todo shape
+                return createScaledIcon(todoIcon);
+            }
+
             if (isDir) {
                 SVGPath folder = new SVGPath();
                 folder.setContent(FOLDER_PATH);
@@ -2800,7 +3549,14 @@ public class EditorController {
                 return createScaledIcon(folder);
             }
             
-            String nameLower = filename.toLowerCase();
+            // Special check for tasks.json
+            if (nameLower.equals("tasks.json")) {
+                 SVGPath todoIcon = new SVGPath();
+                 todoIcon.setContent(TODO_PATH);
+                 todoIcon.setFill(Color.web("#90A4AE")); // Match default file color or distinct
+                 return createScaledIcon(todoIcon);
+            }
+            
             String ext = getExtension(filename);
             
             // Check specific filenames first
@@ -2911,6 +3667,10 @@ public class EditorController {
                 return createScaledIcon(g);
             }
             
+            if (nameLower.endsWith(".mcaddon") || nameLower.endsWith(".mcpack")) {
+                return createMcPackIcon();
+            }
+
             if (nameLower.endsWith(".bbmodel") || nameLower.endsWith(".geo.json")) {
                 Group g = new Group();
                 
@@ -3001,6 +3761,28 @@ public class EditorController {
             return createScaledIcon(group);
         }
         
+        private static javafx.scene.Node createMcPackIcon() {
+            try {
+                javafx.scene.image.Image img = new javafx.scene.image.Image(EditorController.class.getResourceAsStream("/images/mcfiles.png"));
+                javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+                iv.setFitWidth(18);
+                iv.setFitHeight(18);
+                iv.setPreserveRatio(true);
+                
+                StackPane p = new StackPane(iv);
+                p.setPrefSize(18, 18);
+                p.setMinSize(18, 18);
+                p.setMaxSize(18, 18);
+                return p;
+            } catch (Exception e) {
+                // Fallback if image not found
+                SVGPath folder = new SVGPath();
+                folder.setContent(FOLDER_PATH);
+                folder.setFill(Color.web("#8B4513"));
+                return createScaledIcon(folder);
+            }
+        }
+
         private static javafx.scene.Node createScaledIcon(javafx.scene.Node node) {
             Group g = new Group(node);
             g.setScaleX(0.75); 
