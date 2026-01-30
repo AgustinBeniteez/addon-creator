@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Generates folder structure for Minecraft Bedrock addons on-demand
@@ -18,37 +19,65 @@ public class ProjectGenerator {
     private static final Logger logger = LoggerFactory.getLogger(ProjectGenerator.class);
 
     /**
-     * Creates only the base BP and RP folders with manifests
+     * Creates only the base BP and RP folders with manifests based on project type
      * Called when first element is added to a project
      * 
      * @param rootPath    Root directory where to create the addon
      * @param addonName   Name of the addon
      * @param description Description of the addon
+     * @param projectType Type of project ("Both (Addon)", "Behavior Pack", "Resource Pack")
+     * @param authors     List of authors
+     * @param license     License text
      * @throws IOException if folder creation fails
      */
-    public static void generateBaseStructure(Path rootPath, String addonName, String description) throws IOException {
-        logger.info("Generating base structure at: {}", rootPath);
+    public static void generateBaseStructure(Path rootPath, String addonName, String description, String projectType, List<String> authors, String license) throws IOException {
+        logger.info("Generating base structure at: {} for type: {}", rootPath, projectType);
 
-        // Create BP and RP directories
-        Path bpPath = rootPath.resolve("BP");
-        Path rpPath = rootPath.resolve("RP");
+        boolean createBP = "Both (Addon)".equals(projectType) || "Behavior Pack".equals(projectType);
+        boolean createRP = "Both (Addon)".equals(projectType) || "Resource Pack".equals(projectType);
 
-        Files.createDirectories(bpPath);
-        Files.createDirectories(rpPath);
+        // Determine product_type based on selection
+        String productType = "addon"; // Default
+        if ("Resource Pack".equals(projectType)) {
+            productType = "resource_pack"; // Or whatever is appropriate, user said "change depending on selection"
+        } else if ("Behavior Pack".equals(projectType)) {
+            productType = "addon"; 
+        }
 
-        // Generate manifests
-        Manifest bpManifest = ManifestGenerator.createBehaviorPackManifest(addonName, description);
-        ManifestGenerator.writeManifest(bpManifest, bpPath.resolve("manifest.json"));
+        String bpUUID = null;
 
-        String bpUUID = bpManifest.getHeader().getUuid();
-        Manifest rpManifest = ManifestGenerator.createResourcePackManifest(addonName, description, bpUUID);
-        ManifestGenerator.writeManifest(rpManifest, rpPath.resolve("manifest.json"));
+        // Create BP if needed
+        if (createBP) {
+            Path bpPath = rootPath.resolve("BP");
+            Files.createDirectories(bpPath);
+            
+            Manifest bpManifest = ManifestGenerator.createBehaviorPackManifest(addonName, description, authors, license, productType);
+            ManifestGenerator.writeManifest(bpManifest, bpPath.resolve("manifest.json"));
+            bpUUID = bpManifest.getHeader().getUuid();
+            
+            createPackIcon(bpPath);
+        }
 
-        // Create pack icons (placeholder)
-        createPackIcon(bpPath);
-        createPackIcon(rpPath);
+        // Create RP if needed
+        if (createRP) {
+            Path rpPath = rootPath.resolve("RP");
+            Files.createDirectories(rpPath);
+            
+            // Pass bpUUID if available (it will be null if only RP is created, which is fine)
+            Manifest rpManifest = ManifestGenerator.createResourcePackManifest(addonName, description, bpUUID, authors, license, productType);
+            ManifestGenerator.writeManifest(rpManifest, rpPath.resolve("manifest.json"));
+            
+            createPackIcon(rpPath);
+        }
 
         logger.info("Base structure generated successfully");
+    }
+
+    /**
+     * Backward compatibility overload
+     */
+    public static void generateBaseStructure(Path rootPath, String addonName, String description) throws IOException {
+        generateBaseStructure(rootPath, addonName, description, "Both (Addon)", null, null);
     }
 
     /**
@@ -121,11 +150,11 @@ public class ProjectGenerator {
         createResourcePackStructure(rpPath);
 
         // Generate manifests
-        Manifest bpManifest = ManifestGenerator.createBehaviorPackManifest(addonName, description);
+        Manifest bpManifest = ManifestGenerator.createBehaviorPackManifest(addonName, description, null, null, "addon");
         ManifestGenerator.writeManifest(bpManifest, bpPath.resolve("manifest.json"));
 
         String bpUUID = bpManifest.getHeader().getUuid();
-        Manifest rpManifest = ManifestGenerator.createResourcePackManifest(addonName, description, bpUUID);
+        Manifest rpManifest = ManifestGenerator.createResourcePackManifest(addonName, description, bpUUID, null, null, "addon");
         ManifestGenerator.writeManifest(rpManifest, rpPath.resolve("manifest.json"));
 
         // Create pack icons (placeholder)

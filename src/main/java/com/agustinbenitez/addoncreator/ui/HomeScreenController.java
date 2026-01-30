@@ -304,7 +304,12 @@ public class HomeScreenController {
         iconView.setPreserveRatio(true);
 
         try {
+            // Check BP first, then RP
             Path iconPath = Paths.get(project.getRootPath(), "BP", "pack_icon.png");
+            if (!Files.exists(iconPath)) {
+                iconPath = Paths.get(project.getRootPath(), "RP", "pack_icon.png");
+            }
+            
             if (Files.exists(iconPath)) {
                 Image icon = new Image(iconPath.toUri().toString());
                 iconView.setImage(icon);

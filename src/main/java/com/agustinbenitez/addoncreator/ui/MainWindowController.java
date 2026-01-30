@@ -21,6 +21,8 @@ import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,6 +51,12 @@ public class MainWindowController {
 
     @FXML
     private TextArea descriptionArea;
+    
+    @FXML
+    private TextField authorField;
+    
+    @FXML
+    private TextField licenseField;
 
     @FXML
     private ImageView logoImageView;
@@ -147,15 +155,82 @@ public class MainWindowController {
 
     private void initializeTemplates() {
         allTemplates = new ArrayList<>();
-        // "herramientas, block, HUD, texture pack"
-        allTemplates.add(new AddonTemplate("tools", "Mining Tools Addon", "Adds new pickaxes and drills.", "Both (Addon)", "Tools", null));
-        allTemplates.add(new AddonTemplate("blocks", "Custom Blocks", "Adds decorative blocks.", "Both (Addon)", "Blocks", null));
-        allTemplates.add(new AddonTemplate("hud", "Custom HUD", "Modifies the game HUD.", "Resource Pack", "Utility", null));
-        allTemplates.add(new AddonTemplate("texture", "Texture Pack", "Changes vanilla textures.", "Resource Pack", "Utility", null));
         
-        // Add a few more for the mockup feel
-        allTemplates.add(new AddonTemplate("mobs", "Knight Armor Mod", "Adds new armor sets.", "Both (Addon)", "Armor", null));
-        allTemplates.add(new AddonTemplate("magic", "Magic Spells", "Learn powerful spells.", "Both (Addon)", "Magic", null));
+        // Load from "plantillas" directory
+        // Check standard location
+        File plantillasDir = new File(System.getProperty("user.dir"), "plantillas");
+        
+        // Check for app/plantillas (jpackage structure often puts app content in 'app' subdir relative to exe if configured so, or in root)
+        // In jpackage input, we put it in 'plantillas', so it ends up in 'app/plantillas' usually.
+        if (!plantillasDir.exists()) {
+             plantillasDir = new File(System.getProperty("user.dir") + File.separator + "app", "plantillas");
+        }
+        
+        // Fallback for dev environment (project root templates)
+        if (!plantillasDir.exists()) {
+            plantillasDir = new File("templates");
+        }
+
+        logger.info("Looking for templates in: " + plantillasDir.getAbsolutePath());
+
+        if (plantillasDir.exists() && plantillasDir.isDirectory()) {
+            File[] subDirs = plantillasDir.listFiles(File::isDirectory);
+            if (subDirs != null) {
+                for (File dir : subDirs) {
+                    AddonTemplate template = createTemplateFromDir(dir);
+                    if (template != null) {
+                        allTemplates.add(template);
+                    }
+                }
+            }
+        }
+        
+        // If no templates found, add defaults (fallback)
+        if (allTemplates.isEmpty()) {
+            allTemplates.add(new AddonTemplate("tools", "Tools Addon", "Adds new pickaxes and drills.", "Both (Addon)", "Tools", null));
+            allTemplates.add(new AddonTemplate("blocks", "Custom Blocks", "Adds decorative blocks.", "Both (Addon)", "Blocks", null));
+            allTemplates.add(new AddonTemplate("hud", "Custom HUD", "Modifies the game HUD.", "Resource Pack", "Utility", null));
+            allTemplates.add(new AddonTemplate("texture", "Texture Pack", "Changes vanilla textures.", "Resource Pack", "Utility", null));
+            allTemplates.add(new AddonTemplate("custom_entity", "Custom Entity", "Adds a new entity.", "Both (Addon)", "Mobs", null));
+        }
+    }
+
+    private AddonTemplate createTemplateFromDir(File dir) {
+        String name = dir.getName();
+        String id = name.toLowerCase().replaceAll("\\s+", "_");
+        File iconFile = new File(dir, "templateIcon.png");
+        String imagePath = iconFile.exists() ? iconFile.toURI().toString() : null;
+        
+        // Infer category/type based on name conventions
+        String type = "Both (Addon)";
+        String category = "Custom";
+        String description = "Custom template: " + name;
+
+        if (name.equalsIgnoreCase("Tools Addon")) { category = "Tools"; description = "Adds new pickaxes and drills."; }
+        else if (name.equalsIgnoreCase("Custom Blocks")) { category = "Blocks"; description = "Adds decorative blocks."; }
+        else if (name.equalsIgnoreCase("Custom HUD")) { category = "Utility"; type = "Resource Pack"; description = "Modifies the game HUD."; }
+        else if (name.equalsIgnoreCase("Texture Pack")) { category = "Utility"; type = "Resource Pack"; description = "Changes vanilla textures."; }
+        else if (name.equalsIgnoreCase("Custom Entity")) { category = "Mobs"; description = "Adds a new entity."; }
+        
+        return new AddonTemplate(id, name, description, type, category, imagePath, dir);
+    }
+
+    private void copyTemplateFiles(File source, File dest) throws java.io.IOException {
+        if (source.isDirectory()) {
+            if (!dest.exists()) {
+                dest.mkdirs();
+            }
+            String[] children = source.list();
+            if (children != null) {
+                for (String child : children) {
+                    // Skip metadata files
+                    if (child.equals("templateIcon.png") || child.equals("description.txt")) continue;
+                    copyTemplateFiles(new File(source, child), new File(dest, child));
+                }
+            }
+        } else {
+            Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     private void renderTemplates(String categoryFilter) {
@@ -180,9 +255,28 @@ public class MainWindowController {
         // Placeholder Icon
         HBox iconContainer = new HBox();
         iconContainer.setAlignment(Pos.CENTER_LEFT);
-        Rectangle placeholderIcon = new Rectangle(40, 40, Color.web("#3c3c3c"));
-        placeholderIcon.setArcWidth(10);
-        placeholderIcon.setArcHeight(10);
+        
+        javafx.scene.Node iconNode;
+        if (template.getImagePath() != null) {
+            try {
+                ImageView imgView = new ImageView(new Image(template.getImagePath()));
+                imgView.setFitWidth(40);
+                imgView.setFitHeight(40);
+                imgView.setPreserveRatio(true);
+                iconNode = imgView;
+            } catch (Exception e) {
+                // Fallback to placeholder
+                Rectangle placeholderIcon = new Rectangle(40, 40, Color.web("#3c3c3c"));
+                placeholderIcon.setArcWidth(10);
+                placeholderIcon.setArcHeight(10);
+                iconNode = placeholderIcon;
+            }
+        } else {
+            Rectangle placeholderIcon = new Rectangle(40, 40, Color.web("#3c3c3c"));
+            placeholderIcon.setArcWidth(10);
+            placeholderIcon.setArcHeight(10);
+            iconNode = placeholderIcon;
+        }
         
         VBox textContainer = new VBox(5);
         Label title = new Label(template.getName());
@@ -197,7 +291,7 @@ public class MainWindowController {
         textContainer.getChildren().addAll(title, desc);
         
         HBox header = new HBox(10);
-        header.getChildren().addAll(placeholderIcon, textContainer);
+        header.getChildren().addAll(iconNode, textContainer);
         
         Button useBtn = new Button("Use Template");
         useBtn.setMaxWidth(Double.MAX_VALUE);
@@ -346,11 +440,7 @@ public class MainWindowController {
                 
                 // Update Logo if changed
                 if (selectedLogoFile != null) {
-                    Path packIconPathBP = rootPath.resolve("BP/pack_icon.png");
-                    Path packIconPathRP = rootPath.resolve("RP/pack_icon.png");
-                    Files.copy(selectedLogoFile.toPath(), packIconPathBP, StandardCopyOption.REPLACE_EXISTING);
-                    Files.copy(selectedLogoFile.toPath(), packIconPathRP, StandardCopyOption.REPLACE_EXISTING);
-                    log("✓ Logo updated");
+                    applyLogo(rootPath, selectedLogoFile);
                 }
                 
                 // Update Project Metadata
@@ -387,15 +477,37 @@ public class MainWindowController {
                 log("Using Template: " + selectedTemplate.getName());
             }
 
+            // Get Metadata
+            List<String> authors = new ArrayList<>();
+            String authorText = authorField.getText().trim();
+            if (!authorText.isEmpty()) {
+                // Split by comma if multiple authors
+                for (String auth : authorText.split(",")) {
+                    authors.add(auth.trim());
+                }
+            } else {
+                // Default author if empty? Maybe current user or system user?
+                // Leaving empty list is fine, ManifestGenerator checks for null/empty?
+                // ManifestGenerator checks != null.
+                // Let's add a default if empty? No, user can leave it empty.
+            }
+            
+            String license = licenseField.getText().trim();
+            if (license.isEmpty()) {
+                license = "All Rights Reserved";
+            }
+
             // Generate the project structure
-            // Note: ProjectGenerator currently generates both BP and RP.
-            // Future improvement: Pass projectType to generate only what's needed.
-            ProjectGenerator.generateProject(rootPath, addonName, description);
+            ProjectGenerator.generateBaseStructure(rootPath, addonName, description, projectType, authors, license);
             
             // Handle Template Generation (Simple File Stubs for now)
             if (selectedTemplate != null) {
                 try {
-                    if (selectedTemplate.getId().equals("tools")) {
+                    if (selectedTemplate.getSourceDir() != null) {
+                         // Copy files from sourceDir to rootPath
+                         copyTemplateFiles(selectedTemplate.getSourceDir(), rootPath.toFile());
+                         log("✓ Applied template: " + selectedTemplate.getName());
+                    } else if (selectedTemplate.getId().equals("tools")) {
                          // Add a sample pickaxe JSON
                          ProjectGenerator.createItemFolder(rootPath);
                          // TODO: Write actual JSON content
@@ -413,11 +525,7 @@ public class MainWindowController {
             
             // Handle Logo Copy
             if (selectedLogoFile != null) {
-                Path packIconPathBP = rootPath.resolve("BP/pack_icon.png");
-                Path packIconPathRP = rootPath.resolve("RP/pack_icon.png");
-                Files.copy(selectedLogoFile.toPath(), packIconPathBP, StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(selectedLogoFile.toPath(), packIconPathRP, StandardCopyOption.REPLACE_EXISTING);
-                log("✓ Logo applied");
+                applyLogo(rootPath, selectedLogoFile);
             }
 
             log("✓ Project generated successfully!");
@@ -446,7 +554,7 @@ public class MainWindowController {
             }
 
             // Register project
-            Project newProject = new Project(addonName, rootPath.toString(), description);
+            Project newProject = new Project(addonName, description, rootPath.toString());
             // TODO: Set version and type in Project model if supported in future
             
             ProjectManager projectManager = new ProjectManager();
@@ -459,6 +567,49 @@ public class MainWindowController {
             logger.error("Failed to generate addon", e);
             log("✗ Error: " + e.getMessage());
             showError("Failed to generate addon", e.getMessage());
+        }
+    }
+
+    private void applyLogo(Path rootPath, File logoFile) {
+        try {
+            Path bpIcon = rootPath.resolve("BP/pack_icon.png");
+            Path rpIcon = rootPath.resolve("RP/pack_icon.png");
+            
+            // Check extension
+            String name = logoFile.getName().toLowerCase();
+            boolean isPng = name.endsWith(".png");
+            BufferedImage image = null;
+            if (!isPng) {
+                image = ImageIO.read(logoFile);
+                if (image == null) {
+                    log("⚠ Failed to read logo image: " + logoFile.getName());
+                    return;
+                }
+            }
+
+            // Copy to BP if exists
+            if (Files.exists(bpIcon.getParent())) {
+                if (isPng) {
+                    Files.copy(logoFile.toPath(), bpIcon, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    ImageIO.write(image, "png", bpIcon.toFile());
+                }
+            }
+
+            // Copy to RP if exists
+            if (Files.exists(rpIcon.getParent())) {
+                if (isPng) {
+                    Files.copy(logoFile.toPath(), rpIcon, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    ImageIO.write(image, "png", rpIcon.toFile());
+                }
+            }
+            
+            log("✓ Logo updated for available packs");
+
+        } catch (Exception e) {
+            log("⚠ Failed to apply logo: " + e.getMessage());
+            logger.error("Failed to apply logo", e);
         }
     }
 

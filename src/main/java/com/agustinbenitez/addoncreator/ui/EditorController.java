@@ -8,6 +8,9 @@ import com.agustinbenitez.addoncreator.core.TodoManager;
 import com.agustinbenitez.addoncreator.models.Project;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
@@ -337,6 +340,25 @@ public class EditorController {
     private void setupModeSwitch() {
         if (btnModeSwitch != null) {
             btnModeSwitch.setOnAction(e -> toggleMode());
+            
+            // Set initial icon based on initial state (Code Mode)
+            // Initial state is Code Mode, so button should show "Easy Mode" icon (to switch to it)
+            // But wait, toggleMode logic says:
+            // if (isEzMode) { switch to Code } else { switch to Ez }
+            // Initially uiEzModeView is visible=false (Code Mode).
+            // So clicking will go to Ez Mode.
+            // The button should indicate "Switch to Easy Mode", so it should show the Easy Mode Icon.
+            // Wait, previous code:
+            // if (isEzMode) { ... setGraphic(createEasyModeIcon()) ... tooltip("Switch to Easy Mode") }
+            // This means if we are currently in Easy Mode, show the icon to go back to Easy Mode? No.
+            // if (isEzMode) -> We are IN Easy Mode. We want to switch to Code Mode. So show Code Mode Icon.
+            // My previous change:
+            // if (isEzMode) { ... switch to Code ... setGraphic(createEasyModeIcon()) } -> This sets icon AFTER switching to Code.
+            // So if I am in Code Mode, I see Easy Mode Icon. Correct.
+            
+            // So initially (Code Mode), I should set Easy Mode Icon.
+            btnModeSwitch.setGraphic(createEasyModeIcon());
+            btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
         }
     }
 
@@ -483,13 +505,8 @@ public class EditorController {
                 btnAddEz.setManaged(false);
             }
             
-            // Set Icon to "UI Ez" (Monitor) - indicating click to go to Ez Mode
-            SVGPath icon = new SVGPath();
-            icon.setContent("M4 4h56v40H4z M8 8h22v10H8z M8 22h22v8H8z M34 8h18v14H34z M34 26h18 M34 30h18");
-            icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 4;");
-            icon.setScaleX(0.35); 
-            icon.setScaleY(0.35);
-            btnModeSwitch.setGraphic(icon);
+            // Set Icon to "UI Ez" - indicating click to go to Ez Mode
+            btnModeSwitch.setGraphic(createEasyModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
         } else {
             // Switch to Ez Mode
@@ -514,18 +531,145 @@ public class EditorController {
                 btnAddEz.setManaged(true);
             }
             
-            // Set Icon to "Code" (Editor) - indicating click to go to Code Mode
-            SVGPath icon = new SVGPath();
-            icon.setContent("M3 4h18v14H3z M9 9l-3 3 3 3 M15 9l3 3-3 3");
-            icon.setStyle("-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 2;");
-            icon.setScaleX(1.1);
-            icon.setScaleY(1.1);
-            btnModeSwitch.setGraphic(icon);
+            // Set Icon to "Code" - indicating click to go to Code Mode
+            btnModeSwitch.setGraphic(createCodeModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Code Mode");
 
             // Populate Lists
             populateEzLists();
         }
+    }
+
+    private Node createEasyModeIcon() {
+        Pane icon = new Pane();
+        icon.setPrefSize(64, 64);
+        icon.setMaxSize(64, 64);
+        // Center content if parent allows, but Pane doesn't center children automatically.
+        // We draw at absolute coordinates.
+        
+        // Container
+        Rectangle bg = new Rectangle(4, 4, 56, 56);
+        bg.setArcWidth(16);
+        bg.setArcHeight(16);
+        bg.setFill(Color.web("#111"));
+        bg.setStroke(Color.WHITE);
+        bg.setStrokeWidth(4); // Thicker border
+        icon.getChildren().add(bg);
+
+        // Big Block
+        Rectangle bigBlock = new Rectangle(18, 16, 22, 22); // Adjusted for centering approx
+        bigBlock.setArcWidth(6);
+        bigBlock.setArcHeight(6);
+        bigBlock.setFill(Color.WHITE);
+        
+        // Group blocks to center them together maybe?
+        // Let's manually adjust coordinates to look centered in 64x64.
+        // Center is 32,32.
+        // Container 56x56 at 4,4 is centered.
+        
+        // Original SVG:
+        // ViewBox 0 0 64 64.
+        // Rect x=2 y=2 w=60 h=60 (Stroke=2) -> Centered.
+        // Big Block x=16 y=14 w=22 h=22.
+        // Small Blocks y=38 (row). x=16, 28, 40.
+        
+        // My implementation with stroke 4:
+        // Rect x=4 y=4 w=56 h=56. (Stroke center is at boundary, so 2px out, 2px in. 4-2=2 (outer edge). 4+56+2=62 (outer edge). Matches 2 to 62 range = 60px wide visual? No.
+        // StrokeType.CENTERED is default.
+        // If Rect is 4,4 56x56. Left=4, Right=60. Center=32.
+        // Stroke 4: Extends from 2 to 62. Perfect for 64x64 bounds (1px margin).
+        
+        // Big Block: x=16 y=14. CenterX = 16+11 = 27. Not 32.
+        // SVG was: x=16 w=22. Center = 27. It was left aligned?
+        // User said "no sale ni centrado".
+        // Let's center the blocks horizontally.
+        // Total width of blocks: 
+        // Small row: 16 to 40+10=50. Width = 34. Center = 16+17 = 33. Close to 32.
+        // Big Block: x=16 w=22. Center=27.
+        // Let's center everything around x=32.
+        
+        // Big Block (w=22): x = 32 - 11 = 21.
+        // Small Blocks (3 blocks, w=10, gap=2? No gap=2 in SVG).
+        // SVG: x=16, 28, 40. 16->26, 28->38, 40->50. Gaps: 28-26=2. 40-38=2.
+        // Total width: 10+2+10+2+10 = 34.
+        // Start x = 32 - 17 = 15.
+        // So x=15, 27, 39.
+        
+        // Y positions:
+        // SVG: Big y=14. Small y=38.
+        // Let's keep Y relative.
+        
+        // Update Big Block
+        bigBlock.setX(21); 
+        bigBlock.setY(14);
+        icon.getChildren().add(bigBlock);
+
+        // Small Blocks
+        // In SVG there were 4 small blocks? 
+        // SVG: <rect x="40" y="14" ...> (Beside big block?)
+        // <rect x="16" y="38"> <rect x="28" y="38"> <rect x="40" y="38">
+        // So 1 small block beside big block, 3 below.
+        // My previous code: createSmallBlock(icon, 40, 14); and 3 bottom.
+        // Let's center that too.
+        // Top Row: Big(22) + Gap(2) + Small(10) = 34.
+        // Center x=32. Start x = 32 - 17 = 15.
+        // Big: x=15. Small: x=15+22+2 = 39.
+        
+        // Bottom Row: 3 Smalls (w=34). Start x=15.
+        // x=15, 27, 39.
+        
+        bigBlock.setX(15);
+        
+        createSmallBlock(icon, 39, 14);
+        createSmallBlock(icon, 15, 38);
+        createSmallBlock(icon, 27, 38);
+        createSmallBlock(icon, 39, 38);
+
+        icon.setScaleX(0.8);
+        icon.setScaleY(0.8);
+        return icon;
+    }
+
+    private void createSmallBlock(Pane parent, double x, double y) {
+        Rectangle rect = new Rectangle(x, y, 10, 10);
+        rect.setArcWidth(4);
+        rect.setArcHeight(4);
+        rect.setFill(Color.WHITE);
+        parent.getChildren().add(rect);
+    }
+
+    private Node createCodeModeIcon() {
+        Pane icon = new Pane();
+        icon.setPrefSize(64, 64);
+        icon.setMaxSize(64, 64);
+
+        // Container
+        Rectangle bg = new Rectangle(4, 4, 56, 56);
+        bg.setArcWidth(16);
+        bg.setArcHeight(16);
+        bg.setFill(Color.web("#111"));
+        bg.setStroke(Color.WHITE);
+        bg.setStrokeWidth(4); // Thicker border
+        icon.getChildren().add(bg);
+
+        // Text
+        Text text = new Text("<>");
+        text.setFill(Color.WHITE);
+        text.setFont(Font.font("Monospace", 28));
+        
+        // Center text using StackPane wrapper inside the Pane
+        StackPane textStack = new StackPane(text);
+        textStack.setPrefSize(64, 64);
+        textStack.setAlignment(Pos.CENTER);
+        // textStack.setPadding(new Insets(8, 0, 0, 0)); // Remove padding if not needed or adjust
+        // Font 28 might need visual centering.
+        // Let's try without padding first or slight adjustment.
+        
+        icon.getChildren().add(textStack);
+
+        icon.setScaleX(0.8);
+        icon.setScaleY(0.8);
+        return icon;
     }
 
     private void populateEzLists() {

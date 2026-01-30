@@ -19,6 +19,8 @@ public class Manifest {
     private List<Module> modules;
     
     private List<Dependency> dependencies;
+
+    private Metadata metadata;
     
     public Manifest() {
         this.formatVersion = 2;
@@ -73,6 +75,14 @@ public class Manifest {
     
     public void addDependency(Dependency dependency) {
         this.dependencies.add(dependency);
+    }
+
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Metadata metadata) {
+        this.metadata = metadata;
     }
     
     @Override

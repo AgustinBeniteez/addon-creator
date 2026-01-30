@@ -68,6 +68,17 @@
                                     <TextArea fx:id="descriptionArea" promptText="What does this addon do?" 
                                               wrapText="true" VBox.vgrow="ALWAYS" styleClass="input-area"/>
                                 </VBox>
+                                
+                                <HBox spacing="10">
+                                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                        <Label text="AUTHOR" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                                        <TextField fx:id="authorField" promptText="e.g. AgusTheKing" styleClass="input-field"/>
+                                    </VBox>
+                                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                        <Label text="LICENSE" styleClass="label-header" style="-fx-font-weight: bold; -fx-text-fill: #aaaaaa;"/>
+                                        <TextField fx:id="licenseField" promptText="e.g. All Rights Reserved" styleClass="input-field"/>
+                                    </VBox>
+                                </HBox>
                             </VBox>
                             
                             <!-- Right Col: Logo -->

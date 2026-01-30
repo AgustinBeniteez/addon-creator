@@ -65,13 +65,12 @@
     
     <!-- Left: Activity Bar (Vertical Menu) -->
     <left>
-        <VBox styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="50" maxWidth="50" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
-            
-            <Button fx:id="btnModeSwitch" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+        <VBox styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="64" maxWidth="64" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
+            <Button fx:id="btnModeSwitch" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY" minWidth="64" minHeight="64" prefWidth="64" prefHeight="64" maxWidth="64" maxHeight="64" style="-fx-padding: 0; -fx-background-color: transparent;">
                 <tooltip><Tooltip text="Switch to Easy Mode"/></tooltip>
                 <graphic>
-                    <SVGPath content="M4 4h56v40H4z M8 8h22v10H8z M8 22h22v8H8z M34 8h18v14H34z M34 26h18 M34 30h18" 
-                             style="-fx-fill: transparent; -fx-stroke: white; -fx-stroke-width: 6;" scaleX="0.35" scaleY="0.35"/>
+                    <!-- Initial placeholder, controller sets this -->
+                    <Region prefWidth="64" prefHeight="64"/>
                 </graphic>
             </Button>
 

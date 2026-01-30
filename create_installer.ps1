@@ -17,6 +17,17 @@ $MAIN_JAR = "addon-creator-1.0.1.jar"
 $MAIN_CLASS = "com.agustinbenitez.addoncreator.Launcher"
 $OUTPUT_DIR = "installer"
 
+# 2.5 Copy templates to target directory (so they are included in the installer)
+$TEMPLATES_SRC = "templates"
+$TEMPLATES_DEST = Join-Path $INPUT_DIR "plantillas"
+if (Test-Path $TEMPLATES_SRC) {
+    Write-Host "Copying templates to build directory..."
+    if (Test-Path $TEMPLATES_DEST) {
+        Remove-Item -Path $TEMPLATES_DEST -Recurse -Force
+    }
+    Copy-Item -Path $TEMPLATES_SRC -Destination $TEMPLATES_DEST -Recurse -Force
+}
+
 # 3. Create installer using jpackage
 Write-Host "Creating installer with jpackage..."
 

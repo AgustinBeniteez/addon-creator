@@ -4,6 +4,7 @@ import com.agustinbenitez.addoncreator.models.Manifest;
 import com.agustinbenitez.addoncreator.models.Header;
 import com.agustinbenitez.addoncreator.models.Module;
 import com.agustinbenitez.addoncreator.models.Dependency;
+import com.agustinbenitez.addoncreator.models.Metadata;
 import com.agustinbenitez.addoncreator.utils.UUIDGenerator;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,6 +16,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Generates manifest.json files for Minecraft Bedrock addons
@@ -31,9 +33,12 @@ public class ManifestGenerator {
      * 
      * @param name        Addon name
      * @param description Addon description
+     * @param authors     List of authors
+     * @param license     License text
+     * @param productType Product type
      * @return Manifest object for BP
      */
-    public static Manifest createBehaviorPackManifest(String name, String description) {
+    public static Manifest createBehaviorPackManifest(String name, String description, List<String> authors, String license, String productType) {
         logger.info("Creating Behavior Pack manifest for: {}", name);
 
         Manifest manifest = new Manifest();
@@ -46,6 +51,12 @@ public class ManifestGenerator {
         // Add data module
         Module dataModule = new Module(Module.Type.DATA, UUIDGenerator.generate());
         manifest.addModule(dataModule);
+        
+        // Add metadata
+        if (authors != null || license != null || productType != null) {
+            Metadata metadata = new Metadata(authors, license, productType);
+            manifest.setMetadata(metadata);
+        }
 
         return manifest;
     }
@@ -56,9 +67,12 @@ public class ManifestGenerator {
      * @param name             Addon name
      * @param description      Addon description
      * @param behaviorPackUUID UUID of the corresponding BP (for dependency)
+     * @param authors          List of authors
+     * @param license          License text
+     * @param productType      Product type
      * @return Manifest object for RP
      */
-    public static Manifest createResourcePackManifest(String name, String description, String behaviorPackUUID) {
+    public static Manifest createResourcePackManifest(String name, String description, String behaviorPackUUID, List<String> authors, String license, String productType) {
         logger.info("Creating Resource Pack manifest for: {}", name);
 
         Manifest manifest = new Manifest();
@@ -76,6 +90,12 @@ public class ManifestGenerator {
         if (behaviorPackUUID != null && !behaviorPackUUID.isEmpty()) {
             Dependency dependency = new Dependency(behaviorPackUUID, 1, 0, 0);
             manifest.addDependency(dependency);
+        }
+        
+        // Add metadata
+        if (authors != null || license != null || productType != null) {
+            Metadata metadata = new Metadata(authors, license, productType);
+            manifest.setMetadata(metadata);
         }
 
         return manifest;
