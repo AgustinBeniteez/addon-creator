@@ -146,6 +146,14 @@
                 </graphic>
             </Button>
             
+            <Button fx:id="btnPixelArt" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
+                <tooltip><Tooltip text="Pixel Art Editor"/></tooltip>
+                <graphic>
+                    <!-- Placeholder, set by controller -->
+                    <Region prefWidth="24" prefHeight="24"/>
+                </graphic>
+            </Button>
+            
             <Region VBox.vgrow="ALWAYS"/>
             
             <Button fx:id="btnSettings" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY">
@@ -356,6 +364,21 @@
                     </Label>
                     
                     <StackPane fx:id="todoContentArea" VBox.vgrow="ALWAYS"/>
+                </VBox>
+
+                <!-- Pixel Art View -->
+                <VBox fx:id="pixelArtView" styleClass="ide-sidebar" spacing="10" visible="false">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    <Label text="PIXEL ART EDITOR" styleClass="sidebar-section-title">
+                        <font>
+                            <Font name="System Bold" size="11"/>
+                        </font>
+                    </Label>
+                    
+                    <Button fx:id="btnNewPixelArt" text="New Pixel Art" maxWidth="Infinity"/>
+                    <Button fx:id="btnOpenPixelArt" text="Open Image" maxWidth="Infinity"/>
                 </VBox>
             </StackPane>
             

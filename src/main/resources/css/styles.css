@@ -922,3 +922,66 @@
     -fx-background-color: #505050;
     -fx-cursor: hand;
 }
+
+/* ===== PIXEL ART EDITOR ===== */
+.pixel-art-tool-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4;
+    -fx-cursor: hand;
+    -fx-min-width: 28px;
+    -fx-min-height: 28px;
+}
+
+.pixel-art-tool-button:hover {
+    -fx-background-color: #3e3e42;
+    -fx-background-radius: 3px;
+}
+
+.pixel-art-tool-button:selected {
+    -fx-background-color: #094771; /* VS Code blue accent */
+    -fx-background-radius: 3px;
+    -fx-text-fill: white;
+}
+
+.pixel-art-action-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+    -fx-padding: 4 8;
+    -fx-font-size: 11px;
+}
+
+.pixel-art-action-button:hover {
+    -fx-background-color: #505050;
+}
+
+.layer-list {
+    -fx-background-color: #252526;
+    -fx-border-color: transparent;
+}
+
+.layer-list .list-cell {
+    -fx-background-color: #252526;
+    -fx-text-fill: white;
+    -fx-padding: 4 8;
+    -fx-font-size: 12px;
+}
+
+.layer-list .list-cell:filled:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.layer-list .list-cell:filled:selected {
+    -fx-background-color: #094771;
+    -fx-text-fill: white;
+}
+
+.layer-list .list-cell:empty {
+    -fx-background-color: #252526;
+}
+
+.layer-list .viewport {
+    -fx-background-color: #252526;
+}

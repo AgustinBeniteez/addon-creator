@@ -8,6 +8,9 @@ import com.agustinbenitez.addoncreator.core.TodoManager;
 import com.agustinbenitez.addoncreator.models.Project;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.stage.FileChooser;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -167,6 +170,8 @@ public class EditorController {
     @FXML
     private Button btnSettings;
     @FXML
+    private Button btnPixelArt; // New Pixel Art Button
+    @FXML
     private Label projectNameToolbar;
 
     // Sidebar
@@ -179,6 +184,12 @@ public class EditorController {
 
     @FXML
     private VBox projectExplorerView;
+    @FXML
+    private VBox pixelArtView; // New Pixel Art View
+    @FXML
+    private Button btnNewPixelArt;
+    @FXML
+    private Button btnOpenPixelArt;
     @FXML
     private BorderPane uiEzModeView; // New Ez Mode View
     @FXML
@@ -335,6 +346,7 @@ public class EditorController {
         setupLanguageStatus();
         setupErrorStatus();
         setupUserProfile();
+        setupPixelArt();
         
         // Tab selection listener to update save button state
         editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -718,6 +730,11 @@ public class EditorController {
         }
         todoView.setVisible(false);
         todoView.setManaged(false);
+        
+        if (pixelArtView != null) {
+            pixelArtView.setVisible(false);
+            pixelArtView.setManaged(false);
+        }
 
         // Toggle requested view
         if (!isVisible) {
@@ -1312,6 +1329,10 @@ public class EditorController {
             todoView.setVisible(false);
             todoView.setManaged(false);
         }
+        if (pixelArtView != null) {
+            pixelArtView.setVisible(false);
+            pixelArtView.setManaged(false);
+        }
     }
 
     private void handleSearch() {
@@ -1324,6 +1345,10 @@ public class EditorController {
         if (todoView != null) {
             todoView.setVisible(false);
             todoView.setManaged(false);
+        }
+        if (pixelArtView != null) {
+            pixelArtView.setVisible(false);
+            pixelArtView.setManaged(false);
         }
         searchView.setVisible(true);
         searchView.setManaged(true);
@@ -1338,6 +1363,10 @@ public class EditorController {
         if (todoView != null) {
             todoView.setVisible(false);
             todoView.setManaged(false);
+        }
+        if (pixelArtView != null) {
+            pixelArtView.setVisible(false);
+            pixelArtView.setManaged(false);
         }
         if (gitView != null) {
             gitView.setVisible(true);
@@ -2989,14 +3018,42 @@ public class EditorController {
             zoomControls.setMaxWidth(Region.USE_PREF_SIZE);
             zoomControls.setMaxHeight(Region.USE_PREF_SIZE);
             zoomControls.getChildren().addAll(zoomOutBtn, zoomLabel, zoomInBtn);
+            
+            // Edit Button (Bottom Left)
+            Button editBtn = new Button();
+            SVGPath editIcon = new SVGPath();
+            editIcon.setContent("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z");
+            editIcon.setFill(Color.WHITE);
+            editBtn.setGraphic(editIcon);
+            editBtn.setStyle("-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);");
+            editBtn.setTooltip(new Tooltip("Abrir en Editor"));
+            editBtn.setOnAction(e -> openPixelArtEditor(imagePath.toFile()));
+            
+            // Hover effect
+            editBtn.setOnMouseEntered(e -> editBtn.setStyle("-fx-background-color: #0098ff; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
+            editBtn.setOnMouseExited(e -> editBtn.setStyle("-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
+
+            // Context Menu
+            ContextMenu contextMenu = new ContextMenu();
+            MenuItem openInEditorItem = new MenuItem("Abrir en Editor");
+            openInEditorItem.setOnAction(e -> openPixelArtEditor(imagePath.toFile()));
+            contextMenu.getItems().add(openInEditorItem);
+
+            imageView.setOnContextMenuRequested(e -> {
+                contextMenu.show(imageView, e.getScreenX(), e.getScreenY());
+            });
+
 
             // Main Layout (StackPane to overlay controls)
             StackPane mainLayout = new StackPane();
             mainLayout.setStyle("-fx-background-color: #1e1e1e;");
             mainLayout.getChildren().add(scrollPane);
             mainLayout.getChildren().add(zoomControls);
+            mainLayout.getChildren().add(editBtn);
             StackPane.setAlignment(zoomControls, javafx.geometry.Pos.BOTTOM_RIGHT);
             StackPane.setMargin(zoomControls, new javafx.geometry.Insets(20));
+            StackPane.setAlignment(editBtn, javafx.geometry.Pos.BOTTOM_LEFT);
+            StackPane.setMargin(editBtn, new javafx.geometry.Insets(20));
 
             Tab tab = new Tab(imagePath.getFileName().toString());
             setupTab(tab, imagePath);
@@ -4156,6 +4213,123 @@ public class EditorController {
         } catch (Exception e) {
             logger.error("Failed to load avatar", e);
         }
+    }
+
+    // =================================================================================
+    // PIXEL ART EDITOR INTEGRATION
+    // =================================================================================
+
+    private void setupPixelArt() {
+        // Set Icon
+        if (btnPixelArt != null) {
+            btnPixelArt.setGraphic(createPixelArtIcon());
+            btnPixelArt.setOnAction(e -> togglePixelArtView());
+        }
+
+        // Setup Sidebar Buttons
+        if (btnNewPixelArt != null) {
+            btnNewPixelArt.setOnAction(e -> openPixelArtEditor(null));
+        }
+        
+        if (btnOpenPixelArt != null) {
+            btnOpenPixelArt.setOnAction(e -> {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Open Image for Pixel Art");
+                fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")
+                );
+                if (currentProject != null) {
+                    fileChooser.setInitialDirectory(new File(currentProject.getRootPath()));
+                }
+                File file = fileChooser.showOpenDialog(mainLayout.getScene().getWindow());
+                if (file != null) {
+                    openPixelArtEditor(file);
+                }
+            });
+        }
+    }
+
+    private void togglePixelArtView() {
+        if (pixelArtView == null) return;
+
+        boolean isVisible = pixelArtView.isVisible();
+
+        // Hide all views
+        projectExplorerView.setVisible(false);
+        projectExplorerView.setManaged(false);
+        searchView.setVisible(false);
+        searchView.setManaged(false);
+        if (gitView != null) {
+            gitView.setVisible(false);
+            gitView.setManaged(false);
+        }
+        if (todoView != null) {
+            todoView.setVisible(false);
+            todoView.setManaged(false);
+        }
+        pixelArtView.setVisible(false);
+        pixelArtView.setManaged(false);
+
+        // Toggle
+        if (!isVisible) {
+            pixelArtView.setVisible(true);
+            pixelArtView.setManaged(true);
+        } else {
+            projectExplorerView.setVisible(true);
+            projectExplorerView.setManaged(true);
+        }
+    }
+
+    private void openPixelArtEditor(File file) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PixelArtEditor.fxml"));
+            javafx.scene.Parent root = loader.load();
+            PixelArtEditorController controller = loader.getController();
+
+            if (file != null) {
+                // Load image
+                javafx.scene.image.Image img = new javafx.scene.image.Image(file.toURI().toString());
+                controller.setImage(img);
+            }
+
+            Tab tab = new Tab(file != null ? file.getName() : "Untitled.png");
+            tab.setContent(root);
+            tab.setTooltip(new Tooltip(file != null ? file.getAbsolutePath() : "New Pixel Art"));
+            
+            // Add to editor tab pane
+            if (editorTabs != null) {
+                editorTabs.getTabs().add(tab);
+                editorTabs.getSelectionModel().select(tab);
+            }
+
+        } catch (IOException e) {
+            logger.error("Failed to open Pixel Art Editor", e);
+            showError("Error", "Failed to open Pixel Art Editor: " + e.getMessage());
+        }
+    }
+
+    private javafx.scene.Node createPixelArtIcon() {
+        Group group = new Group();
+        
+        // Frame: <rect x="1" y="1" width="22" height="22" fill="none" stroke="#9A9A9A" stroke-width="2"/>
+        Rectangle frame = new Rectangle(1, 1, 22, 22);
+        frame.setFill(Color.TRANSPARENT);
+        frame.setStroke(Color.web("#9A9A9A"));
+        frame.setStrokeWidth(2);
+
+        // Sun: <rect x="15" y="5" width="3" height="3" fill="#9A9A9A"/>
+        Rectangle sun = new Rectangle(15, 5, 3, 3);
+        sun.setFill(Color.web("#9A9A9A"));
+
+        // Mountain: <path d="M4 17 L9 11 L13 15 L16 12 L20 17 Z" fill="#9A9A9A"/>
+        SVGPath mountain = new SVGPath();
+        mountain.setContent("M4 17 L9 11 L13 15 L16 12 L20 17 Z");
+        mountain.setFill(Color.web("#9A9A9A"));
+
+        group.getChildren().addAll(frame, sun, mountain);
+        
+        // Scale to fit if needed, but 24x24 is standard
+        return group;
     }
 
     private static class FileIconFactory {

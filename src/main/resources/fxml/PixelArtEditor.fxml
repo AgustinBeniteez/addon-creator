@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.agustinbenitez.addoncreator.ui.PixelArtEditorController"
+            style="-fx-background-color: #1e1e1e;"
+            stylesheets="@../css/styles.css">
+
+    <top>
+        <ToolBar style="-fx-background-color: #252526; -fx-padding: 10;">
+            <HBox spacing="5" alignment="CENTER_LEFT">
+                <ToggleButton fx:id="btnPencil" contentDisplay="GRAPHIC_ONLY" selected="true" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Pencil"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnEraser" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Eraser"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnFill" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Fill Tool"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnSelectRect" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Rectangle Select"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnSelectLasso" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Lasso Select"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnPicker" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Color Picker (O)"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnLine" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Line Tool"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnRect" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Rectangle Tool"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnCircle" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Circle Tool"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="btnGradient" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Gradient Tool"/></tooltip>
+                </ToggleButton>
+                
+                <Separator orientation="VERTICAL"/>
+                
+                <ToggleButton fx:id="btnGrid" contentDisplay="GRAPHIC_ONLY" selected="false" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Toggle Grid"/></tooltip>
+                </ToggleButton>
+                <Button fx:id="btnFlipH" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Flip Horizontal"/></tooltip>
+                </Button>
+                <Button fx:id="btnFlipV" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Flip Vertical"/></tooltip>
+                </Button>
+            </HBox>
+            <Separator orientation="VERTICAL"/>
+            <HBox spacing="2" alignment="CENTER_LEFT">
+                <Button fx:id="btnSwapColors" styleClass="pixel-art-tool-button" contentDisplay="GRAPHIC_ONLY">
+                    <tooltip><Tooltip text="Swap Colors (X)"/></tooltip>
+                </Button>
+                <VBox spacing="2">
+                    <ColorPicker fx:id="colorPicker" styleClass="button"/>
+                    <ColorPicker fx:id="secondaryColorPicker" styleClass="button"/>
+                </VBox>
+            </HBox>
+            <Separator orientation="VERTICAL"/>
+            <Label text="Size:" textFill="white"/>
+            <TextField fx:id="widthField" text="32" prefWidth="50"/>
+            <Label text="x" textFill="white"/>
+            <TextField fx:id="heightField" text="32" prefWidth="50"/>
+            <Button fx:id="btnResize" text="Resize" styleClass="pixel-art-action-button"/>
+            <Separator orientation="VERTICAL"/>
+            <Slider fx:id="zoomSlider" min="1" max="50" value="10" blockIncrement="1"/>
+            <Label fx:id="zoomLabel" text="10x" textFill="white"/>
+            <Separator orientation="VERTICAL"/>
+            <Button fx:id="btnExport" text="Export" styleClass="pixel-art-action-button"/>
+        </ToolBar>
+    </top>
+
+    <left>
+        <VBox spacing="5" style="-fx-background-color: #252526; -fx-padding: 10; -fx-border-color: #1e1e1e; -fx-border-width: 0 1 0 0;" prefWidth="200">
+            <Label text="Layers" textFill="#cccccc" style="-fx-font-weight: bold;"/>
+            
+            <HBox spacing="5">
+                <Button fx:id="btnAddLayer" text="+" styleClass="pixel-art-action-button" prefWidth="30"/>
+                <Button fx:id="btnRemoveLayer" text="-" styleClass="pixel-art-action-button" prefWidth="30"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnLayerUp" text="↑" styleClass="pixel-art-action-button" prefWidth="30"/>
+                <Button fx:id="btnLayerDown" text="↓" styleClass="pixel-art-action-button" prefWidth="30"/>
+            </HBox>
+            
+            <ListView fx:id="layerList" VBox.vgrow="ALWAYS" styleClass="layer-list"/>
+        </VBox>
+    </left>
+
+    <center>
+        <ScrollPane fx:id="scrollPane" fitToHeight="true" fitToWidth="true" style="-fx-background: #1e1e1e; -fx-background-color: #1e1e1e;">
+            <StackPane fx:id="canvasContainer" style="-fx-background-color: #1e1e1e;">
+                <Canvas fx:id="canvas" width="320" height="320"/>
+            </StackPane>
+        </ScrollPane>
+    </center>
+    
+    <bottom>
+        <HBox spacing="10" style="-fx-padding: 5; -fx-background-color: #333333;">
+            <Label fx:id="statusLabel" text="Ready" textFill="#cccccc"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
