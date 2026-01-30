@@ -43,7 +43,14 @@
                 
                 <Menu text="View">
                     <CheckMenuItem fx:id="menuToggleConsole" text="Console" selected="true"/>
-                    <CheckMenuItem fx:id="menuToggleFileTree" text="File Explorer" selected="true"/>
+                    <Menu text="Panel Lateral">
+                        <RadioMenuItem fx:id="menuSidebarLeft" text="Izquierda" selected="true">
+                            <toggleGroup>
+                                <ToggleGroup fx:id="sidebarPositionGroup"/>
+                            </toggleGroup>
+                        </RadioMenuItem>
+                        <RadioMenuItem fx:id="menuSidebarRight" text="Derecha" toggleGroup="$sidebarPositionGroup"/>
+                    </Menu>
                 </Menu>
                 
                 <Menu text="Help">
@@ -79,7 +86,7 @@
     
     <!-- Left: Activity Bar (Vertical Menu) -->
     <left>
-        <VBox styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="64" maxWidth="64" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
+        <VBox fx:id="activityBar" styleClass="activity-bar" spacing="15" alignment="TOP_CENTER" minWidth="64" maxWidth="64" style="-fx-background-color: #252526; -fx-padding: 10 0 10 0;">
             <Button fx:id="btnModeSwitch" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY" minWidth="64" minHeight="64" prefWidth="64" prefHeight="64" maxWidth="64" maxHeight="64" style="-fx-padding: 0; -fx-background-color: transparent;">
                 <tooltip><Tooltip text="Switch to Easy Mode"/></tooltip>
                 <graphic>
@@ -223,7 +230,7 @@
             <SplitPane fx:id="ideSplitPane" dividerPositions="0.2" styleClass="ide-splitpane">
             
             <!-- Left: Sidebar Container -->
-            <StackPane minWidth="200">
+            <StackPane fx:id="sidebarContainer" minWidth="200">
                 <!-- Project Explorer View -->
                 <VBox fx:id="projectExplorerView" styleClass="ide-sidebar" spacing="5">
                     <padding>

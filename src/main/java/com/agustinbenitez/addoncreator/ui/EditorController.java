@@ -132,13 +132,16 @@ public class EditorController {
     @FXML
     private CheckMenuItem menuToggleConsole;
     @FXML
-    private CheckMenuItem menuToggleFileTree;
+    private RadioMenuItem menuSidebarRight;
     @FXML
     private MenuItem menuAbout;
     @FXML
     private MenuItem menuDocs;
     @FXML
     private MenuItem menuLicenses;
+    
+    @FXML
+    private RadioMenuItem menuSidebarLeft;
 
     // Toolbar
     @FXML
@@ -167,6 +170,13 @@ public class EditorController {
     private Label projectNameToolbar;
 
     // Sidebar
+    @FXML
+    private StackPane sidebarContainer;
+    @FXML
+    private BorderPane mainLayout;
+    @FXML
+    private VBox activityBar;
+
     @FXML
     private VBox projectExplorerView;
     @FXML
@@ -1223,7 +1233,13 @@ public class EditorController {
         menuTest.setOnAction(e -> handleTest());
 
         menuToggleConsole.setOnAction(e -> toggleConsole());
-        menuToggleFileTree.setOnAction(e -> toggleFileTree());
+        
+        if (menuSidebarLeft != null) {
+            menuSidebarLeft.setOnAction(e -> moveSidebarToLeft());
+        }
+        if (menuSidebarRight != null) {
+            menuSidebarRight.setOnAction(e -> moveSidebarToRight());
+        }
 
         menuAbout.setOnAction(e -> showAbout());
         menuDocs.setOnAction(e -> showDocs());
@@ -3582,12 +3598,131 @@ public class EditorController {
         menuToggleConsole.setSelected(consoleVisible);
     }
 
-    private void toggleFileTree() {
-        VBox sidebar = (VBox) fileTree.getParent();
-        if (sidebar != null) {
-            sidebar.setVisible(!sidebar.isVisible());
-            sidebar.setManaged(sidebar.isVisible());
-            log("Toggle file tree: " + (sidebar.isVisible() ? "visible" : "hidden"));
+    private void moveSidebarToLeft() {
+        try {
+            // Fallback for sidebarContainer if null
+            if (sidebarContainer == null && projectExplorerView != null && projectExplorerView.getParent() instanceof StackPane) {
+                sidebarContainer = (StackPane) projectExplorerView.getParent();
+                logger.info("Recovered sidebarContainer from projectExplorerView parent");
+            }
+            
+            // Fallback for mainLayout if null
+            if (mainLayout == null && btnBack != null && btnBack.getScene() != null && btnBack.getScene().getRoot() instanceof BorderPane) {
+                mainLayout = (BorderPane) btnBack.getScene().getRoot();
+                logger.info("Recovered mainLayout from scene root");
+            }
+
+            // Fallback for activityBar if null
+            if (activityBar == null && mainLayout != null) {
+                // Try to find it in Right or Left
+                if (mainLayout.getRight() instanceof VBox) {
+                    activityBar = (VBox) mainLayout.getRight();
+                    logger.info("Recovered activityBar from mainLayout.right");
+                } else if (mainLayout.getLeft() instanceof VBox) {
+                    activityBar = (VBox) mainLayout.getLeft();
+                    logger.info("Recovered activityBar from mainLayout.left");
+                }
+            }
+
+            if (ideSplitPane == null || sidebarContainer == null) {
+                logger.error("Components not initialized: splitPane={}, sidebar={}", ideSplitPane, sidebarContainer);
+                return;
+            }
+            
+            javafx.application.Platform.runLater(() -> {
+                try {
+                    // Move Activity Bar to Left
+                    if (mainLayout != null && activityBar != null) {
+                        logger.info("Moving activityBar to LEFT");
+                        mainLayout.setRight(null);
+                        mainLayout.setLeft(activityBar);
+                    } else {
+                        logger.warn("Could not move activityBar: mainLayout={}, activityBar={}", mainLayout, activityBar);
+                    }
+
+                    // Check if already on left (index 0)
+                    if (ideSplitPane.getItems().indexOf(sidebarContainer) == 0) {
+                        ideSplitPane.setDividerPositions(0.2);
+                        return;
+                    }
+
+                    // Safe reordering using a new list to avoid "Child already exists" issues
+                    List<Node> newItems = new ArrayList<>(ideSplitPane.getItems());
+                    newItems.remove(sidebarContainer);
+                    newItems.add(0, sidebarContainer);
+                    
+                    ideSplitPane.getItems().setAll(newItems);
+                    ideSplitPane.setDividerPositions(0.2);
+                } catch (Exception ex) {
+                    logger.error("Error setting divider position or moving components", ex);
+                }
+            });
+        } catch (Exception e) {
+            logger.error("Error moving sidebar to left", e);
+        }
+    }
+
+    private void moveSidebarToRight() {
+        try {
+            // Fallback for sidebarContainer if null
+            if (sidebarContainer == null && projectExplorerView != null && projectExplorerView.getParent() instanceof StackPane) {
+                sidebarContainer = (StackPane) projectExplorerView.getParent();
+                logger.info("Recovered sidebarContainer from projectExplorerView parent");
+            }
+            
+            // Fallback for mainLayout if null
+            if (mainLayout == null && btnBack != null && btnBack.getScene() != null && btnBack.getScene().getRoot() instanceof BorderPane) {
+                mainLayout = (BorderPane) btnBack.getScene().getRoot();
+                logger.info("Recovered mainLayout from scene root");
+            }
+
+            // Fallback for activityBar if null
+            if (activityBar == null && mainLayout != null) {
+                // Try to find it in Left or Right
+                if (mainLayout.getLeft() instanceof VBox) {
+                    activityBar = (VBox) mainLayout.getLeft();
+                    logger.info("Recovered activityBar from mainLayout.left");
+                } else if (mainLayout.getRight() instanceof VBox) {
+                    activityBar = (VBox) mainLayout.getRight();
+                    logger.info("Recovered activityBar from mainLayout.right");
+                }
+            }
+
+            if (ideSplitPane == null || sidebarContainer == null) {
+                logger.error("Components not initialized: splitPane={}, sidebar={}", ideSplitPane, sidebarContainer);
+                return;
+            }
+
+            javafx.application.Platform.runLater(() -> {
+                try {
+                    // Move Activity Bar to Right
+                    if (mainLayout != null && activityBar != null) {
+                        logger.info("Moving activityBar to RIGHT");
+                        mainLayout.setLeft(null);
+                        mainLayout.setRight(activityBar);
+                    } else {
+                        logger.warn("Could not move activityBar: mainLayout={}, activityBar={}", mainLayout, activityBar);
+                    }
+
+                    // Check if already on right (last index)
+                    if (ideSplitPane.getItems().indexOf(sidebarContainer) == ideSplitPane.getItems().size() - 1) {
+                        ideSplitPane.setDividerPositions(0.8);
+                        return;
+                    }
+
+                    // Safe reordering using a new list to avoid "Child already exists" issues
+                    List<Node> newItems = new ArrayList<>(ideSplitPane.getItems());
+                    newItems.remove(sidebarContainer);
+                    newItems.add(sidebarContainer); // Adds to end
+                    
+                    ideSplitPane.getItems().setAll(newItems);
+                    ideSplitPane.setDividerPositions(0.8);
+                } catch (Exception ex) {
+                    logger.error("Error setting divider position or moving components", ex);
+                }
+            });
+        } catch (Exception e) {
+            logger.error("Error moving sidebar to right", e);
         }
     }
 
