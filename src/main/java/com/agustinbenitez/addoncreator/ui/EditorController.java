@@ -1849,16 +1849,8 @@ public class EditorController {
         card.setPrefSize(120, 150);
         card.setAlignment(Pos.CENTER);
 
-        // Icon (Cube)
-        SVGPath cubeIcon = new SVGPath();
-        cubeIcon.setContent("M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5");
-        cubeIcon.setFill(Color.TRANSPARENT);
-        cubeIcon.setStroke(Color.WHITE);
-        cubeIcon.setStrokeWidth(1.5);
-        cubeIcon.setScaleX(1.5);
-        cubeIcon.setScaleY(1.5);
-
-        Group iconGroup = new Group(cubeIcon);
+        // Icon (Custom 3D Model)
+        Node iconGroup = create3DModelIcon();
 
         Label typeLabel = new Label("Model");
         typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
@@ -1895,6 +1887,87 @@ public class EditorController {
         });
 
         return card;
+    }
+
+    private Node create3DModelIcon() {
+        Group root = new Group();
+        
+        // Main Group with translation (translate(0, 10))
+        Group mainGroup = new Group();
+        mainGroup.setTranslateY(10);
+        
+        // Cube Wireframe
+        // Front Face: 150,90 250,90 250,190 150,190
+        Polygon frontFace = new Polygon(150, 90, 250, 90, 250, 190, 150, 190);
+        frontFace.setFill(Color.TRANSPARENT);
+        frontFace.setStroke(Color.WHITE);
+        frontFace.setStrokeWidth(2);
+        
+        // Back Face: 190,50 290,50 290,150 190,150
+        Polygon backFace = new Polygon(190, 50, 290, 50, 290, 150, 190, 150);
+        backFace.setFill(Color.TRANSPARENT);
+        backFace.setStroke(Color.WHITE);
+        backFace.setStrokeWidth(2);
+        
+        // Connections
+        Line c1 = new Line(150, 90, 190, 50);
+        Line c2 = new Line(250, 90, 290, 50);
+        Line c3 = new Line(250, 190, 290, 150);
+        Line c4 = new Line(150, 190, 190, 150);
+        
+        Stream.of(c1, c2, c3, c4).forEach(l -> {
+            l.setStroke(Color.WHITE);
+            l.setStrokeWidth(2);
+        });
+        
+        // 3D Mesh Group (Opacity 0.6)
+        Group meshGroup = new Group();
+        meshGroup.setOpacity(0.6);
+        
+        // Parallel lines
+        Line[] parallelLines = new Line[] {
+            new Line(120, 210, 260, 210),
+            new Line(140, 230, 280, 230),
+            new Line(160, 250, 300, 250),
+            new Line(180, 270, 320, 270)
+        };
+        
+        // Depth lines
+        Line[] depthLines = new Line[] {
+            new Line(120, 210, 180, 270),
+            new Line(150, 210, 210, 270),
+            new Line(180, 210, 240, 270),
+            new Line(210, 210, 270, 270),
+            new Line(240, 210, 300, 270),
+            new Line(260, 210, 320, 270)
+        };
+        
+        Stream.of(parallelLines).forEach(l -> {
+            l.setStroke(Color.WHITE);
+            l.setStrokeWidth(1);
+            meshGroup.getChildren().add(l);
+        });
+        
+        Stream.of(depthLines).forEach(l -> {
+            l.setStroke(Color.WHITE);
+            l.setStrokeWidth(1);
+            meshGroup.getChildren().add(l);
+        });
+        
+        mainGroup.getChildren().addAll(frontFace, backFace, c1, c2, c3, c4, meshGroup);
+        root.getChildren().add(mainGroup);
+        
+        // Scale to fit card (approx 80x80)
+        // Original size ~400x350
+        root.setScaleX(0.4);
+        root.setScaleY(0.4);
+        
+        StackPane container = new StackPane(root);
+        container.setPrefSize(80, 80);
+        container.setMaxSize(80, 80);
+        container.setAlignment(Pos.CENTER);
+        
+        return container;
     }
 
     private Node createTextureCard(Path path) {

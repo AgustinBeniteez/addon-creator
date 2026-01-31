@@ -194,11 +194,11 @@ public class RecipeCreatorController {
         
         // Create Icon
         StackPane icon = new StackPane();
-        icon.setPrefSize(32, 32);
-        icon.setMaxSize(32, 32); // Ensure it doesn't grow too much
+        icon.setPrefSize(40, 40);
+        icon.setMaxSize(40, 40); // Ensure it doesn't grow too much
         
         // Background
-        javafx.scene.shape.Rectangle bg = new javafx.scene.shape.Rectangle(32, 32);
+        javafx.scene.shape.Rectangle bg = new javafx.scene.shape.Rectangle(40, 40);
         bg.setArcWidth(8);
         bg.setArcHeight(8);
         
