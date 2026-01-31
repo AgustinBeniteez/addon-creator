@@ -38,6 +38,7 @@
                     <MenuItem fx:id="menuAddEntity" text="Add Entity"/>
                     <MenuItem fx:id="menuAddItem" text="Add Item"/>
                     <MenuItem fx:id="menuAddBlock" text="Add Block"/>
+                    <MenuItem fx:id="menuAddRecipe" text="Add Recipe"/>
                     <SeparatorMenuItem/>
                     <MenuItem fx:id="menuTest" text="Test Addon"/>
                 </Menu>

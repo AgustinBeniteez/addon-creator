@@ -36,6 +36,7 @@ import javafx.scene.web.WebView;
 import javafx.scene.web.WebEngine;
 import javafx.concurrent.Worker;
 import javafx.scene.PerspectiveCamera;
+import javafx.scene.Scene;
 import javafx.scene.SubScene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.transform.Rotate;
@@ -137,6 +138,8 @@ public class EditorController {
     private MenuItem menuAddItem;
     @FXML
     private MenuItem menuAddBlock;
+    @FXML
+    private MenuItem menuAddRecipe;
     @FXML
     private MenuItem menuTest;
     @FXML
@@ -537,7 +540,13 @@ public class EditorController {
                         menuAddBlock.fire();
                 });
 
-                contextMenu.getItems().addAll(addEntity, addItem, addBlock);
+                MenuItem addRecipe = new MenuItem("Recipe");
+                addRecipe.setOnAction(ev -> {
+                    if (menuAddRecipe != null)
+                        menuAddRecipe.fire();
+                });
+
+                contextMenu.getItems().addAll(addEntity, addItem, addBlock, addRecipe);
 
                 // Show to the right of the button
                 javafx.geometry.Bounds bounds = btnAddEz.localToScreen(btnAddEz.getBoundsInLocal());
@@ -913,6 +922,22 @@ public class EditorController {
             if (shouldShow(block))
                 mainElementsFlowPane.getChildren().add(createEzCard("Block", block, null));
         }
+
+        // Add Recipes to Main View
+        try {
+            Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+            Path recipesDir = root.resolve("BP/recipes");
+            if (java.nio.file.Files.exists(recipesDir)) {
+                java.util.List<Path> recipeFiles = findFiles(recipesDir, ".json");
+                for (Path path : recipeFiles) {
+                    if (shouldShow(path.getFileName().toString())) {
+                        mainElementsFlowPane.getChildren().add(createRecipeCard(path));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error loading recipes in main view", e);
+        }
     }
 
     private void loadEntitiesView() {
@@ -998,14 +1023,7 @@ public class EditorController {
         if (recipesFlowPane == null || currentProject == null)
             return;
         recipesFlowPane.getChildren().clear();
-        recipesFlowPane.getChildren().add(createAddCard(() -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Próximamente");
-            alert.setHeaderText("Crear Receta");
-            alert.setContentText("¡El creador de recetas estará disponible pronto!");
-            styleDialog(alert);
-            alert.showAndWait();
-        }));
+        recipesFlowPane.getChildren().add(createAddCard(this::handleAddRecipe));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         Path recipesDir = root.resolve("BP/recipes");
@@ -1013,9 +1031,42 @@ public class EditorController {
         java.util.List<Path> recipeFiles = findFiles(recipesDir, ".json");
         for (Path path : recipeFiles) {
             if (shouldShow(path.getFileName().toString())) {
-                String name = path.getFileName().toString().replace(".json", "");
-                recipesFlowPane.getChildren().add(createEzCard("Recipe", name, null));
+                recipesFlowPane.getChildren().add(createRecipeCard(path));
             }
+        }
+    }
+
+    private void handleEditRecipe(Path path) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/RecipeCreator.fxml"));
+            Parent root = loader.load();
+
+            RecipeCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            controller.loadRecipe(path.toFile());
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Editar Receta - " + path.getFileName());
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+            // Add icon
+            try {
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            } catch (Exception e) {
+            }
+
+            stage.showAndWait();
+
+            if ("recipes".equals(currentEzViewName)) {
+                loadRecipesView();
+            }
+
+            refreshFileTree();
+
+        } catch (IOException ex) {
+            logger.error("Failed to open recipe creator", ex);
+            showError("Error", "No se pudo abrir el editor de recetas: " + ex.getMessage());
         }
     }
 
@@ -1176,6 +1227,135 @@ public class EditorController {
         container.setStyle("-fx-background-color: " + color
                 + "; -fx-background-radius: 50%; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 2, 0, 0, 1);");
         return container;
+    }
+
+    private Node createRecipeCard(Path recipePath) {
+        VBox card = new VBox(5);
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+
+        // Recipe Preview (3x3 Grid)
+        GridPane grid = new GridPane();
+        grid.setHgap(2);
+        grid.setVgap(2);
+        grid.setAlignment(Pos.CENTER);
+        grid.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 2; -fx-background-radius: 3;");
+
+        try {
+            JsonObject root = com.google.gson.JsonParser.parseReader(new java.io.FileReader(recipePath.toFile())).getAsJsonObject();
+            if (root.has("minecraft:recipe_shaped")) {
+                JsonObject recipe = root.getAsJsonObject("minecraft:recipe_shaped");
+                
+                if (recipe.has("pattern") && recipe.has("key")) {
+                    JsonArray pattern = recipe.getAsJsonArray("pattern");
+                    JsonObject key = recipe.getAsJsonObject("key");
+                    
+                    Map<Character, String> charToItem = new HashMap<>();
+                    for (String k : key.keySet()) {
+                        JsonObject itemObj = key.getAsJsonObject(k);
+                        if (itemObj.has("item")) {
+                            charToItem.put(k.charAt(0), itemObj.get("item").getAsString());
+                        }
+                    }
+
+                    for (int r = 0; r < pattern.size() && r < 3; r++) {
+                        String rowStr = pattern.get(r).getAsString();
+                        for (int c = 0; c < rowStr.length() && c < 3; c++) {
+                            char ch = rowStr.charAt(c);
+                            if (ch != ' ' && charToItem.containsKey(ch)) {
+                                String item = charToItem.get(ch);
+                                
+                                // Try to find image
+                                javafx.scene.image.Image img = findElementImage(item, "Item");
+                                if (img == null) img = findElementImage(item, "Block");
+                                
+                                StackPane slot = new StackPane();
+                                slot.setPrefSize(20, 20);
+                                slot.setStyle("-fx-background-color: #3c3f41; -fx-border-color: #555; -fx-border-width: 1;");
+                                
+                                if (img != null) {
+                                    javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+                                    iv.setFitWidth(16);
+                                    iv.setFitHeight(16);
+                                    iv.setPreserveRatio(true);
+                                    slot.getChildren().add(iv);
+                                } else {
+                                    // Fallback text/color
+                                    Label l = new Label(String.valueOf(ch));
+                                    l.setStyle("-fx-text-fill: #aaa; -fx-font-size: 8px;");
+                                    slot.getChildren().add(l);
+                                }
+                                grid.add(slot, c, r);
+                            } else {
+                                // Empty slot
+                                Region slot = new Region();
+                                slot.setPrefSize(20, 20);
+                                slot.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 1;");
+                                grid.add(slot, c, r);
+                            }
+                        }
+                    }
+                    
+                    // Fill remaining slots if pattern is smaller than 3x3
+                    for (int r = 0; r < 3; r++) {
+                        for (int c = 0; c < 3; c++) {
+                            boolean filled = false;
+                            for (javafx.scene.Node n : grid.getChildren()) {
+                                if (GridPane.getRowIndex(n) == r && GridPane.getColumnIndex(n) == c) {
+                                    filled = true;
+                                    break;
+                                }
+                            }
+                            if (!filled) {
+                                Region slot = new Region();
+                                slot.setPrefSize(20, 20);
+                                slot.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 1;");
+                                grid.add(slot, c, r);
+                            }
+                        }
+                    }
+                }
+            } else {
+                 // Fallback for shapeless or other types
+                 Label l = new Label("?");
+                 l.setStyle("-fx-text-fill: #aaa;");
+                 grid.add(l, 1, 1);
+            }
+        } catch (Exception e) {
+            // Error parsing
+        }
+
+        // Type Icon (Top Right)
+        Node typeIcon = createTypeIcon("Recipe");
+
+        // Icon Container with Overlay
+        StackPane iconContainer = new StackPane();
+        iconContainer.setPrefSize(80, 80);
+        iconContainer.setAlignment(Pos.CENTER);
+        iconContainer.getChildren().add(grid);
+
+        // Add type icon to top right of the icon area
+        StackPane.setAlignment(typeIcon, Pos.TOP_RIGHT);
+        typeIcon.setTranslateX(10);
+        typeIcon.setTranslateY(-10);
+        iconContainer.getChildren().add(typeIcon);
+
+        Label typeLabel = new Label("Recipe");
+        typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
+
+        String name = recipePath.getFileName().toString().replace(".json", "");
+        Label titleLabel = new Label(name);
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setWrapText(true);
+        titleLabel.setTextAlignment(TextAlignment.CENTER);
+
+        card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
+        
+        card.setOnMouseClicked(e -> handleEditRecipe(recipePath));
+        
+        return card;
     }
 
     private Node createEzCard(String type, String title, String iconName) {
@@ -2464,6 +2644,7 @@ public class EditorController {
         menuAddEntity.setOnAction(e -> handleAddEntity());
         menuAddItem.setOnAction(e -> handleAddItem());
         menuAddBlock.setOnAction(e -> handleAddBlock());
+        menuAddRecipe.setOnAction(e -> handleAddRecipe());
         menuTest.setOnAction(e -> handleTest());
 
         menuToggleConsole.setOnAction(e -> toggleConsole());
@@ -5086,6 +5267,39 @@ public class EditorController {
                 log("✗ Error: " + e.getMessage());
             }
         });
+    }
+
+    private void handleAddRecipe() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/RecipeCreator.fxml"));
+            Parent root = loader.load();
+
+            RecipeCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Crear Receta");
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+            // Add icon
+            try {
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            } catch (Exception e) {
+            }
+
+            stage.showAndWait();
+
+            if ("recipes".equals(currentEzViewName)) {
+                loadRecipesView();
+            }
+
+            refreshFileTree();
+
+        } catch (IOException ex) {
+            logger.error("Failed to open recipe creator", ex);
+            showError("Error", "No se pudo abrir el creador de recetas: " + ex.getMessage());
+        }
     }
 
     private void ensureBaseStructure() throws IOException {

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.shape.SVGPath?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.agustinbenitez.addoncreator.ui.RecipeCreatorController"
+      spacing="20" styleClass="ide-root" style="-fx-padding: 20; -fx-background-color: #2b2b2b;">
+
+    <!-- Header -->
+    <Label text="Recipe Creator" textFill="WHITE">
+        <font>
+            <Font name="System Bold" size="24"/>
+        </font>
+    </Label>
+
+    <Separator/>
+
+    <!-- Settings Form -->
+    <GridPane hgap="15" vgap="15">
+        <columnConstraints>
+            <ColumnConstraints minWidth="120" />
+            <ColumnConstraints hgrow="ALWAYS" />
+        </columnConstraints>
+
+        <Label text="Identifier:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="identifierField" promptText="namespace:recipe_name" styleClass="text-field-dark" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+        <Label text="Description:" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <TextField fx:id="descriptionField" promptText="Recipe Identifier" styleClass="text-field-dark" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+        <Label text="Group (Optional):" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <TextField fx:id="groupField" promptText="item_group" styleClass="text-field-dark" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+        <Label text="Type:" textFill="#cccccc" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="typeCombo" promptText="Select Type" maxWidth="Infinity" styleClass="combo-box-dark" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <Separator/>
+
+    <!-- Recipe Grid Area -->
+    <HBox spacing="40" alignment="CENTER" VBox.vgrow="ALWAYS">
+        <!-- Crafting Grid -->
+        <VBox spacing="5" alignment="CENTER">
+            <Label text="Pattern" textFill="#cccccc"/>
+            <GridPane fx:id="craftingGrid" hgap="5" vgap="5" style="-fx-padding: 10; -fx-background-color: #3c3f41; -fx-background-radius: 5;">
+                <!-- 3x3 Grid generated in Controller -->
+            </GridPane>
+        </VBox>
+
+        <!-- Arrow -->
+        <SVGPath content="M 0 0 L 20 10 L 0 20 L 5 10 Z" fill="#cccccc" scaleX="2" scaleY="2"/>
+
+        <!-- Result -->
+        <VBox spacing="5" alignment="CENTER">
+            <Label text="Result" textFill="#cccccc"/>
+            <Button fx:id="resultSlot" prefWidth="64" prefHeight="64" styleClass="slot-button"/>
+            <HBox spacing="5" alignment="CENTER">
+                <Label text="Count:" textFill="#cccccc"/>
+                <Spinner fx:id="resultCount" prefWidth="80" editable="true"/>
+            </HBox>
+        </VBox>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Action Buttons -->
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Preview JSON" onAction="#handlePreview" styleClass="secondary-button"/>
+        <Button text="Create Recipe" onAction="#handleCreate" styleClass="primary-button"/>
+    </HBox>
+
+</VBox>
