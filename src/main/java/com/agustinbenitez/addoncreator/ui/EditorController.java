@@ -11,6 +11,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -145,7 +146,7 @@ public class EditorController {
     private MenuItem menuDocs;
     @FXML
     private MenuItem menuLicenses;
-    
+
     @FXML
     private RadioMenuItem menuSidebarLeft;
 
@@ -188,7 +189,7 @@ public class EditorController {
     private BorderPane mainLayout;
     @FXML
     private VBox activityBar;
-    
+
     @FXML
     private StackPane contentArea;
     @FXML
@@ -265,7 +266,7 @@ public class EditorController {
     private FlowPane itemsFlowPane;
     @FXML
     private FlowPane blocksFlowPane;
-    
+
     private Path selectedTexturePath;
 
     @FXML
@@ -278,14 +279,14 @@ public class EditorController {
     private Label searchStatusLabel;
     @FXML
     private ListView<String> searchResultsList;
-    
+
     private String currentEzViewName = "main";
 
     @FXML
     private VBox todoView;
     @FXML
     private StackPane todoContentArea;
-    
+
     // Git
     @FXML
     private Button btnGit;
@@ -331,6 +332,10 @@ public class EditorController {
     @FXML
     private Button btnNewFile;
     @FXML
+    private Button btnRefreshExplorer;
+    @FXML
+    private Button btnRefreshEz;
+    @FXML
     private TreeView<String> fileTree;
 
     // Editor
@@ -352,7 +357,7 @@ public class EditorController {
     private TextArea terminalOutput;
     @FXML
     private TextField terminalInput;
-    
+
     private Process terminalProcess;
     private java.io.BufferedWriter terminalWriter;
 
@@ -368,7 +373,7 @@ public class EditorController {
     private boolean autoSaveEnabled = false;
     private PauseTransition searchDebounce;
     private Set<String> stagedFiles = new HashSet<>();
-    
+
     // Drag variables
     private double mouseAnchorX, mouseAnchorY;
     private double initialNodeX, initialNodeY;
@@ -393,6 +398,7 @@ public class EditorController {
         setupTerminal();
         setupAddElementButton();
         setupNewFileButton();
+        setupRefreshButtons();
         setupSearch();
         setupTodo();
         setupGitList();
@@ -401,12 +407,12 @@ public class EditorController {
         setupUserProfile();
         setupPixelArt();
         setupBlockbench();
-        
+
         // Tab selection listener to update save button state
         editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             updateSaveButtonState();
         });
-        
+
         // Initial state
         updateSaveButtonState();
 
@@ -416,22 +422,28 @@ public class EditorController {
     private void setupModeSwitch() {
         if (btnModeSwitch != null) {
             btnModeSwitch.setOnAction(e -> toggleMode());
-            
+
             // Set initial icon based on initial state (Code Mode)
-            // Initial state is Code Mode, so button should show "Easy Mode" icon (to switch to it)
+            // Initial state is Code Mode, so button should show "Easy Mode" icon (to switch
+            // to it)
             // But wait, toggleMode logic says:
             // if (isEzMode) { switch to Code } else { switch to Ez }
             // Initially uiEzModeView is visible=false (Code Mode).
             // So clicking will go to Ez Mode.
-            // The button should indicate "Switch to Easy Mode", so it should show the Easy Mode Icon.
+            // The button should indicate "Switch to Easy Mode", so it should show the Easy
+            // Mode Icon.
             // Wait, previous code:
-            // if (isEzMode) { ... setGraphic(createEasyModeIcon()) ... tooltip("Switch to Easy Mode") }
-            // This means if we are currently in Easy Mode, show the icon to go back to Easy Mode? No.
-            // if (isEzMode) -> We are IN Easy Mode. We want to switch to Code Mode. So show Code Mode Icon.
+            // if (isEzMode) { ... setGraphic(createEasyModeIcon()) ... tooltip("Switch to
+            // Easy Mode") }
+            // This means if we are currently in Easy Mode, show the icon to go back to Easy
+            // Mode? No.
+            // if (isEzMode) -> We are IN Easy Mode. We want to switch to Code Mode. So show
+            // Code Mode Icon.
             // My previous change:
-            // if (isEzMode) { ... switch to Code ... setGraphic(createEasyModeIcon()) } -> This sets icon AFTER switching to Code.
+            // if (isEzMode) { ... switch to Code ... setGraphic(createEasyModeIcon()) } ->
+            // This sets icon AFTER switching to Code.
             // So if I am in Code Mode, I see Easy Mode Icon. Correct.
-            
+
             // So initially (Code Mode), I should set Easy Mode Icon.
             btnModeSwitch.setGraphic(createEasyModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
@@ -442,24 +454,27 @@ public class EditorController {
         if (btnAddEz != null) {
             btnAddEz.setOnAction(e -> {
                 ContextMenu contextMenu = new ContextMenu();
-                
+
                 MenuItem addEntity = new MenuItem("Entity");
                 addEntity.setOnAction(ev -> {
-                    if (menuAddEntity != null) menuAddEntity.fire();
+                    if (menuAddEntity != null)
+                        menuAddEntity.fire();
                 });
-                
+
                 MenuItem addItem = new MenuItem("Item");
                 addItem.setOnAction(ev -> {
-                    if (menuAddItem != null) menuAddItem.fire();
+                    if (menuAddItem != null)
+                        menuAddItem.fire();
                 });
-                
+
                 MenuItem addBlock = new MenuItem("Block");
                 addBlock.setOnAction(ev -> {
-                    if (menuAddBlock != null) menuAddBlock.fire();
+                    if (menuAddBlock != null)
+                        menuAddBlock.fire();
                 });
-                
+
                 contextMenu.getItems().addAll(addEntity, addItem, addBlock);
-                
+
                 // Show to the right of the button
                 javafx.geometry.Bounds bounds = btnAddEz.localToScreen(btnAddEz.getBoundsInLocal());
                 contextMenu.show(btnAddEz, bounds.getMaxX(), bounds.getMinY());
@@ -469,56 +484,63 @@ public class EditorController {
 
     private void setupEzModeNavigation() {
         ToggleGroup ezGroup = new ToggleGroup();
-        
+
         if (btnEzMain != null) {
             btnEzMain.setToggleGroup(ezGroup);
             btnEzMain.setOnAction(e -> {
-                if (btnEzMain.isSelected()) switchEzView("main");
+                if (btnEzMain.isSelected())
+                    switchEzView("main");
             });
         }
 
         if (btnEzEntities != null) {
             btnEzEntities.setToggleGroup(ezGroup);
             btnEzEntities.setOnAction(e -> {
-                if (btnEzEntities.isSelected()) switchEzView("entities");
+                if (btnEzEntities.isSelected())
+                    switchEzView("entities");
             });
         }
 
         if (btnEzItems != null) {
             btnEzItems.setToggleGroup(ezGroup);
             btnEzItems.setOnAction(e -> {
-                if (btnEzItems.isSelected()) switchEzView("items");
+                if (btnEzItems.isSelected())
+                    switchEzView("items");
             });
         }
 
         if (btnEzBlocks != null) {
             btnEzBlocks.setToggleGroup(ezGroup);
             btnEzBlocks.setOnAction(e -> {
-                if (btnEzBlocks.isSelected()) switchEzView("blocks");
+                if (btnEzBlocks.isSelected())
+                    switchEzView("blocks");
             });
         }
-        
+
         if (btnEzTextures != null) {
             btnEzTextures.setToggleGroup(ezGroup);
             btnEzTextures.setOnAction(e -> {
-                if (btnEzTextures.isSelected()) switchEzView("textures");
+                if (btnEzTextures.isSelected())
+                    switchEzView("textures");
             });
         }
-        
+
         if (btnEzModels != null) {
             btnEzModels.setToggleGroup(ezGroup);
             btnEzModels.setOnAction(e -> {
-                if (btnEzModels.isSelected()) switchEzView("models");
+                if (btnEzModels.isSelected())
+                    switchEzView("models");
             });
         }
-        
+
         if (btnEzSounds != null) {
             btnEzSounds.setToggleGroup(ezGroup);
             btnEzSounds.setOnAction(e -> {
-                if (btnEzSounds.isSelected()) switchEzView("sounds");
+                if (btnEzSounds.isSelected())
+                    switchEzView("sounds");
             });
         }
-        
+
         if (txtEzFilter != null) {
             txtEzFilter.textProperty().addListener((obs, oldVal, newVal) -> {
                 switchEzView(currentEzViewName);
@@ -528,14 +550,22 @@ public class EditorController {
 
     private void switchEzView(String viewName) {
         this.currentEzViewName = viewName;
-        if (ezMainContainer != null) ezMainContainer.setVisible(false);
-        if (ezEntitiesContainer != null) ezEntitiesContainer.setVisible(false);
-        if (ezItemsContainer != null) ezItemsContainer.setVisible(false);
-        if (ezBlocksContainer != null) ezBlocksContainer.setVisible(false);
-        if (ezTexturesContainer != null) ezTexturesContainer.setVisible(false);
-        if (ezModelsContainer != null) ezModelsContainer.setVisible(false);
-        if (ezSoundsContainer != null) ezSoundsContainer.setVisible(false);
-        if (ezPixelArtContainer != null) ezPixelArtContainer.setVisible(false);
+        if (ezMainContainer != null)
+            ezMainContainer.setVisible(false);
+        if (ezEntitiesContainer != null)
+            ezEntitiesContainer.setVisible(false);
+        if (ezItemsContainer != null)
+            ezItemsContainer.setVisible(false);
+        if (ezBlocksContainer != null)
+            ezBlocksContainer.setVisible(false);
+        if (ezTexturesContainer != null)
+            ezTexturesContainer.setVisible(false);
+        if (ezModelsContainer != null)
+            ezModelsContainer.setVisible(false);
+        if (ezSoundsContainer != null)
+            ezSoundsContainer.setVisible(false);
+        if (ezPixelArtContainer != null)
+            ezPixelArtContainer.setVisible(false);
 
         // Ensure Top Bar is visible for main views (navigation buttons are here)
         if (ezTopBar != null) {
@@ -545,31 +575,38 @@ public class EditorController {
 
         switch (viewName) {
             case "main":
-                if (ezMainContainer != null) ezMainContainer.setVisible(true);
+                if (ezMainContainer != null)
+                    ezMainContainer.setVisible(true);
                 loadElementsView();
                 break;
             case "entities":
-                if (ezEntitiesContainer != null) ezEntitiesContainer.setVisible(true);
+                if (ezEntitiesContainer != null)
+                    ezEntitiesContainer.setVisible(true);
                 loadEntitiesView();
                 break;
             case "items":
-                if (ezItemsContainer != null) ezItemsContainer.setVisible(true);
+                if (ezItemsContainer != null)
+                    ezItemsContainer.setVisible(true);
                 loadItemsView();
                 break;
             case "blocks":
-                if (ezBlocksContainer != null) ezBlocksContainer.setVisible(true);
+                if (ezBlocksContainer != null)
+                    ezBlocksContainer.setVisible(true);
                 loadBlocksView();
                 break;
             case "textures":
-                if (ezTexturesContainer != null) ezTexturesContainer.setVisible(true);
+                if (ezTexturesContainer != null)
+                    ezTexturesContainer.setVisible(true);
                 loadTexturesView();
                 break;
             case "models":
-                if (ezModelsContainer != null) ezModelsContainer.setVisible(true);
+                if (ezModelsContainer != null)
+                    ezModelsContainer.setVisible(true);
                 loadModelsView();
                 break;
             case "sounds":
-                if (ezSoundsContainer != null) ezSoundsContainer.setVisible(true);
+                if (ezSoundsContainer != null)
+                    ezSoundsContainer.setVisible(true);
                 loadSoundsView();
                 break;
         }
@@ -578,19 +615,21 @@ public class EditorController {
     private void setupTextureToolbar() {
         // Removed as per user request to use context menus and + buttons
     }
-    
+
     private void handleCreateTexture() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Añadir Textura");
         alert.setHeaderText("¿Cómo deseas añadir la textura?");
         alert.setContentText("Elige una opción:");
-        
+
+        styleDialog(alert);
+
         ButtonType btnCreate = new ButtonType("Crear Nueva");
         ButtonType btnImport = new ButtonType("Importar");
         ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        
+
         alert.getButtonTypes().setAll(btnCreate, btnImport, btnCancel);
-        
+
         alert.showAndWait().ifPresent(type -> {
             if (type == btnCreate) {
                 createNewTexture();
@@ -601,45 +640,54 @@ public class EditorController {
     }
 
     private void createNewTexture() {
-         TextInputDialog dialog = new TextInputDialog("new_texture");
-         dialog.setTitle("Crear Textura");
-         dialog.setHeaderText("Crear nueva textura");
-         dialog.setContentText("Nombre del archivo (sin extensión):");
-         
-         dialog.showAndWait().ifPresent(name -> {
-             if (currentProject == null) return;
-             try {
-                 Path root = Paths.get(currentProject.getRootPath());
-                 Path texturesDir = root.resolve("textures");
-                 if (!Files.exists(texturesDir)) Files.createDirectories(texturesDir);
-                 
-                 Path file = texturesDir.resolve(name + ".png");
-                java.awt.image.BufferedImage bImg = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        TextInputDialog dialog = new TextInputDialog("new_texture");
+        dialog.setTitle("Crear Textura");
+        dialog.setHeaderText("Crear nueva textura");
+        dialog.setContentText("Nombre del archivo (sin extensión):");
+
+        styleDialog(dialog);
+
+        dialog.showAndWait().ifPresent(name -> {
+            if (currentProject == null)
+                return;
+            try {
+                Path root = Paths.get(currentProject.getRootPath());
+                Path texturesDir = root.resolve("textures");
+                if (!Files.exists(texturesDir))
+                    Files.createDirectories(texturesDir);
+
+                Path file = texturesDir.resolve(name + ".png");
+                java.awt.image.BufferedImage bImg = new java.awt.image.BufferedImage(16, 16,
+                        java.awt.image.BufferedImage.TYPE_INT_ARGB);
                 javax.imageio.ImageIO.write(bImg, "png", file.toFile());
-                
+
                 loadTexturesView();
                 openPixelArtEditor(file.toFile());
             } catch (Exception ex) {
-                 logger.error("Failed to create texture", ex);
-             }
-         });
+                logger.error("Failed to create texture", ex);
+            }
+        });
     }
 
     private void handleImportTexture() {
-        if (currentProject == null) return;
+        if (currentProject == null)
+            return;
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Importar Texturas");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.tga"));
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.tga"));
         List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
-        
+
         if (files != null) {
             try {
                 Path root = Paths.get(currentProject.getRootPath());
                 Path texturesDir = root.resolve("textures");
-                if (!Files.exists(texturesDir)) Files.createDirectories(texturesDir);
-                
+                if (!Files.exists(texturesDir))
+                    Files.createDirectories(texturesDir);
+
                 for (File f : files) {
-                    Files.copy(f.toPath(), texturesDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(f.toPath(), texturesDir.resolve(f.getName()),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
                 loadTexturesView();
             } catch (Exception ex) {
@@ -647,14 +695,16 @@ public class EditorController {
             }
         }
     }
-    
+
     private void handleEditTexture() {
-        if (selectedTexturePath == null) return;
+        if (selectedTexturePath == null)
+            return;
         openPixelArtEditor(selectedTexturePath.toFile());
     }
-    
+
     private void handleDuplicateTexture() {
-        if (selectedTexturePath == null) return;
+        if (selectedTexturePath == null)
+            return;
         try {
             String name = selectedTexturePath.getFileName().toString();
             String nameNoExt = name.contains(".") ? name.substring(0, name.lastIndexOf('.')) : name;
@@ -666,10 +716,12 @@ public class EditorController {
             logger.error("Failed to duplicate texture", ex);
         }
     }
-    
+
     private void handleDeleteTexture() {
-        if (selectedTexturePath == null) return;
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete " + selectedTexturePath.getFileName() + "?", ButtonType.YES, ButtonType.NO);
+        if (selectedTexturePath == null)
+            return;
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete " + selectedTexturePath.getFileName() + "?",
+                ButtonType.YES, ButtonType.NO);
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.YES) {
                 try {
@@ -684,12 +736,15 @@ public class EditorController {
     }
 
     private void handleAddModel() {
-        if (currentProject == null) return;
+        if (currentProject == null)
+            return;
 
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Agregar Modelo");
         alert.setHeaderText("¿Cómo deseas agregar el modelo?");
         alert.setContentText("Puedes crear un nuevo modelo en Blockbench o importar uno existente.");
+
+        styleDialog(alert);
 
         ButtonType btnCreate = new ButtonType("Crear en Blockbench");
         ButtonType btnImport = new ButtonType("Importar Archivo");
@@ -705,18 +760,19 @@ public class EditorController {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Importar Modelo");
             fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Model Files", "*.json", "*.bbmodel", "*.obj", "*.geo.json")
-            );
+                    new FileChooser.ExtensionFilter("Model Files", "*.json", "*.bbmodel", "*.obj", "*.geo.json"));
             List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
-            
+
             if (files != null) {
                 try {
                     Path root = Paths.get(currentProject.getRootPath());
                     Path modelsDir = root.resolve("models"); // Or geo, depending on structure
-                    if (!Files.exists(modelsDir)) Files.createDirectories(modelsDir);
-                    
+                    if (!Files.exists(modelsDir))
+                        Files.createDirectories(modelsDir);
+
                     for (File f : files) {
-                        Files.copy(f.toPath(), modelsDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        Files.copy(f.toPath(), modelsDir.resolve(f.getName()),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     }
                     loadModelsView();
                 } catch (Exception ex) {
@@ -728,22 +784,24 @@ public class EditorController {
     }
 
     private void handleAddSound() {
-        if (currentProject == null) return;
+        if (currentProject == null)
+            return;
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Importar Sonido");
         fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Audio Files", "*.ogg", "*.wav", "*.fsb")
-        );
+                new FileChooser.ExtensionFilter("Audio Files", "*.ogg", "*.wav", "*.fsb"));
         List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
-        
+
         if (files != null) {
             try {
                 Path root = Paths.get(currentProject.getRootPath());
                 Path soundsDir = root.resolve("sounds");
-                if (!Files.exists(soundsDir)) Files.createDirectories(soundsDir);
-                
+                if (!Files.exists(soundsDir))
+                    Files.createDirectories(soundsDir);
+
                 for (File f : files) {
-                    Files.copy(f.toPath(), soundsDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(f.toPath(), soundsDir.resolve(f.getName()),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
                 loadSoundsView();
             } catch (Exception ex) {
@@ -754,57 +812,69 @@ public class EditorController {
     }
 
     private boolean shouldShow(String name) {
-        if (txtEzFilter == null || txtEzFilter.getText() == null || txtEzFilter.getText().trim().isEmpty()) return true;
+        if (txtEzFilter == null || txtEzFilter.getText() == null || txtEzFilter.getText().trim().isEmpty())
+            return true;
         return name.toLowerCase().contains(txtEzFilter.getText().toLowerCase().trim());
     }
 
     private void loadElementsView() {
-        if (mainElementsFlowPane == null || currentProject == null) return;
+        if (mainElementsFlowPane == null || currentProject == null)
+            return;
         mainElementsFlowPane.getChildren().clear();
-        
+
         for (String entity : currentProject.getEntities()) {
-            if (shouldShow(entity)) mainElementsFlowPane.getChildren().add(createEzCard("Entity", entity, null));
+            if (shouldShow(entity))
+                mainElementsFlowPane.getChildren().add(createEzCard("Entity", entity, null));
         }
         for (String item : currentProject.getItems()) {
-            if (shouldShow(item)) mainElementsFlowPane.getChildren().add(createEzCard("Item", item, null));
+            if (shouldShow(item))
+                mainElementsFlowPane.getChildren().add(createEzCard("Item", item, null));
         }
         for (String block : currentProject.getBlocks()) {
-            if (shouldShow(block)) mainElementsFlowPane.getChildren().add(createEzCard("Block", block, null));
+            if (shouldShow(block))
+                mainElementsFlowPane.getChildren().add(createEzCard("Block", block, null));
         }
     }
 
     private void loadEntitiesView() {
-        if (entitiesFlowPane == null || currentProject == null) return;
+        if (entitiesFlowPane == null || currentProject == null)
+            return;
         entitiesFlowPane.getChildren().clear();
         entitiesFlowPane.getChildren().add(createAddCard(this::handleAddEntity));
         for (String entity : currentProject.getEntities()) {
-            if (shouldShow(entity)) entitiesFlowPane.getChildren().add(createEzCard("Entity", entity, null));
+            if (shouldShow(entity))
+                entitiesFlowPane.getChildren().add(createEzCard("Entity", entity, null));
         }
     }
 
     private void loadItemsView() {
-        if (itemsFlowPane == null || currentProject == null) return;
+        if (itemsFlowPane == null || currentProject == null)
+            return;
         itemsFlowPane.getChildren().clear();
         itemsFlowPane.getChildren().add(createAddCard(this::handleAddItem));
         for (String item : currentProject.getItems()) {
-            if (shouldShow(item)) itemsFlowPane.getChildren().add(createEzCard("Item", item, null));
+            if (shouldShow(item))
+                itemsFlowPane.getChildren().add(createEzCard("Item", item, null));
         }
     }
 
     private void loadBlocksView() {
-        if (blocksFlowPane == null || currentProject == null) return;
+        if (blocksFlowPane == null || currentProject == null)
+            return;
         blocksFlowPane.getChildren().clear();
         blocksFlowPane.getChildren().add(createAddCard(this::handleAddBlock));
         for (String block : currentProject.getBlocks()) {
-            if (shouldShow(block)) blocksFlowPane.getChildren().add(createEzCard("Block", block, null));
+            if (shouldShow(block))
+                blocksFlowPane.getChildren().add(createEzCard("Block", block, null));
         }
     }
 
     private void loadTexturesView() {
-        if (texturesFlowPane == null || currentProject == null) return;
+        if (texturesFlowPane == null || currentProject == null)
+            return;
         texturesFlowPane.getChildren().clear();
         texturesFlowPane.getChildren().add(createAddCard(this::handleCreateTexture));
-        
+
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> textureFiles = findFiles(root, ".png", ".tga", ".jpg");
         for (Path path : textureFiles) {
@@ -813,26 +883,29 @@ public class EditorController {
             }
         }
     }
-    
+
     private void loadModelsView() {
-        if (modelsFlowPane == null || currentProject == null) return;
+        if (modelsFlowPane == null || currentProject == null)
+            return;
         modelsFlowPane.getChildren().clear();
         modelsFlowPane.getChildren().add(createAddCard(this::handleAddModel));
-        
+
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> modelFiles = findFiles(root, ".json", ".obj", ".geo.json");
         for (Path path : modelFiles) {
-             if ((path.toString().contains("models") || path.toString().contains("geo")) && shouldShow(path.getFileName().toString())) {
-                 modelsFlowPane.getChildren().add(createModelCard(path));
-             }
+            if ((path.toString().contains("models") || path.toString().contains("geo"))
+                    && shouldShow(path.getFileName().toString())) {
+                modelsFlowPane.getChildren().add(createModelCard(path));
+            }
         }
     }
-    
+
     private void loadSoundsView() {
-        if (soundsFlowPane == null || currentProject == null) return;
+        if (soundsFlowPane == null || currentProject == null)
+            return;
         soundsFlowPane.getChildren().clear();
         soundsFlowPane.getChildren().add(createAddCard(this::handleAddSound));
-        
+
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> soundFiles = findFiles(root, ".ogg", ".wav", ".fsb");
         for (Path path : soundFiles) {
@@ -844,46 +917,53 @@ public class EditorController {
 
     private java.util.List<Path> findFiles(Path root, String... extensions) {
         java.util.List<Path> result = new java.util.ArrayList<>();
-        if (!java.nio.file.Files.exists(root)) return result;
-        
+        if (!java.nio.file.Files.exists(root))
+            return result;
+
         try (java.util.stream.Stream<Path> walk = java.nio.file.Files.walk(root)) {
             walk.filter(p -> !java.nio.file.Files.isDirectory(p))
-                .filter(p -> {
-                    String name = p.getFileName().toString().toLowerCase();
-                    for (String ext : extensions) {
-                        if (name.endsWith(ext)) return true;
-                    }
-                    return false;
-                })
-                .forEach(result::add);
+                    .filter(p -> {
+                        String name = p.getFileName().toString().toLowerCase();
+                        for (String ext : extensions) {
+                            if (name.endsWith(ext))
+                                return true;
+                        }
+                        return false;
+                    })
+                    .forEach(result::add);
         } catch (java.io.IOException e) {
             logger.error("Failed to scan files", e);
         }
         return result;
     }
-    
+
     private javafx.scene.image.Image findElementImage(String name, String type) {
-        if (currentProject == null) return null;
+        if (currentProject == null)
+            return null;
         try {
             Path root = Paths.get(currentProject.getRootPath());
             Path texturesDir = root.resolve("textures");
-            if (!Files.exists(texturesDir)) return null;
-            
+            if (!Files.exists(texturesDir))
+                return null;
+
             String cleanName = name;
             if (name.contains(":")) {
                 cleanName = name.split(":")[1];
             }
-            
+
             Path specificDir = null;
-            if (type.equalsIgnoreCase("Item")) specificDir = texturesDir.resolve("items");
-            else if (type.equalsIgnoreCase("Block")) specificDir = texturesDir.resolve("blocks");
-            else if (type.equalsIgnoreCase("Entity")) specificDir = texturesDir.resolve("entity");
-            
+            if (type.equalsIgnoreCase("Item"))
+                specificDir = texturesDir.resolve("items");
+            else if (type.equalsIgnoreCase("Block"))
+                specificDir = texturesDir.resolve("blocks");
+            else if (type.equalsIgnoreCase("Entity"))
+                specificDir = texturesDir.resolve("entity");
+
             if (specificDir != null && Files.exists(specificDir)) {
-                 Path imgPath = specificDir.resolve(cleanName + ".png");
-                 if (Files.exists(imgPath)) {
-                     return new javafx.scene.image.Image(imgPath.toUri().toString(), 50, 50, true, true);
-                 }
+                Path imgPath = specificDir.resolve(cleanName + ".png");
+                if (Files.exists(imgPath)) {
+                    return new javafx.scene.image.Image(imgPath.toUri().toString(), 50, 50, true, true);
+                }
             }
             return null;
         } catch (Exception e) {
@@ -893,47 +973,51 @@ public class EditorController {
 
     private Node createAddCard(Runnable action) {
         VBox card = new VBox(5);
-        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
         card.setPrefSize(120, 150);
         card.setAlignment(Pos.CENTER);
-        
+
         SVGPath plusIcon = new SVGPath();
         plusIcon.setContent("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z");
         plusIcon.setFill(Color.web("#888888"));
         plusIcon.setScaleX(2);
         plusIcon.setScaleY(2);
-        
+
         Label titleLabel = new Label("Crear Nuevo");
         titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
         titleLabel.setWrapText(true);
         titleLabel.setTextAlignment(TextAlignment.CENTER);
-        
+
         card.getChildren().addAll(plusIcon, titleLabel);
-        
+
         card.setOnMouseClicked(e -> action.run());
-        
+
         // Hover effect
         card.setOnMouseEntered(e -> {
-            card.setStyle("-fx-background-color: #383838; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #007ACC; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+            card.setStyle(
+                    "-fx-background-color: #383838; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #007ACC; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
             plusIcon.setFill(Color.web("#007ACC"));
             titleLabel.setStyle("-fx-text-fill: #007ACC; -fx-font-weight: bold; -fx-font-size: 12px;");
         });
-        
+
         card.setOnMouseExited(e -> {
-            card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+            card.setStyle(
+                    "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
             plusIcon.setFill(Color.web("#888888"));
             titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
         });
-        
+
         return card;
     }
 
     private Node createEzCard(String type, String title, String iconName) {
         VBox card = new VBox(5);
-        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
         card.setPrefSize(120, 150);
         card.setAlignment(Pos.CENTER);
-        
+
         Node iconNode;
         javafx.scene.image.Image img = findElementImage(title, type);
         if (img != null) {
@@ -944,44 +1028,45 @@ public class EditorController {
         } else {
             iconNode = new Rectangle(50, 50, Color.DARKGRAY);
         }
-        
+
         Label typeLabel = new Label(type);
         typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
-        
+
         Label titleLabel = new Label(title);
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         titleLabel.setWrapText(true);
         titleLabel.setTextAlignment(TextAlignment.CENTER);
-        
+
         card.getChildren().addAll(iconNode, titleLabel, typeLabel);
         return card;
     }
 
     private Node createModelCard(Path path) {
         VBox card = new VBox(5);
-        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
         card.setPrefSize(120, 150);
         card.setAlignment(Pos.CENTER);
-        
+
         // Icon (Cube)
         SVGPath cubeIcon = new SVGPath();
-        cubeIcon.setContent("M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5"); 
+        cubeIcon.setContent("M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5");
         cubeIcon.setFill(Color.TRANSPARENT);
         cubeIcon.setStroke(Color.WHITE);
         cubeIcon.setStrokeWidth(1.5);
         cubeIcon.setScaleX(1.5);
         cubeIcon.setScaleY(1.5);
-        
+
         Group iconGroup = new Group(cubeIcon);
-        
+
         Label typeLabel = new Label("Model");
         typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
-        
+
         Label titleLabel = new Label(path.getFileName().toString());
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         titleLabel.setWrapText(true);
         titleLabel.setTextAlignment(TextAlignment.CENTER);
-        
+
         card.getChildren().addAll(iconGroup, titleLabel, typeLabel);
 
         // Context Menu
@@ -989,7 +1074,7 @@ public class EditorController {
         MenuItem openItem = new MenuItem("Abrir en Blockbench");
         openItem.setOnAction(e -> openInBlockbench(path.toFile()));
         cm.getItems().add(openItem);
-        
+
         card.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
                 cm.show(card, e.getScreenX(), e.getScreenY());
@@ -997,43 +1082,46 @@ public class EditorController {
                 openInBlockbench(path.toFile());
             }
         });
-        
+
         // Hover effects
         card.setOnMouseEntered(e -> {
-             card.setStyle("-fx-background-color: #3E3E42; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0);");
+            card.setStyle(
+                    "-fx-background-color: #3E3E42; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0);");
         });
         card.setOnMouseExited(e -> {
-             card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+            card.setStyle(
+                    "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
         });
 
         return card;
     }
-    
+
     private Node createTextureCard(Path path) {
         VBox card = new VBox(5);
-        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
         card.setPrefSize(120, 150);
         card.setAlignment(Pos.CENTER);
-        
+
         javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView();
         imageView.setFitWidth(80);
         imageView.setFitHeight(80);
         imageView.setPreserveRatio(true);
-        
+
         try {
             javafx.scene.image.Image img = new javafx.scene.image.Image(path.toUri().toString(), 80, 80, true, true);
             imageView.setImage(img);
         } catch (Exception e) {
             // ignore
         }
-        
+
         Label nameLabel = new Label(path.getFileName().toString());
         nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 11px;");
         nameLabel.setWrapText(true);
         nameLabel.setTextAlignment(TextAlignment.CENTER);
-        
+
         card.getChildren().addAll(imageView, nameLabel);
-        
+
         // Context Menu
         ContextMenu cm = new ContextMenu();
         MenuItem editItem = new MenuItem("Editar");
@@ -1041,44 +1129,47 @@ public class EditorController {
             selectedTexturePath = path;
             handleEditTexture();
         });
-        
+
         MenuItem duplicateItem = new MenuItem("Duplicar");
         duplicateItem.setOnAction(e -> {
             selectedTexturePath = path;
             handleDuplicateTexture();
         });
-        
+
         MenuItem deleteItem = new MenuItem("Eliminar");
         deleteItem.setStyle("-fx-text-fill: red;");
         deleteItem.setOnAction(e -> {
             selectedTexturePath = path;
             handleDeleteTexture();
         });
-        
+
         cm.getItems().addAll(editItem, duplicateItem, new SeparatorMenuItem(), deleteItem);
-        
+
         card.setOnMouseClicked(e -> {
-             if (e.getButton() == MouseButton.SECONDARY) {
-                 cm.show(card, e.getScreenX(), e.getScreenY());
-             } else {
-                 if (e.getClickCount() == 1) {
-                     selectedTexturePath = path;
-                     if (card.getParent() instanceof FlowPane) {
-                         for (Node child : ((FlowPane)card.getParent()).getChildren()) {
-                             // Reset style for others (simplified for now, ideally check if it's not the current card)
-                             if (child != card && !(child.getStyle().contains("-fx-border-style: dashed"))) {
-                                child.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
-                             }
-                         }
-                     }
-                     card.setStyle("-fx-background-color: #444444; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0); -fx-border-color: #007ACC; -fx-border-width: 2; -fx-border-radius: 5;");
-                 }
-                 if (e.getClickCount() == 2) {
-                     openSearchResult(path.toAbsolutePath().toString());
-                 }
-             }
+            if (e.getButton() == MouseButton.SECONDARY) {
+                cm.show(card, e.getScreenX(), e.getScreenY());
+            } else {
+                if (e.getClickCount() == 1) {
+                    selectedTexturePath = path;
+                    if (card.getParent() instanceof FlowPane) {
+                        for (Node child : ((FlowPane) card.getParent()).getChildren()) {
+                            // Reset style for others (simplified for now, ideally check if it's not the
+                            // current card)
+                            if (child != card && !(child.getStyle().contains("-fx-border-style: dashed"))) {
+                                child.setStyle(
+                                        "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+                            }
+                        }
+                    }
+                    card.setStyle(
+                            "-fx-background-color: #444444; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0); -fx-border-color: #007ACC; -fx-border-width: 2; -fx-border-radius: 5;");
+                }
+                if (e.getClickCount() == 2) {
+                    openSearchResult(path.toAbsolutePath().toString());
+                }
+            }
         });
-        
+
         return card;
     }
 
@@ -1111,16 +1202,19 @@ public class EditorController {
                     if (parts.length >= 2) {
                         String type = parts[0];
                         String name = parts[1];
-                        
+
                         Color color = Color.GRAY;
-                        if (type.equals("EVENT")) color = Color.web("#FFC107");
-                        else if (type.equals("ACTION")) color = Color.web("#2196F3");
-                        else if (type.equals("CONDITION")) color = Color.web("#4CAF50");
+                        if (type.equals("EVENT"))
+                            color = Color.web("#FFC107");
+                        else if (type.equals("ACTION"))
+                            color = Color.web("#2196F3");
+                        else if (type.equals("CONDITION"))
+                            color = Color.web("#4CAF50");
 
                         VisualBlock newBlock = new VisualBlock(name, type, color, false);
                         newBlock.setLayoutX(event.getX());
                         newBlock.setLayoutY(event.getY());
-                        
+
                         // Make draggable on canvas
                         makeDraggable(newBlock);
 
@@ -1148,15 +1242,15 @@ public class EditorController {
         });
     }
 
-
     private void toggleMode() {
         boolean isEzMode = uiEzModeView.isVisible();
-        
+
         if (isEzMode) {
             // Switch to Code Mode
             uiEzModeView.setVisible(false);
-            if (codeModeView != null) codeModeView.setVisible(true);
-            
+            if (codeModeView != null)
+                codeModeView.setVisible(true);
+
             // Sidebar buttons management
             if (btnExplorer != null) {
                 btnExplorer.setVisible(true);
@@ -1178,8 +1272,9 @@ public class EditorController {
                 btnAddEz.setVisible(false);
                 btnAddEz.setManaged(false);
             }
-            
-            // Restore sidebar state (Show Explorer by default in Code Mode if nothing else is open, or restore previous state)
+
+            // Restore sidebar state (Show Explorer by default in Code Mode if nothing else
+            // is open, or restore previous state)
             // For simplicity, let's open Explorer
             hideAllSidebarViews();
             if (projectExplorerView != null) {
@@ -1187,13 +1282,14 @@ public class EditorController {
                 projectExplorerView.setManaged(true);
             }
             updateSidebarVisibility();
-            
+
             // Set Icon to "UI Ez"
             btnModeSwitch.setGraphic(createEasyModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
         } else {
             // Switch to Ez Mode
-            if (codeModeView != null) codeModeView.setVisible(false);
+            if (codeModeView != null)
+                codeModeView.setVisible(false);
             uiEzModeView.setVisible(true);
 
             // Sidebar buttons management - Hide most, keep Todo
@@ -1217,11 +1313,11 @@ public class EditorController {
                 btnAddEz.setVisible(true);
                 btnAddEz.setManaged(true);
             }
-            
+
             // Hide sidebar content initially in Ez Mode
             hideAllSidebarViews();
             updateSidebarVisibility();
-            
+
             // Set Icon to "Code"
             btnModeSwitch.setGraphic(createCodeModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Code Mode");
@@ -1230,25 +1326,46 @@ public class EditorController {
             populateEzLists();
         }
     }
-    
+
     private void hideAllSidebarViews() {
-        if (projectExplorerView != null) { projectExplorerView.setVisible(false); projectExplorerView.setManaged(false); }
-        if (searchView != null) { searchView.setVisible(false); searchView.setManaged(false); }
-        if (gitView != null) { gitView.setVisible(false); gitView.setManaged(false); }
-        if (todoView != null) { todoView.setVisible(false); todoView.setManaged(false); }
-        if (pixelArtView != null) { pixelArtView.setVisible(false); pixelArtView.setManaged(false); }
+        if (projectExplorerView != null) {
+            projectExplorerView.setVisible(false);
+            projectExplorerView.setManaged(false);
+        }
+        if (searchView != null) {
+            searchView.setVisible(false);
+            searchView.setManaged(false);
+        }
+        if (gitView != null) {
+            gitView.setVisible(false);
+            gitView.setManaged(false);
+        }
+        if (todoView != null) {
+            todoView.setVisible(false);
+            todoView.setManaged(false);
+        }
+        if (pixelArtView != null) {
+            pixelArtView.setVisible(false);
+            pixelArtView.setManaged(false);
+        }
     }
-    
+
     private void updateSidebarVisibility() {
-        if (sidebarContainer == null || ideSplitPane == null) return;
-        
+        if (sidebarContainer == null || ideSplitPane == null)
+            return;
+
         boolean anyVisible = false;
-        if (projectExplorerView != null && projectExplorerView.isVisible()) anyVisible = true;
-        if (searchView != null && searchView.isVisible()) anyVisible = true;
-        if (gitView != null && gitView.isVisible()) anyVisible = true;
-        if (todoView != null && todoView.isVisible()) anyVisible = true;
-        if (pixelArtView != null && pixelArtView.isVisible()) anyVisible = true;
-        
+        if (projectExplorerView != null && projectExplorerView.isVisible())
+            anyVisible = true;
+        if (searchView != null && searchView.isVisible())
+            anyVisible = true;
+        if (gitView != null && gitView.isVisible())
+            anyVisible = true;
+        if (todoView != null && todoView.isVisible())
+            anyVisible = true;
+        if (pixelArtView != null && pixelArtView.isVisible())
+            anyVisible = true;
+
         if (anyVisible) {
             if (!ideSplitPane.getItems().contains(sidebarContainer)) {
                 ideSplitPane.getItems().add(0, sidebarContainer);
@@ -1263,9 +1380,10 @@ public class EditorController {
         Pane icon = new Pane();
         icon.setPrefSize(64, 64);
         icon.setMaxSize(64, 64);
-        // Center content if parent allows, but Pane doesn't center children automatically.
+        // Center content if parent allows, but Pane doesn't center children
+        // automatically.
         // We draw at absolute coordinates.
-        
+
         // Container
         Rectangle bg = new Rectangle(4, 4, 56, 56);
         bg.setArcWidth(16);
@@ -1280,51 +1398,53 @@ public class EditorController {
         bigBlock.setArcWidth(6);
         bigBlock.setArcHeight(6);
         bigBlock.setFill(Color.WHITE);
-        
+
         // Group blocks to center them together maybe?
         // Let's manually adjust coordinates to look centered in 64x64.
         // Center is 32,32.
         // Container 56x56 at 4,4 is centered.
-        
+
         // Original SVG:
         // ViewBox 0 0 64 64.
         // Rect x=2 y=2 w=60 h=60 (Stroke=2) -> Centered.
         // Big Block x=16 y=14 w=22 h=22.
         // Small Blocks y=38 (row). x=16, 28, 40.
-        
+
         // My implementation with stroke 4:
-        // Rect x=4 y=4 w=56 h=56. (Stroke center is at boundary, so 2px out, 2px in. 4-2=2 (outer edge). 4+56+2=62 (outer edge). Matches 2 to 62 range = 60px wide visual? No.
+        // Rect x=4 y=4 w=56 h=56. (Stroke center is at boundary, so 2px out, 2px in.
+        // 4-2=2 (outer edge). 4+56+2=62 (outer edge). Matches 2 to 62 range = 60px wide
+        // visual? No.
         // StrokeType.CENTERED is default.
         // If Rect is 4,4 56x56. Left=4, Right=60. Center=32.
         // Stroke 4: Extends from 2 to 62. Perfect for 64x64 bounds (1px margin).
-        
+
         // Big Block: x=16 y=14. CenterX = 16+11 = 27. Not 32.
         // SVG was: x=16 w=22. Center = 27. It was left aligned?
         // User said "no sale ni centrado".
         // Let's center the blocks horizontally.
-        // Total width of blocks: 
+        // Total width of blocks:
         // Small row: 16 to 40+10=50. Width = 34. Center = 16+17 = 33. Close to 32.
         // Big Block: x=16 w=22. Center=27.
         // Let's center everything around x=32.
-        
+
         // Big Block (w=22): x = 32 - 11 = 21.
         // Small Blocks (3 blocks, w=10, gap=2? No gap=2 in SVG).
         // SVG: x=16, 28, 40. 16->26, 28->38, 40->50. Gaps: 28-26=2. 40-38=2.
         // Total width: 10+2+10+2+10 = 34.
         // Start x = 32 - 17 = 15.
         // So x=15, 27, 39.
-        
+
         // Y positions:
         // SVG: Big y=14. Small y=38.
         // Let's keep Y relative.
-        
+
         // Update Big Block
-        bigBlock.setX(21); 
+        bigBlock.setX(21);
         bigBlock.setY(14);
         icon.getChildren().add(bigBlock);
 
         // Small Blocks
-        // In SVG there were 4 small blocks? 
+        // In SVG there were 4 small blocks?
         // SVG: <rect x="40" y="14" ...> (Beside big block?)
         // <rect x="16" y="38"> <rect x="28" y="38"> <rect x="40" y="38">
         // So 1 small block beside big block, 3 below.
@@ -1333,12 +1453,12 @@ public class EditorController {
         // Top Row: Big(22) + Gap(2) + Small(10) = 34.
         // Center x=32. Start x = 32 - 17 = 15.
         // Big: x=15. Small: x=15+22+2 = 39.
-        
+
         // Bottom Row: 3 Smalls (w=34). Start x=15.
         // x=15, 27, 39.
-        
+
         bigBlock.setX(15);
-        
+
         createSmallBlock(icon, 39, 14);
         createSmallBlock(icon, 15, 38);
         createSmallBlock(icon, 27, 38);
@@ -1375,15 +1495,16 @@ public class EditorController {
         Text text = new Text("<>");
         text.setFill(Color.WHITE);
         text.setFont(Font.font("Monospace", 28));
-        
+
         // Center text using StackPane wrapper inside the Pane
         StackPane textStack = new StackPane(text);
         textStack.setPrefSize(64, 64);
         textStack.setAlignment(Pos.CENTER);
-        // textStack.setPadding(new Insets(8, 0, 0, 0)); // Remove padding if not needed or adjust
+        // textStack.setPadding(new Insets(8, 0, 0, 0)); // Remove padding if not needed
+        // or adjust
         // Font 28 might need visual centering.
         // Let's try without padding first or slight adjustment.
-        
+
         icon.getChildren().add(textStack);
 
         icon.setScaleX(0.8);
@@ -1392,8 +1513,9 @@ public class EditorController {
     }
 
     private void populateEzLists() {
-        if (currentProject == null) return;
-        
+        if (currentProject == null)
+            return;
+
         switchEzView("main");
     }
 
@@ -1404,10 +1526,11 @@ public class EditorController {
     }
 
     private void toggleTodoView() {
-        if (todoView == null) return;
-        
+        if (todoView == null)
+            return;
+
         boolean isVisible = todoView.isVisible();
-        
+
         hideAllSidebarViews();
 
         // Toggle requested view
@@ -1416,43 +1539,45 @@ public class EditorController {
             todoView.setManaged(true);
             updateTodoView();
         } else {
-            // If we are closing Todo, check if we should default to Explorer (Code Mode only)
+            // If we are closing Todo, check if we should default to Explorer (Code Mode
+            // only)
             boolean isEzMode = uiEzModeView.isVisible();
             if (!isEzMode) {
-                 if (projectExplorerView != null) {
-                     projectExplorerView.setVisible(true);
-                     projectExplorerView.setManaged(true);
-                 }
+                if (projectExplorerView != null) {
+                    projectExplorerView.setVisible(true);
+                    projectExplorerView.setManaged(true);
+                }
             }
         }
         updateSidebarVisibility();
     }
 
     private void updateTodoView() {
-        if (todoContentArea == null) return;
-        
+        if (todoContentArea == null)
+            return;
+
         if (currentProject == null) {
-             todoContentArea.getChildren().clear();
-             Label label = new Label("Open a project to view tasks");
-             label.setTextFill(Color.GRAY);
-             todoContentArea.getChildren().add(label);
-             return;
+            todoContentArea.getChildren().clear();
+            Label label = new Label("Open a project to view tasks");
+            label.setTextFill(Color.GRAY);
+            todoContentArea.getChildren().add(label);
+            return;
         }
 
         if (todoManager == null) {
-             todoManager = new TodoManager(Paths.get(currentProject.getRootPath()));
+            todoManager = new TodoManager(Paths.get(currentProject.getRootPath()));
         }
-        
+
         // Check if todo is initialized
         if (!todoManager.isInitialized()) {
             todoContentArea.getChildren().clear();
-            
+
             VBox box = new VBox(15);
             box.setAlignment(Pos.CENTER);
-            
+
             Label label = new Label("No task list found");
             label.setTextFill(Color.WHITE);
-            
+
             Button createBtn = new Button("Create Task List");
             createBtn.getStyleClass().add("primary-button");
             createBtn.setOnAction(e -> {
@@ -1463,7 +1588,7 @@ public class EditorController {
                     logger.error("Failed to initialize todo list", ex);
                 }
             });
-            
+
             box.getChildren().addAll(label, createBtn);
             todoContentArea.getChildren().add(box);
         } else {
@@ -1472,25 +1597,25 @@ public class EditorController {
                 todoManager.loadTasks();
                 showTaskList();
             } catch (IOException e) {
-                 logger.error("Failed to load tasks", e);
+                logger.error("Failed to load tasks", e);
             }
         }
     }
-    
+
     private void showTaskList() {
         todoContentArea.getChildren().clear();
-        
+
         VBox mainBox = new VBox(10);
         mainBox.setPadding(new Insets(10));
         VBox.setVgrow(mainBox, Priority.ALWAYS);
-        
+
         // Input for new task
         HBox inputBox = new HBox(5);
         TextField taskInput = new TextField();
         taskInput.setPromptText("Add a new task...");
         taskInput.setStyle("-fx-background-color: #333333; -fx-text-fill: white; -fx-background-radius: 4;");
         HBox.setHgrow(taskInput, Priority.ALWAYS);
-        
+
         Button addBtn = new Button("+");
         addBtn.getStyleClass().add("primary-button");
         addBtn.setOnAction(e -> {
@@ -1505,59 +1630,59 @@ public class EditorController {
                 }
             }
         });
-        
+
         taskInput.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ENTER) {
                 addBtn.fire();
             }
         });
-        
+
         inputBox.getChildren().addAll(taskInput, addBtn);
-        
+
         // List of tasks
         ListView<TodoManager.Task> taskListView = new ListView<>();
         taskListView.setStyle("-fx-background-color: transparent;");
         taskListView.getItems().addAll(todoManager.getTasks());
         VBox.setVgrow(taskListView, Priority.ALWAYS);
-        
+
         taskListView.setCellFactory(lv -> new ListCell<TodoManager.Task>() {
-             @Override
-             protected void updateItem(TodoManager.Task task, boolean empty) {
-                 super.updateItem(task, empty);
-                 if (empty || task == null) {
-                     setGraphic(null);
-                     setStyle("-fx-background-color: transparent;");
-                 } else {
-                     CheckBox cb = new CheckBox(task.getDescription());
-                     cb.setSelected(task.isCompleted());
-                     // Style
-                     if (task.isCompleted()) {
-                         cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
-                     } else {
-                         cb.setStyle("-fx-text-fill: #cccccc;");
-                     }
-                     
-                     cb.setOnAction(e -> {
-                         task.setCompleted(cb.isSelected());
-                         try {
-                             todoManager.updateTask(task);
-                             // Refresh just the style of this cell if possible, or reload list
-                             if (task.isCompleted()) {
-                                 cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
-                             } else {
-                                 cb.setStyle("-fx-text-fill: #cccccc;");
-                             }
-                         } catch (IOException ex) {
-                             logger.error("Failed to update task", ex);
-                         }
-                     });
-                     
-                     setGraphic(cb);
-                     setStyle("-fx-background-color: transparent; -fx-padding: 5;");
-                 }
-             }
+            @Override
+            protected void updateItem(TodoManager.Task task, boolean empty) {
+                super.updateItem(task, empty);
+                if (empty || task == null) {
+                    setGraphic(null);
+                    setStyle("-fx-background-color: transparent;");
+                } else {
+                    CheckBox cb = new CheckBox(task.getDescription());
+                    cb.setSelected(task.isCompleted());
+                    // Style
+                    if (task.isCompleted()) {
+                        cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
+                    } else {
+                        cb.setStyle("-fx-text-fill: #cccccc;");
+                    }
+
+                    cb.setOnAction(e -> {
+                        task.setCompleted(cb.isSelected());
+                        try {
+                            todoManager.updateTask(task);
+                            // Refresh just the style of this cell if possible, or reload list
+                            if (task.isCompleted()) {
+                                cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
+                            } else {
+                                cb.setStyle("-fx-text-fill: #cccccc;");
+                            }
+                        } catch (IOException ex) {
+                            logger.error("Failed to update task", ex);
+                        }
+                    });
+
+                    setGraphic(cb);
+                    setStyle("-fx-background-color: transparent; -fx-padding: 5;");
+                }
+            }
         });
-        
+
         mainBox.getChildren().addAll(inputBox, taskListView);
         todoContentArea.getChildren().add(mainBox);
     }
@@ -1591,7 +1716,7 @@ public class EditorController {
                         updateCommitButtonText();
                     }
                 });
-                
+
                 // Clicking the cell (but not checkbox) should show diff
                 root.setOnMouseClicked(e -> {
                     if (e.getClickCount() == 1 && getItem() != null) {
@@ -1608,13 +1733,21 @@ public class EditorController {
                 } else {
                     pathLabel.setText(item.filePath);
                     statusLabel.setText("[" + item.type.substring(0, 1) + "]");
-                    
+
                     // Style status
                     switch (item.type) {
-                        case "MODIFIED": statusLabel.setStyle("-fx-text-fill: #E2C08D;"); break; // Yellowish
-                        case "ADDED": statusLabel.setStyle("-fx-text-fill: #73C991;"); break; // Greenish
-                        case "DELETED": statusLabel.setStyle("-fx-text-fill: #FF6B6B;"); break; // Reddish
-                        case "UNTRACKED": statusLabel.setStyle("-fx-text-fill: #888888;"); break; // Gray
+                        case "MODIFIED":
+                            statusLabel.setStyle("-fx-text-fill: #E2C08D;");
+                            break; // Yellowish
+                        case "ADDED":
+                            statusLabel.setStyle("-fx-text-fill: #73C991;");
+                            break; // Greenish
+                        case "DELETED":
+                            statusLabel.setStyle("-fx-text-fill: #FF6B6B;");
+                            break; // Reddish
+                        case "UNTRACKED":
+                            statusLabel.setStyle("-fx-text-fill: #888888;");
+                            break; // Gray
                     }
 
                     checkBox.setSelected(stagedFiles.contains(item.filePath));
@@ -1625,12 +1758,14 @@ public class EditorController {
     }
 
     private void updateCommitButtonText() {
-        if (commitButton == null) return;
-        
+        if (commitButton == null)
+            return;
+
         try {
             String branch = gitManager != null ? gitManager.getCurrentBranch() : "HEAD";
-            if (branch == null) branch = "HEAD";
-            
+            if (branch == null)
+                branch = "HEAD";
+
             int count = stagedFiles.size();
             commitButton.setText("Commit " + count + " files to " + branch);
         } catch (Exception e) {
@@ -1641,7 +1776,7 @@ public class EditorController {
     private void showDiff(GitManager.GitChange change) {
         // Create or select diff tab
         String tabTitle = "Diff: " + change.filePath;
-        
+
         for (Tab tab : editorTabs.getTabs()) {
             if (tab.getText().equals(tabTitle)) {
                 editorTabs.getSelectionModel().select(tab);
@@ -1652,11 +1787,11 @@ public class EditorController {
         // Create new tab with SplitPane
         Tab tab = new Tab(tabTitle);
         SplitPane splitPane = new SplitPane();
-        
+
         // Left Side: Old Content (HEAD)
         String oldContent = gitManager.getFileContentFromHead(change.filePath);
         VBox leftBox = createDiffSide("HEAD (Old)", oldContent, true);
-        
+
         // Right Side: New Content (Working Tree)
         String newContent = "";
         try {
@@ -1668,63 +1803,66 @@ public class EditorController {
         } catch (IOException e) {
             newContent = "Error reading file: " + e.getMessage();
         }
-        
+
         VBox rightBox = createDiffSide("Working Tree (New)", newContent, false);
-        
+
         // Compute Diff and highlight
         highlightDiff(leftBox, rightBox, oldContent, newContent, change.filePath);
 
         splitPane.getItems().addAll(leftBox, rightBox);
         splitPane.setDividerPositions(0.5);
-        
+
         tab.setContent(splitPane);
         editorTabs.getTabs().add(tab);
         editorTabs.getSelectionModel().select(tab);
     }
-    
+
     private VBox createDiffSide(String title, String content, boolean isOld) {
         VBox container = new VBox();
         container.getStyleClass().add("diff-container");
         VBox.setVgrow(container, Priority.ALWAYS);
-        
+
         Label titleLabel = new Label(title);
-        titleLabel.setStyle("-fx-font-weight: bold; -fx-padding: 5; -fx-background-color: #2d2d2d; -fx-text-fill: #cccccc;");
+        titleLabel.setStyle(
+                "-fx-font-weight: bold; -fx-padding: 5; -fx-background-color: #2d2d2d; -fx-text-fill: #cccccc;");
         titleLabel.setMaxWidth(Double.MAX_VALUE);
-        
+
         ListView<HBox> listView = new ListView<>();
         listView.getStyleClass().add("diff-list-view");
-        listView.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-background-color: #1e1e1e;");
+        listView.setStyle(
+                "-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-background-color: #1e1e1e;");
         VBox.setVgrow(listView, Priority.ALWAYS);
-        
+
         container.getChildren().addAll(titleLabel, listView);
-        
+
         // Store the ListView in properties for synchronization later if needed
         container.getProperties().put("listView", listView);
-        
+
         return container;
     }
-    
+
     private void highlightDiff(VBox leftBox, VBox rightBox, String oldContent, String newContent, String filePath) {
         ListView<HBox> leftList = (ListView<HBox>) leftBox.getProperties().get("listView");
         ListView<HBox> rightList = (ListView<HBox>) rightBox.getProperties().get("listView");
-        
+
         List<String> oldLines = Arrays.asList(oldContent.split("\\r?\\n", -1));
         List<String> newLines = Arrays.asList(newContent.split("\\r?\\n", -1));
-        
+
         // Parse Git Patch to identify changed lines
         Set<Integer> deletedLineIndices = new HashSet<>();
         Set<Integer> addedLineIndices = new HashSet<>();
-        
+
         String patch = gitManager.getDiff(filePath);
         if (patch != null && !patch.isEmpty()) {
             String[] patchLines = patch.split("\\r?\\n");
             int currentOldLine = 0;
             int currentNewLine = 0;
-            
+
             for (String line : patchLines) {
                 if (line.startsWith("@@")) {
                     // Parse header like @@ -1,4 +1,5 @@
-                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@").matcher(line);
+                    java.util.regex.Matcher m = java.util.regex.Pattern
+                            .compile("@@ -(\\d+)(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@").matcher(line);
                     if (m.find()) {
                         currentOldLine = Integer.parseInt(m.group(1));
                         currentNewLine = Integer.parseInt(m.group(2));
@@ -1741,48 +1879,49 @@ public class EditorController {
                 }
             }
         }
-        
+
         // Populate Left (Old)
         for (int i = 0; i < oldLines.size(); i++) {
             String styleClass = deletedLineIndices.contains(i + 1) ? "diff-line-deleted" : null;
-            leftList.getItems().add(createDiffLine((i+1) + "", oldLines.get(i), styleClass));
+            leftList.getItems().add(createDiffLine((i + 1) + "", oldLines.get(i), styleClass));
         }
-        
+
         // Populate Right (New)
         for (int i = 0; i < newLines.size(); i++) {
-             String styleClass = addedLineIndices.contains(i + 1) ? "diff-line-added" : null;
-             rightList.getItems().add(createDiffLine((i+1) + "", newLines.get(i), styleClass));
+            String styleClass = addedLineIndices.contains(i + 1) ? "diff-line-added" : null;
+            rightList.getItems().add(createDiffLine((i + 1) + "", newLines.get(i), styleClass));
         }
-        
+
         // Synchronize scrolling
         ScrollBarSkinProxy.bindScrollBars(leftList, rightList);
     }
-    
+
     private HBox createDiffLine(String lineNum, String content, String styleClass) {
         HBox box = new HBox(10);
         box.setAlignment(Pos.CENTER_LEFT);
-        
+
         Label num = new Label(lineNum);
         num.setStyle("-fx-text-fill: #666666; -fx-min-width: 30; -fx-alignment: center-right;");
-        
+
         Label text = new Label(content);
         text.setStyle("-fx-text-fill: #cccccc; -fx-font-family: 'Consolas', monospace;");
-        
+
         if (styleClass != null) {
             box.getStyleClass().add(styleClass);
         }
-        
+
         box.getChildren().addAll(num, text);
         return box;
     }
-    
+
     // Helper class for scrolling (Inner class or static)
     private static class ScrollBarSkinProxy {
         static void bindScrollBars(ListView<?> lv1, ListView<?> lv2) {
-             // This requires access to the VirtualFlow or ScrollBar, which is only available after layout.
-             // We can use a simpler approach: bind formatted positions?
-             // Not easy in standard JavaFX API.
-             // We'll skip sync scrolling for this iteration to avoid crashes/complexity.
+            // This requires access to the VirtualFlow or ScrollBar, which is only available
+            // after layout.
+            // We can use a simpler approach: bind formatted positions?
+            // Not easy in standard JavaFX API.
+            // We'll skip sync scrolling for this iteration to avoid crashes/complexity.
         }
     }
 
@@ -1818,7 +1957,7 @@ public class EditorController {
                     TextFlow textFlow = new TextFlow();
                     String lowerDisplay = displayPart.toLowerCase();
                     String query = searchField.getText().trim().toLowerCase();
-                    
+
                     if (!query.isEmpty() && lowerDisplay.contains(query)) {
                         int index = lowerDisplay.indexOf(query);
                         while (index >= 0) {
@@ -1828,13 +1967,13 @@ public class EditorController {
                                 before.setFill(Color.WHITE);
                                 textFlow.getChildren().add(before);
                             }
-                            
+
                             // Matched text
                             Text match = new Text(displayPart.substring(index, index + query.length()));
                             match.setFill(Color.web("#3B82F6")); // Blue highlight
                             match.setStyle("-fx-font-weight: bold;");
                             textFlow.getChildren().add(match);
-                            
+
                             // Prepare for next iteration
                             displayPart = displayPart.substring(index + query.length());
                             lowerDisplay = displayPart.toLowerCase();
@@ -1852,24 +1991,24 @@ public class EditorController {
                         text.setFill(Color.WHITE);
                         textFlow.getChildren().add(text);
                     }
-                    
+
                     // Add Icon
                     HBox hbox = new HBox(6);
                     hbox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-                    
+
                     if (!fullPath.isEmpty()) {
-                         try {
-                             Path path = Paths.get(fullPath);
-                             String fileName = path.getFileName().toString();
-                             javafx.scene.Node icon = FileIconFactory.createIcon(fileName, false);
-                             hbox.getChildren().add(icon);
-                         } catch (Exception e) {
-                             // Fallback if path is invalid
-                         }
+                        try {
+                            Path path = Paths.get(fullPath);
+                            String fileName = path.getFileName().toString();
+                            javafx.scene.Node icon = FileIconFactory.createIcon(fileName, false);
+                            hbox.getChildren().add(icon);
+                        } catch (Exception e) {
+                            // Fallback if path is invalid
+                        }
                     }
-                    
+
                     hbox.getChildren().add(textFlow);
-                    
+
                     setGraphic(hbox);
                     setText(null);
                 }
@@ -1880,8 +2019,9 @@ public class EditorController {
     public void setProject(Project project) {
         this.currentProject = project;
         this.todoManager = null; // Reset todo manager for new project
-        if (todoContentArea != null) todoContentArea.getChildren().clear();
-        
+        if (todoContentArea != null)
+            todoContentArea.getChildren().clear();
+
         projectNameToolbar.setText(project.getName());
 
         // Build file tree
@@ -1893,8 +2033,10 @@ public class EditorController {
             refreshGitStatus();
         } catch (Exception e) {
             // Not a git repo or error
-            if (gitBranchLabel != null) gitBranchLabel.setText("No Repo");
-            if (gitStatusLabel != null) gitStatusLabel.setText("Disconnected Repo");
+            if (gitBranchLabel != null)
+                gitBranchLabel.setText("No Repo");
+            if (gitStatusLabel != null)
+                gitStatusLabel.setText("Disconnected Repo");
         }
 
         log("Proyecto cargado: " + project.getName());
@@ -1903,14 +2045,15 @@ public class EditorController {
         if (!project.hasContent()) {
             log("Proyecto vacío - Usa el botón '+' para añadir elementos");
         }
-        
+
         // Restart terminal in project directory
         startTerminalProcess();
     }
 
     private void handleOpenProjectFolder() {
-        if (currentProject == null) return;
-        
+        if (currentProject == null)
+            return;
+
         try {
             File projectDir = new File(currentProject.getRootPath());
             if (projectDir.exists() && projectDir.isDirectory()) {
@@ -1930,7 +2073,8 @@ public class EditorController {
     }
 
     private void setupMenuActions() {
-        menuNewFile.setOnAction(e -> showNewFileMenu(btnNewFile, false)); // Reuse btnNewFile as anchor but exclude folders
+        menuNewFile.setOnAction(e -> showNewFileMenu(btnNewFile, false)); // Reuse btnNewFile as anchor but exclude
+                                                                          // folders
         menuSave.setOnAction(e -> handleSave());
         menuSaveAll.setOnAction(e -> handleSaveAll());
         menuAutoSave.setOnAction(e -> {
@@ -1952,7 +2096,7 @@ public class EditorController {
         menuTest.setOnAction(e -> handleTest());
 
         menuToggleConsole.setOnAction(e -> toggleConsole());
-        
+
         if (menuSidebarLeft != null) {
             menuSidebarLeft.setOnAction(e -> moveSidebarToLeft());
         }
@@ -1969,13 +2113,15 @@ public class EditorController {
         btnBack.setOnAction(e -> handleClose());
         btnExplorer.setOnAction(e -> handleExplorer());
         btnSearch.setOnAction(e -> handleSearch());
-        if (btnGit != null) btnGit.setOnAction(e -> handleGit());
-        if (btnSave != null) btnSave.setOnAction(e -> handleSave());
+        if (btnGit != null)
+            btnGit.setOnAction(e -> handleGit());
+        if (btnSave != null)
+            btnSave.setOnAction(e -> handleSave());
         btnFormat.setOnAction(e -> handleFormat());
         btnExport.setOnAction(e -> handleExport());
         btnTest.setOnAction(e -> handleTest());
         btnSettings.setOnAction(e -> handleSettings());
-        
+
         // Git Actions
         if (btnInitGit != null) {
             btnInitGit.setOnAction(e -> handleInitGit());
@@ -1983,9 +2129,11 @@ public class EditorController {
         if (btnLinkRemote != null) {
             btnLinkRemote.setOnAction(e -> handleLinkRemote());
         }
-        if (btnGitPush != null) btnGitPush.setOnAction(e -> handleGitPush());
-        if (btnGitFetch != null) btnGitFetch.setOnAction(e -> handleGitFetch());
-        
+        if (btnGitPush != null)
+            btnGitPush.setOnAction(e -> handleGitPush());
+        if (btnGitFetch != null)
+            btnGitFetch.setOnAction(e -> handleGitFetch());
+
         if (commitButton != null) {
             commitButton.setOnAction(e -> handleCommit());
         }
@@ -2003,11 +2151,11 @@ public class EditorController {
                 }
             });
         }
-        
+
         // Search View Actions
         btnDoSearch.setOnAction(e -> performSearch());
         searchField.setOnAction(e -> performSearch()); // Enter key
-        
+
         searchResultsList.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 String selected = searchResultsList.getSelectionModel().getSelectedItem();
@@ -2036,7 +2184,7 @@ public class EditorController {
         }
         updateSidebarVisibility();
     }
-    
+
     private void handleGit() {
         hideAllSidebarViews();
         if (gitView != null) {
@@ -2046,30 +2194,31 @@ public class EditorController {
         updateSidebarVisibility();
         refreshGitStatus();
     }
-    
+
     private void showBranchSelection(javafx.scene.Node anchor) {
-        if (gitManager == null || !gitManager.isRepositoryOpen()) return;
-        
+        if (gitManager == null || !gitManager.isRepositoryOpen())
+            return;
+
         try {
             java.util.List<String> branches = gitManager.getLocalBranches();
             String currentBranch = gitManager.getCurrentBranch();
-            
+
             ContextMenu menu = new ContextMenu();
-            
+
             // Title item
             MenuItem title = new MenuItem("Switch Branch");
             title.setDisable(true);
             title.setStyle("-fx-font-weight: bold; -fx-text-fill: black;");
             menu.getItems().add(title);
             menu.getItems().add(new SeparatorMenuItem());
-            
+
             for (String branch : branches) {
                 MenuItem item = new MenuItem(branch);
                 if (branch.equals(currentBranch)) {
                     item.setStyle("-fx-font-weight: bold;");
                     item.setGraphic(new Label("✓"));
                 }
-                
+
                 item.setOnAction(e -> {
                     try {
                         if (!branch.equals(currentBranch)) {
@@ -2082,12 +2231,12 @@ public class EditorController {
                         showError("Git Error", "Failed to checkout branch: " + ex.getMessage());
                     }
                 });
-                
+
                 menu.getItems().add(item);
             }
-            
+
             menu.show(anchor, javafx.geometry.Side.TOP, 0, 0);
-            
+
         } catch (Exception e) {
             logger.error("Failed to list branches", e);
             showError("Git Error", "Failed to list branches: " + e.getMessage());
@@ -2096,12 +2245,16 @@ public class EditorController {
 
     private void refreshGitStatus() {
         if (gitManager == null || !gitManager.isRepositoryOpen()) {
-            if (gitBranchLabel != null) gitBranchLabel.setText("No Repo");
-            if (gitStatusLabel != null) gitStatusLabel.setText("Disconnected Repo");
-            if (btnGitSync != null) btnGitSync.setVisible(false);
-            if (gitChangesList != null) gitChangesList.getItems().clear();
+            if (gitBranchLabel != null)
+                gitBranchLabel.setText("No Repo");
+            if (gitStatusLabel != null)
+                gitStatusLabel.setText("Disconnected Repo");
+            if (btnGitSync != null)
+                btnGitSync.setVisible(false);
+            if (gitChangesList != null)
+                gitChangesList.getItems().clear();
             stagedFiles.clear();
-            
+
             // Toggle view visibility
             if (noGitRepoContent != null) {
                 noGitRepoContent.setVisible(true);
@@ -2126,23 +2279,27 @@ public class EditorController {
 
         try {
             String branch = gitManager.getCurrentBranch();
-            if (gitBranchLabel != null) gitBranchLabel.setText(branch != null ? branch : "HEAD");
+            if (gitBranchLabel != null)
+                gitBranchLabel.setText(branch != null ? branch : "HEAD");
 
             if (gitStatusLabel != null) {
                 String repoName = currentProject != null ? currentProject.getName() : "Unknown Repo";
                 gitStatusLabel.setText((branch != null ? branch : "HEAD") + " - " + repoName);
             }
-            
-            if (btnGitSync != null) btnGitSync.setVisible(true);
+
+            if (btnGitSync != null)
+                btnGitSync.setVisible(true);
 
             if (gitChangesList != null) {
                 var changes = gitManager.getChanges();
                 gitChangesList.getItems().clear();
                 gitChangesList.getItems().addAll(changes);
-                
+
                 // Keep previously staged files if they are still present
-                // (Though usually we clear selection on refresh, but for UX let's keep valid ones)
-                stagedFiles.retainAll(changes.stream().map(c -> c.filePath).collect(java.util.stream.Collectors.toSet()));
+                // (Though usually we clear selection on refresh, but for UX let's keep valid
+                // ones)
+                stagedFiles
+                        .retainAll(changes.stream().map(c -> c.filePath).collect(java.util.stream.Collectors.toSet()));
                 updateCommitButtonText();
             }
 
@@ -2158,14 +2315,15 @@ public class EditorController {
     }
 
     private void handleInitGit() {
-        if (currentProject == null) return;
-        
+        if (currentProject == null)
+            return;
+
         try {
             File root = new File(currentProject.getRootPath());
             gitManager.initRepository(root);
             gitManager.addAll();
             gitManager.commit("Initial commit");
-            
+
             log("Git repository initialized successfully");
             refreshGitStatus();
         } catch (Exception e) {
@@ -2181,7 +2339,8 @@ public class EditorController {
         dialog.setContentText("URL:");
 
         dialog.showAndWait().ifPresent(url -> {
-            if (url.trim().isEmpty()) return;
+            if (url.trim().isEmpty())
+                return;
             try {
                 gitManager.addRemote("origin", url.trim());
                 log("Remote 'origin' added: " + url);
@@ -2193,17 +2352,18 @@ public class EditorController {
     }
 
     private void handleCommit() {
-        if (commitTitleField == null) return;
+        if (commitTitleField == null)
+            return;
 
         String title = commitTitleField.getText().trim();
         if (title.isEmpty()) {
             showError("Commit Error", "Commit title cannot be empty");
             return;
         }
-        
+
         String desc = commitDescriptionArea != null ? commitDescriptionArea.getText().trim() : "";
         String message = title + (desc.isEmpty() ? "" : "\n\n" + desc);
-        
+
         if (stagedFiles.isEmpty()) {
             showError("Commit Error", "No files selected for commit");
             return;
@@ -2211,15 +2371,16 @@ public class EditorController {
 
         try {
             if (!gitManager.isRepositoryOpen()) {
-                 // Should be handled by init button now, but keep as fallback
-                 handleInitGit();
-                 return;
+                // Should be handled by init button now, but keep as fallback
+                handleInitGit();
+                return;
             }
 
             gitManager.add(stagedFiles);
             gitManager.commit(message);
             commitTitleField.clear();
-            if (commitDescriptionArea != null) commitDescriptionArea.clear();
+            if (commitDescriptionArea != null)
+                commitDescriptionArea.clear();
             stagedFiles.clear();
             log("✓ Committed: " + message);
             refreshGitStatus();
@@ -2228,7 +2389,7 @@ public class EditorController {
             showError("Commit Error", "Failed to commit: " + e.getMessage());
         }
     }
-    
+
     private void handleGitPush() {
         showLoginDialogAndExecute((user, pass) -> {
             try {
@@ -2271,26 +2432,32 @@ public class EditorController {
         // --- VIEW 1: Provider Selection ---
         Label title = new Label("Choose your login method");
         title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        
+
         // GitHub Button
         Button btnGithub = new Button("Sign in with GitHub");
         btnGithub.setMaxWidth(Double.MAX_VALUE);
-        btnGithub.setStyle("-fx-background-color: #24292e; -fx-text-fill: white; -fx-alignment: CENTER_LEFT; -fx-padding: 10;");
+        btnGithub.setStyle(
+                "-fx-background-color: #24292e; -fx-text-fill: white; -fx-alignment: CENTER_LEFT; -fx-padding: 10;");
         SVGPath githubIcon = new SVGPath();
-        githubIcon.setContent("M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12");
+        githubIcon.setContent(
+                "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12");
         githubIcon.setFill(Color.WHITE);
-        githubIcon.setScaleX(0.7); githubIcon.setScaleY(0.7);
+        githubIcon.setScaleX(0.7);
+        githubIcon.setScaleY(0.7);
         btnGithub.setGraphic(new Group(githubIcon));
         btnGithub.setGraphicTextGap(15);
-        
+
         // Google Button
         Button btnGoogle = new Button("Sign in with Google");
         btnGoogle.setMaxWidth(Double.MAX_VALUE);
-        btnGoogle.setStyle("-fx-background-color: white; -fx-text-fill: #757575; -fx-border-color: #dadce0; -fx-alignment: CENTER_LEFT; -fx-padding: 10;");
+        btnGoogle.setStyle(
+                "-fx-background-color: white; -fx-text-fill: #757575; -fx-border-color: #dadce0; -fx-alignment: CENTER_LEFT; -fx-padding: 10;");
         SVGPath googleIcon = new SVGPath();
-        googleIcon.setContent("M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333 .533 12S5.867 24 12.48 24c3.44 0 6.053-1.147 8.2-3.387 2.187-2.187 2.853-5.413 2.853-8.12 0-.8-.08-1.56-.24-2.293h-10.813z");
+        googleIcon.setContent(
+                "M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333 .533 12S5.867 24 12.48 24c3.44 0 6.053-1.147 8.2-3.387 2.187-2.187 2.853-5.413 2.853-8.12 0-.8-.08-1.56-.24-2.293h-10.813z");
         googleIcon.setFill(Color.web("#4285F4"));
-        googleIcon.setScaleX(0.7); googleIcon.setScaleY(0.7);
+        googleIcon.setScaleX(0.7);
+        googleIcon.setScaleY(0.7);
         btnGoogle.setGraphic(new Group(googleIcon));
         btnGoogle.setGraphicTextGap(15);
 
@@ -2302,7 +2469,8 @@ public class EditorController {
         // Cancel Button
         Button btnCancelMain = new Button("Cancel");
         btnCancelMain.setMaxWidth(Double.MAX_VALUE);
-        btnCancelMain.setStyle("-fx-alignment: CENTER_LEFT; -fx-padding: 10; -fx-background-color: transparent; -fx-text-fill: #999;");
+        btnCancelMain.setStyle(
+                "-fx-alignment: CENTER_LEFT; -fx-padding: 10; -fx-background-color: transparent; -fx-text-fill: #999;");
         btnCancelMain.setOnAction(e -> ((javafx.stage.Stage) dialog.getDialogPane().getScene().getWindow()).close());
 
         mainContent.getChildren().addAll(title, btnGithub, btnGoogle, new Separator(), btnManual, btnCancelMain);
@@ -2312,33 +2480,33 @@ public class EditorController {
         formContent.setPadding(new Insets(20));
         formContent.setVisible(false);
         formContent.setMinWidth(350);
-        
+
         Label lblFormTitle = new Label("Enter Credentials");
         lblFormTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        
+
         Label lblUser = new Label("Username");
         TextField txtUser = new TextField();
-        
+
         Label lblPass = new Label("Password / Token");
         PasswordField txtPass = new PasswordField();
-        
+
         Hyperlink linkHelp = new Hyperlink("Get Token");
         linkHelp.setVisible(false);
-        
+
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
         Button btnBack = new Button("Back");
         Button btnSubmit = new Button("Login");
         btnSubmit.setDefaultButton(true);
         buttonBox.getChildren().addAll(btnBack, btnSubmit);
-        
+
         formContent.getChildren().addAll(lblFormTitle, lblUser, txtUser, lblPass, txtPass, linkHelp, buttonBox);
-        
+
         // Add form to root (but make sure it covers main)
         root.getChildren().add(formContent);
 
         // --- Logic ---
-        
+
         Runnable showMain = () -> {
             mainContent.setVisible(true);
             formContent.setVisible(false);
@@ -2349,9 +2517,9 @@ public class EditorController {
             mainContent.setVisible(false);
             formContent.setVisible(true);
         };
-        
+
         btnBack.setOnAction(e -> showMain.run());
-        
+
         btnGithub.setOnAction(e -> {
             lblFormTitle.setText("Sign in with GitHub");
             lblUser.setText("GitHub Username");
@@ -2391,20 +2559,20 @@ public class EditorController {
         });
 
         btnSubmit.setOnAction(e -> {
-             String u = txtUser.getText().trim();
-             String p = txtPass.getText().trim();
-             if (!u.isEmpty() && !p.isEmpty()) {
-                 action.accept(u, p);
-                 // Close dialog manually since we aren't using ButtonTypes for result
-                 ((javafx.stage.Stage) dialog.getDialogPane().getScene().getWindow()).close();
-             } else {
-                 showError("Login Error", "Please fill in all fields");
-             }
+            String u = txtUser.getText().trim();
+            String p = txtPass.getText().trim();
+            if (!u.isEmpty() && !p.isEmpty()) {
+                action.accept(u, p);
+                // Close dialog manually since we aren't using ButtonTypes for result
+                ((javafx.stage.Stage) dialog.getDialogPane().getScene().getWindow()).close();
+            } else {
+                showError("Login Error", "Please fill in all fields");
+            }
         });
 
         // Initialize state
         showMain.run();
-        
+
         dialog.getDialogPane().setContent(root);
         dialog.showAndWait();
     }
@@ -2436,21 +2604,19 @@ public class EditorController {
             searchStatusLabel.setText("Ready to search");
             return;
         }
-        
+
         searchResultsList.getItems().clear();
         searchStatusLabel.setText("Searching in project...");
-        
+
         // Capture root path outside the thread
         String rootPath = currentProject.getRootPath();
-        
+
         new Thread(() -> {
             try {
                 Path root = Paths.get(rootPath);
                 if (!Files.exists(root)) {
-                     javafx.application.Platform.runLater(() -> 
-                        searchStatusLabel.setText("Project root not found")
-                     );
-                     return;
+                    javafx.application.Platform.runLater(() -> searchStatusLabel.setText("Project root not found"));
+                    return;
                 }
 
                 AtomicInteger resultsCount = new AtomicInteger(0);
@@ -2458,78 +2624,84 @@ public class EditorController {
 
                 try {
                     Files.walk(root)
-                        .filter(Files::isRegularFile)
-                        .forEach(file -> {
-                            // Stop processing if we have enough results (optimization)
-                            if (resultsCount.get() >= MAX_RESULTS) return;
+                            .filter(Files::isRegularFile)
+                            .forEach(file -> {
+                                // Stop processing if we have enough results (optimization)
+                                if (resultsCount.get() >= MAX_RESULTS)
+                                    return;
 
-                            String fileName = file.getFileName().toString();
-                            boolean foundInFile = false;
+                                String fileName = file.getFileName().toString();
+                                boolean foundInFile = false;
 
-                            // 1. Filename Match
-                            if (fileName.toLowerCase().contains(query.toLowerCase())) {
-                                String result = fileName + " (File Match)";
-                                String fullPath = file.toAbsolutePath().toString();
-                                String displayStr = result + " |" + fullPath;
-                                
-                                if (resultsCount.incrementAndGet() <= MAX_RESULTS) {
-                                    javafx.application.Platform.runLater(() -> searchResultsList.getItems().add(displayStr));
+                                // 1. Filename Match
+                                if (fileName.toLowerCase().contains(query.toLowerCase())) {
+                                    String result = fileName + " (File Match)";
+                                    String fullPath = file.toAbsolutePath().toString();
+                                    String displayStr = result + " |" + fullPath;
+
+                                    if (resultsCount.incrementAndGet() <= MAX_RESULTS) {
+                                        javafx.application.Platform
+                                                .runLater(() -> searchResultsList.getItems().add(displayStr));
+                                    }
+                                    foundInFile = true;
                                 }
-                                foundInFile = true;
-                            }
 
-                            // 2. Content Match (skip binaries)
-                            if (!isBinary(fileName)) {
-                                try (Stream<String> stream = Files.lines(file)) {
-                                    AtomicInteger lineNum = new AtomicInteger(0);
-                                    stream.forEach(line -> {
-                                        if (resultsCount.get() >= MAX_RESULTS) return;
+                                // 2. Content Match (skip binaries)
+                                if (!isBinary(fileName)) {
+                                    try (Stream<String> stream = Files.lines(file)) {
+                                        AtomicInteger lineNum = new AtomicInteger(0);
+                                        stream.forEach(line -> {
+                                            if (resultsCount.get() >= MAX_RESULTS)
+                                                return;
 
-                                        int currentLine = lineNum.incrementAndGet();
-                                        if (line.toLowerCase().contains(query.toLowerCase())) {
-                                            // Limit line length for display
-                                            String displayLine = line.trim();
-                                            if (displayLine.length() > 80) displayLine = displayLine.substring(0, 80) + "...";
-                                            
-                                            String result = fileName + ":" + currentLine + " - " + displayLine;
-                                            String fullPath = file.toAbsolutePath().toString();
-                                            String displayStr = result + " |" + fullPath;
-                                            
-                                            if (resultsCount.incrementAndGet() <= MAX_RESULTS) {
-                                                javafx.application.Platform.runLater(() -> searchResultsList.getItems().add(displayStr));
+                                            int currentLine = lineNum.incrementAndGet();
+                                            if (line.toLowerCase().contains(query.toLowerCase())) {
+                                                // Limit line length for display
+                                                String displayLine = line.trim();
+                                                if (displayLine.length() > 80)
+                                                    displayLine = displayLine.substring(0, 80) + "...";
+
+                                                String result = fileName + ":" + currentLine + " - " + displayLine;
+                                                String fullPath = file.toAbsolutePath().toString();
+                                                String displayStr = result + " |" + fullPath;
+
+                                                if (resultsCount.incrementAndGet() <= MAX_RESULTS) {
+                                                    javafx.application.Platform.runLater(
+                                                            () -> searchResultsList.getItems().add(displayStr));
+                                                }
                                             }
-                                        }
-                                    });
-                                } catch (IOException | UncheckedIOException e) {
-                                    // Ignore read errors
+                                        });
+                                    } catch (IOException | UncheckedIOException e) {
+                                        // Ignore read errors
+                                    }
                                 }
-                            }
-                        });
+                            });
                 } catch (IOException | UncheckedIOException e) {
                     logger.error("Error walking file tree", e);
                 }
-                    
+
                 javafx.application.Platform.runLater(() -> {
                     int count = resultsCount.get();
                     String status = "Found " + count + (count >= MAX_RESULTS ? "+" : "") + " results";
                     searchStatusLabel.setText(status);
                 });
-                
+
             } catch (Exception e) {
                 logger.error("Search failed", e);
-                javafx.application.Platform.runLater(() -> searchStatusLabel.setText("Search error: " + e.getMessage()));
+                javafx.application.Platform
+                        .runLater(() -> searchStatusLabel.setText("Search error: " + e.getMessage()));
             }
         }).start();
     }
 
     private boolean isBinary(String fileName) {
         String lower = fileName.toLowerCase();
-        return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || 
-               lower.endsWith(".gif") || lower.endsWith(".jar") || lower.endsWith(".zip") || 
-               lower.endsWith(".exe") || lower.endsWith(".dll") || lower.endsWith(".class") ||
-               lower.endsWith(".pdf");
+        return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
+                lower.endsWith(".gif") || lower.endsWith(".jar") || lower.endsWith(".zip") ||
+                lower.endsWith(".exe") || lower.endsWith(".dll") || lower.endsWith(".class") ||
+                lower.endsWith(".pdf");
     }
-    
+
     private void openSearchResult(String resultItem) {
         // Format: "filename:line - content |fullpath"
         if (resultItem.contains("|")) {
@@ -2540,7 +2712,7 @@ public class EditorController {
             }
         }
     }
-    
+
     private void openMcPackPreview(Path filePath) {
         Tab tab = new Tab(filePath.getFileName().toString());
         setupTab(tab, filePath);
@@ -2552,7 +2724,8 @@ public class EditorController {
         // Card Container
         VBox card = new VBox(20);
         card.setMaxWidth(600);
-        card.setStyle("-fx-background-color: #252526; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 5); -fx-padding: 30;");
+        card.setStyle(
+                "-fx-background-color: #252526; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 5); -fx-padding: 30;");
 
         // Top Section: Icon + Info
         HBox topSection = new HBox(20);
@@ -2563,7 +2736,7 @@ public class EditorController {
         iconContainer.setPrefSize(100, 100);
         iconContainer.setMinSize(100, 100);
         iconContainer.setMaxSize(100, 100);
-        
+
         String name = "Unknown Pack";
         String description = "No description available";
         String version = "0.0.0";
@@ -2574,7 +2747,7 @@ public class EditorController {
         try (ZipFile zip = new ZipFile(filePath.toFile())) {
             ZipEntry finalEntry = null;
             JsonObject finalJson = null;
-            
+
             // Temporary storage for Priority
             ZipEntry bpEntry = null;
             JsonObject bpJson = null;
@@ -2586,11 +2759,17 @@ public class EditorController {
             Enumeration<? extends ZipEntry> entries = zip.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
-                if (!entry.isDirectory() && entry.getName().endsWith("manifest.json")) {
-                    try (InputStream is = zip.getInputStream(entry)) {
-                        String jsonTxt = new String(is.readAllBytes());
-                        JsonObject json = JsonParser.parseString(jsonTxt).getAsJsonObject();
-                        
+                String entryName = entry.getName().toLowerCase();
+
+                // Search for manifest.json anywhere (case insensitive)
+                if (!entry.isDirectory() && entryName.endsWith("manifest.json")) {
+                    // Use Lenient Parsing for comments in JSON
+                    try (java.io.InputStreamReader isr = new java.io.InputStreamReader(zip.getInputStream(entry));
+                            com.google.gson.stream.JsonReader reader = new com.google.gson.stream.JsonReader(isr)) {
+
+                        reader.setLenient(true);
+                        JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+
                         String modType = "";
                         if (json.has("modules")) {
                             JsonArray modules = json.getAsJsonArray("modules");
@@ -2601,11 +2780,11 @@ public class EditorController {
                                 }
                             }
                         }
-                        
+
                         if ("data".equals(modType)) {
                             bpEntry = entry;
                             bpJson = json;
-                            break; // Priority 1: BP found, stop searching (optimization)
+                            break; // Priority 1: BP found
                         } else if ("resources".equals(modType)) {
                             if (rpEntry == null) {
                                 rpEntry = entry;
@@ -2617,10 +2796,12 @@ public class EditorController {
                                 otherJson = json;
                             }
                         }
-                    } catch (Exception ignore) {}
+                    } catch (Exception ignore) {
+                        // Ignore invalid JSON or read errors
+                    }
                 }
             }
-            
+
             // Selection Logic: BP > RP > Other
             if (bpEntry != null) {
                 finalEntry = bpEntry;
@@ -2637,44 +2818,78 @@ public class EditorController {
             if (finalJson != null) {
                 if (finalJson.has("header")) {
                     JsonObject header = finalJson.getAsJsonObject("header");
-                    if (header.has("name")) name = header.get("name").getAsString();
-                    if (header.has("description")) description = header.get("description").getAsString();
-                    if (header.has("version")) version = header.get("version").toString();
-                    if (header.has("uuid")) uuid = header.get("uuid").getAsString();
+                    if (header.has("name"))
+                        name = header.get("name").getAsString();
+                    if (header.has("description"))
+                        description = header.get("description").getAsString();
+                    if (header.has("version"))
+                        version = header.get("version").toString();
+                    if (header.has("uuid"))
+                        uuid = header.get("uuid").getAsString();
                 }
-                
+
                 if (finalJson.has("modules")) {
                     JsonArray modules = finalJson.getAsJsonArray("modules");
                     if (modules.size() > 0) {
                         String modType = modules.get(0).getAsJsonObject().get("type").getAsString();
-                        type = modType.equals("resources") ? "Resource Pack" : 
-                               modType.equals("data") ? "Behavior Pack" : modType;
+                        type = modType.equals("resources") ? "Resource Pack"
+                                : modType.equals("data") ? "Behavior Pack" : modType;
                     }
                 }
-                
-                // Find Icon relative to manifest
+
+                // Find Icon relative to manifest, traversing up if needed
                 if (finalEntry != null) {
-                    String baseDir = "";
-                    String entryName = finalEntry.getName();
-                    if (entryName.contains("/")) {
-                        baseDir = entryName.substring(0, entryName.lastIndexOf("/") + 1);
+                    String entryPath = finalEntry.getName();
+                    String parentPath = "";
+
+                    // Normalize path separators to forward slash for processing
+                    String normalizedPath = entryPath.replace("\\", "/");
+                    if (normalizedPath.contains("/")) {
+                        parentPath = normalizedPath.substring(0, normalizedPath.lastIndexOf("/") + 1);
                     }
-                    
-                    String iconPath = baseDir + "pack_icon.png";
-                    ZipEntry iconEntry = zip.getEntry(iconPath);
-                    if (iconEntry != null) {
-                        try (InputStream is = zip.getInputStream(iconEntry)) {
-                            loadedIcon = new javafx.scene.image.Image(is);
+
+                    // Search for pack_icon.png in current dir and parent dirs
+                    while (true) {
+                        // Check exact match first (using original file separator logic if needed, but
+                        // here we construct path)
+                        // ZipEntry names are generally '/' but let's be safe.
+                        // Actually, if we normalized, we should consistency search.
+                        // But zip.getEntry expects specific format?
+                        // ZipFile usually uses forward slashes.
+
+                        String checkPath = parentPath + "pack_icon.png";
+                        ZipEntry iconEntry = zip.getEntry(checkPath);
+
+                        // Fallback: mixed separators? Unlikely in zip but possible.
+
+                        if (iconEntry != null) {
+                            try (InputStream is = zip.getInputStream(iconEntry)) {
+                                loadedIcon = new javafx.scene.image.Image(is);
+                                break; // Found it
+                            } catch (Exception e) {
+                            }
+                        }
+
+                        if (parentPath.isEmpty())
+                            break; // Reached root
+
+                        // Move up one level
+                        // parentPath ends with /, remove it and find next slash
+                        String current = parentPath.substring(0, parentPath.length() - 1);
+                        if (current.contains("/")) {
+                            parentPath = current.substring(0, current.lastIndexOf("/") + 1);
+                        } else {
+                            parentPath = ""; // Next is root
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            logger.error("Error reading mcpack", e);
+            logger.error("Error reading mcpack/mcaddon", e);
             name = "Error reading pack";
-            description = e.getMessage();
+            description = e.getMessage() != null ? e.getMessage() : "Unknown error";
         }
-        
+
         if (loadedIcon != null) {
             javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(loadedIcon);
             iv.setFitWidth(100);
@@ -2682,11 +2897,11 @@ public class EditorController {
             iv.setPreserveRatio(true);
             iconContainer.getChildren().add(iv);
         } else {
-             // Use fallback icon scaled up
-             javafx.scene.Node fallback = FileIconFactory.createMcPackIcon();
-             fallback.setScaleX(4.0);
-             fallback.setScaleY(4.0);
-             iconContainer.getChildren().add(fallback);
+            // Use fallback icon scaled up
+            javafx.scene.Node fallback = FileIconFactory.createMcPackIcon();
+            fallback.setScaleX(4.0);
+            fallback.setScaleY(4.0);
+            iconContainer.getChildren().add(fallback);
         }
 
         // Info Box
@@ -2694,29 +2909,32 @@ public class EditorController {
         Label nameLabel = new Label(name);
         nameLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
         nameLabel.setWrapText(true);
-        
+
         Label descLabel = new Label(description);
         descLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #cccccc;");
         descLabel.setWrapText(true);
-        
+
         Label dataLabel = new Label("Version: " + version + "\nUUID: " + uuid + "\nType: " + type);
         dataLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 12px; -fx-font-family: 'Consolas', monospace;");
-        
+
         infoBox.getChildren().addAll(nameLabel, descLabel, dataLabel);
         HBox.setHgrow(infoBox, Priority.ALWAYS);
-        
+
         topSection.getChildren().addAll(iconContainer, infoBox);
-        
+
         // Bottom Section
         HBox bottomSection = new HBox();
         bottomSection.setAlignment(Pos.CENTER_LEFT);
-        
+
         // Open Button
         Button openBtn = new Button("Abrir");
-        openBtn.setStyle("-fx-background-color: #0E639C; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;");
-        openBtn.setOnMouseEntered(e -> openBtn.setStyle("-fx-background-color: #1177BB; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;"));
-        openBtn.setOnMouseExited(e -> openBtn.setStyle("-fx-background-color: #0E639C; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;"));
-        
+        openBtn.setStyle(
+                "-fx-background-color: #0E639C; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;");
+        openBtn.setOnMouseEntered(e -> openBtn.setStyle(
+                "-fx-background-color: #1177BB; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;"));
+        openBtn.setOnMouseExited(e -> openBtn.setStyle(
+                "-fx-background-color: #0E639C; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 8 20; -fx-background-radius: 4; -fx-cursor: hand;"));
+
         openBtn.setOnAction(e -> {
             try {
                 Desktop.getDesktop().open(filePath.toFile());
@@ -2724,28 +2942,28 @@ public class EditorController {
                 showError("Error", "No se pudo abrir el archivo: " + ex.getMessage());
             }
         });
-        
+
         // Extension Badge
         HBox extBadge = new HBox(8);
         extBadge.setAlignment(Pos.CENTER_RIGHT);
-        
+
         String extName = filePath.getFileName().toString();
         String ext = extName.contains(".") ? extName.substring(extName.lastIndexOf('.')) : "";
-        
+
         Label extLabel = new Label(ext);
         extLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
-        
+
         javafx.scene.Node badgeIcon = FileIconFactory.createMcPackIcon();
         badgeIcon.setScaleX(1.5);
         badgeIcon.setScaleY(1.5);
-        
+
         extBadge.getChildren().addAll(badgeIcon, extLabel);
-        
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        
+
         bottomSection.getChildren().addAll(openBtn, spacer, extBadge);
-        
+
         card.getChildren().addAll(topSection, new Separator(), bottomSection);
         contentContainer.getChildren().add(card);
 
@@ -2773,7 +2991,7 @@ public class EditorController {
         enableWebViewCopyPaste(editorWebView);
         WebEngine editorEngine = editorWebView.getEngine();
         editorWebView.setContextMenuEnabled(false);
-        
+
         // --- Preview (HTML) ---
         WebView previewWebView = new WebView();
         WebEngine previewEngine = previewWebView.getEngine();
@@ -2785,7 +3003,8 @@ public class EditorController {
         // Update Preview Logic
         java.util.function.Consumer<String> updatePreview = (md) -> {
             String html = renderer.render(parser.parse(md));
-            String fullHtml = "<html><head><style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; color: #d4d4d4; background-color: #1e1e1e; line-height: 1.6; } a { color: #3794ff; text-decoration: none; } a:hover { text-decoration: underline; } code { background-color: #2d2d2d; padding: 2px 5px; border-radius: 4px; font-family: 'Consolas', monospace; color: #ce9178; } pre { background-color: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 5px; overflow: auto; } pre code { background-color: transparent; padding: 0; color: #d4d4d4; } table { border-collapse: collapse; width: 100%; margin: 15px 0; } th, td { border: 1px solid #444; padding: 10px; text-align: left; } th { background-color: #252526; } tr:nth-child(even) { background-color: #252526; } blockquote { border-left: 4px solid #4caf50; padding-left: 15px; color: #858585; margin: 15px 0; } h1, h2, h3, h4, h5, h6 { color: #569cd6; margin-top: 20px; } hr { border: 0; height: 1px; background: #444; margin: 20px 0; } img { max-width: 100%; border-radius: 5px; }</style></head><body>" + html + "</body></html>";
+            String fullHtml = "<html><head><style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; color: #d4d4d4; background-color: #1e1e1e; line-height: 1.6; } a { color: #3794ff; text-decoration: none; } a:hover { text-decoration: underline; } code { background-color: #2d2d2d; padding: 2px 5px; border-radius: 4px; font-family: 'Consolas', monospace; color: #ce9178; } pre { background-color: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 5px; overflow: auto; } pre code { background-color: transparent; padding: 0; color: #d4d4d4; } table { border-collapse: collapse; width: 100%; margin: 15px 0; } th, td { border: 1px solid #444; padding: 10px; text-align: left; } th { background-color: #252526; } tr:nth-child(even) { background-color: #252526; } blockquote { border-left: 4px solid #4caf50; padding-left: 15px; color: #858585; margin: 15px 0; } h1, h2, h3, h4, h5, h6 { color: #569cd6; margin-top: 20px; } hr { border: 0; height: 1px; background: #444; margin: 20px 0; } img { max-width: 100%; border-radius: 5px; }</style></head><body>"
+                    + html + "</body></html>";
             javafx.application.Platform.runLater(() -> previewEngine.loadContent(fullHtml));
         };
 
@@ -2798,20 +3017,20 @@ public class EditorController {
             String editorUrl = url.toExternalForm();
             JavaBridge bridge = new JavaBridge(content);
             bridge.setOnContentChangeCallback(updatePreview);
-            
+
             editorEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
                 if (newState == Worker.State.SUCCEEDED) {
                     JSObject window = (JSObject) editorEngine.executeScript("window");
                     window.setMember("javaApp", bridge);
-                    
+
                     String initScript = "setTimeout(function() { " +
-                        "if(typeof initEditor === 'function') { " +
+                            "if(typeof initEditor === 'function') { " +
                             "var editor = initEditor(javaApp.getContent(), 'markdown'); " +
                             "editor.onDidChangeModelContent(function() { " +
-                                "javaApp.onMarkdownChange(editor.getValue()); " +
+                            "javaApp.onMarkdownChange(editor.getValue()); " +
                             "}); " +
-                        "} " +
-                    "}, 200);";
+                            "} " +
+                            "}, 200);";
                     editorEngine.executeScript(initScript);
                 }
             });
@@ -2828,20 +3047,22 @@ public class EditorController {
         ComboBox<String> viewMode = new ComboBox<>();
         viewMode.getItems().addAll("Split View", "Editor Only", "Preview Only");
         viewMode.setValue("Split View");
-        
+
         // Icons
         SVGPath splitIcon = new SVGPath();
         splitIcon.setContent("M4 4h16v16H4V4zm7 2H6v12h5V6zm7 0h-5v12h5V6z");
         splitIcon.setFill(Color.WHITE);
-        
+
         SVGPath editorIcon = new SVGPath();
-        editorIcon.setContent("M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z");
+        editorIcon.setContent(
+                "M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z");
         editorIcon.setFill(Color.WHITE);
-        
+
         SVGPath previewIcon = new SVGPath();
-        previewIcon.setContent("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z");
+        previewIcon.setContent(
+                "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z");
         previewIcon.setFill(Color.WHITE);
-        
+
         viewMode.setCellFactory(lv -> new ListCell<String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -2851,9 +3072,12 @@ public class EditorController {
                     setGraphic(null);
                 } else {
                     setText(item);
-                    if (item.equals("Split View")) setGraphic(createIcon(splitIcon.getContent()));
-                    else if (item.equals("Editor Only")) setGraphic(createIcon(editorIcon.getContent()));
-                    else if (item.equals("Preview Only")) setGraphic(createIcon(previewIcon.getContent()));
+                    if (item.equals("Split View"))
+                        setGraphic(createIcon(splitIcon.getContent()));
+                    else if (item.equals("Editor Only"))
+                        setGraphic(createIcon(editorIcon.getContent()));
+                    else if (item.equals("Preview Only"))
+                        setGraphic(createIcon(previewIcon.getContent()));
                     setStyle("-fx-text-fill: white; -fx-background-color: #333;");
                 }
             }
@@ -2867,9 +3091,12 @@ public class EditorController {
                     setGraphic(null);
                 } else {
                     setText(item);
-                    if (item.equals("Split View")) setGraphic(createIcon(splitIcon.getContent()));
-                    else if (item.equals("Editor Only")) setGraphic(createIcon(editorIcon.getContent()));
-                    else if (item.equals("Preview Only")) setGraphic(createIcon(previewIcon.getContent()));
+                    if (item.equals("Split View"))
+                        setGraphic(createIcon(splitIcon.getContent()));
+                    else if (item.equals("Editor Only"))
+                        setGraphic(createIcon(editorIcon.getContent()));
+                    else if (item.equals("Preview Only"))
+                        setGraphic(createIcon(previewIcon.getContent()));
                     setStyle("-fx-text-fill: white; -fx-background-color: transparent;");
                 }
             }
@@ -2877,7 +3104,7 @@ public class EditorController {
 
         // Styles
         viewMode.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-mark-color: white;");
-        
+
         viewMode.setOnAction(e -> {
             switch (viewMode.getValue()) {
                 case "Split View":
@@ -2903,7 +3130,7 @@ public class EditorController {
 
         VBox container = new VBox(toolBar, splitPane);
         VBox.setVgrow(splitPane, Priority.ALWAYS);
-        
+
         // Store editor reference for saving (Required by handleSave)
         container.setUserData(editorWebView);
 
@@ -2929,9 +3156,10 @@ public class EditorController {
 
     private void openFileByPath(Path filePath, boolean forceCodeView) {
         // Intercept .TODO/tasks.json opening
-        if (!forceCodeView && (filePath.endsWith(Paths.get(".TODO", "tasks.json")) || 
-            (filePath.getFileName().toString().equals("tasks.json") && filePath.getParent() != null && filePath.getParent().getFileName().toString().equals(".TODO")))) {
-            
+        if (!forceCodeView && (filePath.endsWith(Paths.get(".TODO", "tasks.json")) ||
+                (filePath.getFileName().toString().equals("tasks.json") && filePath.getParent() != null
+                        && filePath.getParent().getFileName().toString().equals(".TODO")))) {
+
             // Ensure sidebar is open
             if (todoView != null) {
                 if (!todoView.isVisible()) {
@@ -2991,14 +3219,14 @@ public class EditorController {
 
             Tab tab = new Tab(filePath.getFileName().toString());
             setupTab(tab, filePath);
-            
+
             WebView webView = new WebView();
             enableWebViewCopyPaste(webView);
             WebEngine webEngine = webView.getEngine();
-            
+
             // Disable context menu
             webView.setContextMenuEnabled(false);
-            
+
             // Load local Monaco editor
             java.net.URL url = getClass().getResource("/monaco-editor/index.html");
             if (url == null) {
@@ -3009,24 +3237,28 @@ public class EditorController {
                 tab.setContent(editor);
             } else {
                 String editorUrl = url.toExternalForm();
-                
+
                 // Create a StackPane to hold WebView and LoadingOverlay
                 StackPane contentContainer = new StackPane();
                 contentContainer.getChildren().add(webView);
-                
+
                 // Add Loading Overlay
                 Node loadingOverlay = LoadingSpinnerHelper.createOverlay("Cargando editor...");
                 contentContainer.getChildren().add(loadingOverlay);
-                
+
                 webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
                     if (newState == Worker.State.SUCCEEDED) {
                         JSObject window = (JSObject) webEngine.executeScript("window");
                         window.setMember("javaApp", new JavaBridge(content));
-                        
+
                         String lang = getMonacoLanguage(filePath.getFileName().toString());
-                        // Use initEditor for robust loading, fallback to old method if not found (though it should be)
-                        webEngine.executeScript("setTimeout(function() { if(typeof initEditor === 'function') { initEditor(javaApp.getContent(), '" + lang + "'); } else { setContent(javaApp.getContent()); setLanguage('" + lang + "'); } }, 200);");
-                        
+                        // Use initEditor for robust loading, fallback to old method if not found
+                        // (though it should be)
+                        webEngine.executeScript(
+                                "setTimeout(function() { if(typeof initEditor === 'function') { initEditor(javaApp.getContent(), '"
+                                        + lang + "'); } else { setContent(javaApp.getContent()); setLanguage('" + lang
+                                        + "'); } }, 200);");
+
                         // Fade out loading overlay
                         FadeTransition ft = new FadeTransition(Duration.millis(300), loadingOverlay);
                         ft.setFromValue(1.0);
@@ -3035,7 +3267,7 @@ public class EditorController {
                         ft.play();
                     }
                 });
-                
+
                 webEngine.load(editorUrl);
                 tab.setContent(contentContainer);
             }
@@ -3052,7 +3284,6 @@ public class EditorController {
             log("✗ Error al abrir archivo: " + ex.getMessage());
         }
     }
-
 
     private void handleFormat() {
         Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
@@ -3087,11 +3318,12 @@ public class EditorController {
                         setGraphic(null);
                     } else {
                         setText(item);
-                        
+
                         TreeItem<String> treeItem = getTreeItem();
-                        Path path = FileTreeManager.getPathFromTreeItem(treeItem, Paths.get(currentProject.getRootPath()));
+                        Path path = FileTreeManager.getPathFromTreeItem(treeItem,
+                                Paths.get(currentProject.getRootPath()));
                         boolean isDir = Files.isDirectory(path);
-                        
+
                         setGraphic(FileIconFactory.createIcon(item, isDir));
                     }
                 }
@@ -3125,11 +3357,12 @@ public class EditorController {
                 if (event.getGestureSource() != cell && event.getDragboard().hasString()) {
                     TreeItem<String> targetItem = cell.getTreeItem();
                     if (targetItem != null) {
-                         Path targetPath = FileTreeManager.getPathFromTreeItem(targetItem, Paths.get(currentProject.getRootPath()));
-                         // Allow drop if target is a folder (or root)
-                         if (Files.isDirectory(targetPath)) {
-                             event.acceptTransferModes(TransferMode.MOVE);
-                         }
+                        Path targetPath = FileTreeManager.getPathFromTreeItem(targetItem,
+                                Paths.get(currentProject.getRootPath()));
+                        // Allow drop if target is a folder (or root)
+                        if (Files.isDirectory(targetPath)) {
+                            event.acceptTransferModes(TransferMode.MOVE);
+                        }
                     }
                 }
                 event.consume();
@@ -3142,22 +3375,23 @@ public class EditorController {
                 if (db.hasString()) {
                     String sourcePathStr = db.getString();
                     Path sourcePath = Paths.get(sourcePathStr);
-                    
+
                     TreeItem<String> targetItem = cell.getTreeItem();
-                    Path targetPath = FileTreeManager.getPathFromTreeItem(targetItem, Paths.get(currentProject.getRootPath()));
+                    Path targetPath = FileTreeManager.getPathFromTreeItem(targetItem,
+                            Paths.get(currentProject.getRootPath()));
 
                     // If target is folder, move into it
                     if (Files.isDirectory(targetPath)) {
                         try {
                             Path destPath = targetPath.resolve(sourcePath.getFileName());
-                            
+
                             // Check if moving into itself or subfolder
                             if (!destPath.equals(sourcePath) && !destPath.startsWith(sourcePath)) {
                                 Files.move(sourcePath, destPath);
                                 success = true;
-                                refreshFileTree();
+                                refreshProjectStructure();
                                 log("✓ Movido: " + sourcePath.getFileName());
-                                
+
                                 // Update tabs
                                 for (Map.Entry<Tab, Path> entry : tabFileMap.entrySet()) {
                                     if (entry.getValue().equals(sourcePath)) {
@@ -3197,10 +3431,11 @@ public class EditorController {
         // Blockbench Option
         Path path = FileTreeManager.getPathFromTreeItem(item, Paths.get(currentProject.getRootPath()));
         String name = path.getFileName().toString().toLowerCase();
-        if (Files.isRegularFile(path) && (name.endsWith(".json") || name.endsWith(".geo.json") || name.endsWith(".jem") || name.endsWith(".obj"))) {
-             MenuItem openBb = new MenuItem("Abrir en Blockbench");
-             openBb.setOnAction(e -> openInBlockbench(path.toFile()));
-             menu.getItems().add(openBb);
+        if (Files.isRegularFile(path) && (name.endsWith(".json") || name.endsWith(".geo.json") || name.endsWith(".jem")
+                || name.endsWith(".obj"))) {
+            MenuItem openBb = new MenuItem("Abrir en Blockbench");
+            openBb.setOnAction(e -> openInBlockbench(path.toFile()));
+            menu.getItems().add(openBb);
         }
 
         MenuItem renameItem = new MenuItem("✏ Renombrar");
@@ -3215,21 +3450,21 @@ public class EditorController {
 
     private void handleRenameFile(TreeItem<String> item) {
         Path filePath = FileTreeManager.getPathFromTreeItem(item, Paths.get(currentProject.getRootPath()));
-        
+
         TextInputDialog dialog = new TextInputDialog(filePath.getFileName().toString());
         dialog.setTitle("Renombrar");
         dialog.setHeaderText("Renombrar " + filePath.getFileName());
         dialog.setContentText("Nuevo nombre:");
-        
+
         dialog.showAndWait().ifPresent(newName -> {
             if (newName.trim().isEmpty() || newName.equals(filePath.getFileName().toString())) {
                 return;
             }
-            
+
             try {
                 Path targetPath = filePath.resolveSibling(newName);
                 Files.move(filePath, targetPath);
-                
+
                 // Update open tabs if any
                 for (Map.Entry<Tab, Path> entry : tabFileMap.entrySet()) {
                     if (entry.getValue().equals(filePath)) {
@@ -3238,10 +3473,10 @@ public class EditorController {
                         setupTab(entry.getKey(), targetPath);
                     }
                 }
-                
-                refreshFileTree();
+
+                refreshProjectStructure();
                 log("✓ Renombrado: " + newName);
-                
+
             } catch (IOException e) {
                 logger.error("Failed to rename file", e);
                 showError("Error", "No se pudo renombrar: " + e.getMessage());
@@ -3271,7 +3506,7 @@ public class EditorController {
                         editorTabs.getTabs().removeIf(tab -> tabFileMap.get(tab).equals(filePath));
                     }
 
-                    refreshFileTree();
+                    refreshProjectStructure();
                     log("✓ Eliminado: " + filePath.getFileName());
 
                 } catch (IOException ex) {
@@ -3311,26 +3546,28 @@ public class EditorController {
         if (terminalProcess != null && terminalProcess.isAlive()) {
             terminalProcess.destroy();
         }
-        
+
         Thread terminalThread = new Thread(() -> {
             try {
                 // Determine OS and shell
                 String os = System.getProperty("os.name").toLowerCase();
                 String shell = os.contains("win") ? "powershell.exe" : "bash";
-                
+
                 ProcessBuilder pb = new ProcessBuilder(shell);
                 pb.redirectErrorStream(true);
-                
+
                 // Set working directory to project root if available
                 if (currentProject != null) {
                     pb.directory(new File(currentProject.getRootPath()));
                 }
-                
+
                 terminalProcess = pb.start();
-                
-                terminalWriter = new java.io.BufferedWriter(new java.io.OutputStreamWriter(terminalProcess.getOutputStream()));
-                
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(terminalProcess.getInputStream()))) {
+
+                terminalWriter = new java.io.BufferedWriter(
+                        new java.io.OutputStreamWriter(terminalProcess.getOutputStream()));
+
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(terminalProcess.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         String finalLine = line;
@@ -3357,7 +3594,7 @@ public class EditorController {
     private void handleTerminalInput() {
         String command = terminalInput.getText();
         terminalInput.clear();
-        
+
         if (terminalWriter != null && terminalProcess != null && terminalProcess.isAlive()) {
             try {
                 terminalWriter.write(command);
@@ -3367,7 +3604,7 @@ public class EditorController {
                 log("Error writing to terminal: " + e.getMessage());
             }
         } else {
-             if (terminalOutput != null) {
+            if (terminalOutput != null) {
                 terminalOutput.appendText("Terminal is not running. Restarting...\n");
             }
             startTerminalProcess();
@@ -3380,6 +3617,21 @@ public class EditorController {
 
     private void setupNewFileButton() {
         btnNewFile.setOnAction(e -> showNewFileMenu(btnNewFile, true));
+    }
+
+    private void setupRefreshButtons() {
+        if (btnRefreshExplorer != null) {
+            btnRefreshExplorer.setOnAction(e -> {
+                log("Refreshing project structure...");
+                refreshProjectStructure();
+            });
+        }
+        if (btnRefreshEz != null) {
+            btnRefreshEz.setOnAction(e -> {
+                log("Refreshing project structure...");
+                refreshProjectStructure();
+            });
+        }
     }
 
     private void showNewFileMenu(javafx.scene.Node anchor, boolean includeFolders) {
@@ -3397,21 +3649,21 @@ public class EditorController {
 
         MenuItem jsonItem = new MenuItem("📄 Archivo .json");
         jsonItem.setOnAction(e -> handleCreateFile(".json"));
-        
+
         MenuItem jsItem = new MenuItem("📄 Archivo .js");
         jsItem.setOnAction(e -> handleCreateFile(".js"));
 
         menu.getItems().addAll(txtItem, jsonItem, jsItem);
-        
+
         if (anchor != null) {
             menu.show(anchor, javafx.geometry.Side.BOTTOM, 0, 0);
         } else {
-             // Fallback if no anchor provided (though we use btnNewFile currently)
-             if (btnNewFile.getScene() != null && btnNewFile.getScene().getWindow() != null) {
-                 double x = btnNewFile.getScene().getWindow().getX() + btnNewFile.getScene().getWindow().getWidth() / 2;
-                 double y = btnNewFile.getScene().getWindow().getY() + btnNewFile.getScene().getWindow().getHeight() / 2;
-                 menu.show(btnNewFile.getScene().getWindow(), x, y);
-             }
+            // Fallback if no anchor provided (though we use btnNewFile currently)
+            if (btnNewFile.getScene() != null && btnNewFile.getScene().getWindow() != null) {
+                double x = btnNewFile.getScene().getWindow().getX() + btnNewFile.getScene().getWindow().getWidth() / 2;
+                double y = btnNewFile.getScene().getWindow().getY() + btnNewFile.getScene().getWindow().getHeight() / 2;
+                menu.show(btnNewFile.getScene().getWindow(), x, y);
+            }
         }
     }
 
@@ -3430,7 +3682,7 @@ public class EditorController {
             try {
                 Path newFolder = Paths.get(currentProject.getRootPath(), folderName);
                 Files.createDirectories(newFolder);
-                refreshFileTree();
+                refreshProjectStructure();
                 log("✓ Carpeta creada: " + folderName);
             } catch (IOException e) {
                 logger.error("Failed to create folder", e);
@@ -3455,7 +3707,7 @@ public class EditorController {
                 String fullName = fileName.endsWith(extension) ? fileName : fileName + extension;
                 Path newFile = Paths.get(currentProject.getRootPath(), fullName);
                 Files.writeString(newFile, "");
-                refreshFileTree();
+                refreshProjectStructure();
                 log("✓ Archivo creado: " + fullName);
             } catch (IOException e) {
                 logger.error("Failed to create file", e);
@@ -3480,53 +3732,150 @@ public class EditorController {
         menu.show(btnAddElement, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
+    private void styleDialog(Dialog<?> dialog) {
+        DialogPane pane = dialog.getDialogPane();
+        pane.getStyleClass().add("custom-dialog");
+        if (getClass().getResource("/css/styles.css") != null) {
+            pane.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+        }
+
+        // Add icon
+        Stage stage = (Stage) pane.getScene().getWindow();
+        try {
+            if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
     private void refreshFileTree() {
         Path rootPath = Paths.get(currentProject.getRootPath());
+
+        // Capture expanded state
+        Set<String> expandedPaths = new HashSet<>();
+        if (fileTree.getRoot() != null) {
+            captureExpandedState(fileTree.getRoot(), rootPath, expandedPaths);
+        }
+
         TreeItem<String> root = FileTreeManager.buildFileTree(rootPath);
         fileTree.setRoot(root);
+
+        // Restore expanded state
+        restoreExpandedState(root, rootPath, expandedPaths);
+    }
+
+    private void captureExpandedState(TreeItem<String> item, Path rootPath, Set<String> expandedPaths) {
+        if (item.isExpanded()) {
+            Path path = FileTreeManager.getPathFromTreeItem(item, rootPath);
+            expandedPaths.add(path.toAbsolutePath().toString());
+        }
+        for (TreeItem<String> child : item.getChildren()) {
+            captureExpandedState(child, rootPath, expandedPaths);
+        }
+    }
+
+    private void restoreExpandedState(TreeItem<String> item, Path rootPath, Set<String> expandedPaths) {
+        Path path = FileTreeManager.getPathFromTreeItem(item, rootPath);
+        if (expandedPaths.contains(path.toAbsolutePath().toString())) {
+            item.setExpanded(true);
+        }
+        for (TreeItem<String> child : item.getChildren()) {
+            restoreExpandedState(child, rootPath, expandedPaths);
+        }
+    }
+
+    private void refreshProjectStructure() {
+        if (currentProject == null)
+            return;
+
+        Path root = Paths.get(currentProject.getRootPath());
+
+        // Update Entities
+        currentProject.getEntities().clear();
+        updateListFromFolder(currentProject.getEntities(), root.resolve("BP/entities"), ".json");
+
+        // Update Items
+        currentProject.getItems().clear();
+        updateListFromFolder(currentProject.getItems(), root.resolve("BP/items"), ".json");
+
+        // Update Blocks
+        currentProject.getBlocks().clear();
+        updateListFromFolder(currentProject.getBlocks(), root.resolve("BP/blocks"), ".json");
+
+        // Save Project Metadata
+        projectManager.updateProject(currentProject);
+
+        // Refresh UI
+        refreshFileTree();
+        loadEntitiesView();
+        loadItemsView();
+        loadBlocksView();
+        loadTexturesView();
+        loadModelsView();
+        loadSoundsView();
+    }
+
+    private void updateListFromFolder(java.util.List<String> list, Path folder, String extension) {
+        if (!java.nio.file.Files.exists(folder))
+            return;
+        try (java.util.stream.Stream<Path> stream = java.nio.file.Files.walk(folder, 1)) {
+            stream.filter(java.nio.file.Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().endsWith(extension))
+                    .forEach(p -> {
+                        String name = p.getFileName().toString().replace(extension, "");
+                        if (!list.contains(name)) {
+                            list.add(name);
+                        }
+                    });
+        } catch (java.io.IOException e) {
+            logger.error("Failed to update list from " + folder, e);
+        }
     }
 
     private void setupTab(Tab tab, Path filePath) {
         // We use a custom HBox for the header to control layout precisely
         HBox header = new HBox(8);
         header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        
+
         // 1. Icon
         javafx.scene.Node icon = FileIconFactory.createIcon(filePath.getFileName().toString(), false);
-        
+
         // 2. Title Label
         Label titleLabel = new Label(filePath.getFileName().toString());
         titleLabel.setMaxWidth(150);
         titleLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
-        
+
         // 3. Close Button / Dirty Indicator
         StackPane indicatorContainer = new StackPane();
         indicatorContainer.setPrefSize(16, 16);
-        
+
         // Close Button (X)
         Button closeBtn = new Button("✕");
-        closeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #909090; -fx-padding: 0; -fx-font-size: 10px; -fx-cursor: hand;");
+        closeBtn.setStyle(
+                "-fx-background-color: transparent; -fx-text-fill: #909090; -fx-padding: 0; -fx-font-size: 10px; -fx-cursor: hand;");
         closeBtn.setMinSize(16, 16);
         closeBtn.setMaxSize(16, 16);
         closeBtn.setOnAction(e -> {
             // Check if dirty and ask to save? For now just close or rely on save logic
             if (tabDirtyMap.getOrDefault(tab, false)) {
-                 // Maybe prompt? Or just close. User asked for indicator.
-                 // Ideally we should prompt. But standard behavior for now:
+                // Maybe prompt? Or just close. User asked for indicator.
+                // Ideally we should prompt. But standard behavior for now:
             }
             editorTabs.getTabs().remove(tab);
         });
-        
+
         // Dirty Circle (●)
         Circle dirtyDot = new Circle(4);
         dirtyDot.setFill(Color.WHITE);
         dirtyDot.setVisible(false); // Hidden by default
-        
-        // Logic: Show X by default. If dirty, show Dot. 
+
+        // Logic: Show X by default. If dirty, show Dot.
         // If hovering Dot, show X? VS Code does this.
-        
+
         indicatorContainer.getChildren().addAll(dirtyDot, closeBtn);
-        
+
         // Logic to switch visibility
         Runnable updateState = () -> {
             boolean isDirty = tabDirtyMap.getOrDefault(tab, false);
@@ -3538,7 +3887,7 @@ public class EditorController {
                 closeBtn.setVisible(true);
             }
         };
-        
+
         // Add listener to show close button on hover even if dirty
         indicatorContainer.setOnMouseEntered(e -> {
             if (tabDirtyMap.getOrDefault(tab, false)) {
@@ -3546,19 +3895,19 @@ public class EditorController {
                 closeBtn.setVisible(true);
             }
         });
-        
+
         indicatorContainer.setOnMouseExited(e -> {
             if (tabDirtyMap.getOrDefault(tab, false)) {
                 dirtyDot.setVisible(true);
                 closeBtn.setVisible(false);
             }
         });
-        
+
         // Store the updater in user data to access it later
         tab.setUserData(updateState);
-        
+
         header.getChildren().addAll(icon, titleLabel, indicatorContainer);
-        
+
         tab.setGraphic(header);
         tab.setText(""); // Clear text to avoid double name
         tab.setClosable(false); // Disable default close button
@@ -3575,7 +3924,7 @@ public class EditorController {
         closeAllItem.setOnAction(e -> {
             editorTabs.getTabs().clear();
         });
-        
+
         MenuItem closeOthersItem = new MenuItem("Cerrar Otros");
         closeOthersItem.setOnAction(e -> {
             editorTabs.getTabs().removeIf(t -> t != tab);
@@ -3583,7 +3932,7 @@ public class EditorController {
 
         contextMenu.getItems().addAll(closeItem, closeOthersItem, closeAllItem);
         tab.setContextMenu(contextMenu);
-        
+
         // Ensure map is cleaned up when closed
         tab.setOnClosed(e -> {
             tabFileMap.remove(tab);
@@ -3601,7 +3950,7 @@ public class EditorController {
             javafx.scene.image.Image image = new javafx.scene.image.Image(imagePath.toUri().toString());
             javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView(image);
             imageView.setPreserveRatio(true);
-            
+
             // Set initial size
             double maxWidth = 800;
             if (image.getWidth() > maxWidth) {
@@ -3611,31 +3960,36 @@ public class EditorController {
             }
 
             // Zoom State
-            final double[] currentZoom = {1.0};
+            final double[] currentZoom = { 1.0 };
             final double ZOOM_STEP = 0.1;
             final double MIN_ZOOM = 0.1;
             final double MAX_ZOOM = 5.0;
 
             // Create zoom controls
             Label zoomLabel = new Label("100%");
-            zoomLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px; -fx-padding: 0 10; -fx-font-family: 'Segoe UI', sans-serif;");
-            
+            zoomLabel.setStyle(
+                    "-fx-text-fill: #cccccc; -fx-font-size: 14px; -fx-padding: 0 10; -fx-font-family: 'Segoe UI', sans-serif;");
+
             // Icons
             SVGPath zoomOutIcon = new SVGPath();
-            zoomOutIcon.setContent("M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z");
+            zoomOutIcon.setContent(
+                    "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z");
             zoomOutIcon.setFill(Color.WHITE);
-            zoomOutIcon.setScaleX(0.9); zoomOutIcon.setScaleY(0.9);
+            zoomOutIcon.setScaleX(0.9);
+            zoomOutIcon.setScaleY(0.9);
 
             SVGPath zoomInIcon = new SVGPath();
-            zoomInIcon.setContent("M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z");
+            zoomInIcon.setContent(
+                    "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z");
             zoomInIcon.setFill(Color.WHITE);
-            zoomInIcon.setScaleX(0.9); zoomInIcon.setScaleY(0.9);
+            zoomInIcon.setScaleX(0.9);
+            zoomInIcon.setScaleY(0.9);
 
             // Buttons
             Button zoomOutBtn = new Button();
             zoomOutBtn.setGraphic(zoomOutIcon);
             zoomOutBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;");
-            
+
             Button zoomInBtn = new Button();
             zoomInBtn.setGraphic(zoomInIcon);
             zoomInBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;");
@@ -3661,21 +4015,25 @@ public class EditorController {
             });
 
             // Hover effects for buttons
-            zoomOutBtn.setOnMouseEntered(e -> zoomOutBtn.setStyle("-fx-background-color: rgba(255,255,255,0.1); -fx-cursor: hand; -fx-padding: 5; -fx-background-radius: 3;"));
-            zoomOutBtn.setOnMouseExited(e -> zoomOutBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;"));
-            
-            zoomInBtn.setOnMouseEntered(e -> zoomInBtn.setStyle("-fx-background-color: rgba(255,255,255,0.1); -fx-cursor: hand; -fx-padding: 5; -fx-background-radius: 3;"));
-            zoomInBtn.setOnMouseExited(e -> zoomInBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;"));
+            zoomOutBtn.setOnMouseEntered(e -> zoomOutBtn.setStyle(
+                    "-fx-background-color: rgba(255,255,255,0.1); -fx-cursor: hand; -fx-padding: 5; -fx-background-radius: 3;"));
+            zoomOutBtn.setOnMouseExited(
+                    e -> zoomOutBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;"));
+
+            zoomInBtn.setOnMouseEntered(e -> zoomInBtn.setStyle(
+                    "-fx-background-color: rgba(255,255,255,0.1); -fx-cursor: hand; -fx-padding: 5; -fx-background-radius: 3;"));
+            zoomInBtn.setOnMouseExited(
+                    e -> zoomInBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5;"));
 
             // Zoom with scroll wheel
             javafx.scene.layout.StackPane imageContainer = new javafx.scene.layout.StackPane(imageView);
             imageContainer.setStyle("-fx-background-color: #1e1e1e; -fx-alignment: center;");
-            
+
             imageContainer.setOnScroll(e -> {
                 if (e.isControlDown()) {
                     double delta = e.getDeltaY();
                     double zoomFactor = 1.1; // Slightly smoother
-                    
+
                     if (delta < 0) {
                         currentZoom[0] = Math.max(MIN_ZOOM, currentZoom[0] / zoomFactor);
                     } else {
@@ -3691,7 +4049,7 @@ public class EditorController {
             scrollPane.setFitToWidth(true);
             scrollPane.setFitToHeight(true);
             scrollPane.setStyle("-fx-background-color: #1e1e1e; -fx-background: #1e1e1e;");
-            
+
             // Main Layout (StackPane to overlay controls)
             StackPane mainLayout = new StackPane();
             mainLayout.setStyle("-fx-background-color: #1e1e1e;");
@@ -3700,16 +4058,17 @@ public class EditorController {
             // Zoom Controls Container
             HBox zoomControls = new HBox(5);
             zoomControls.setAlignment(javafx.geometry.Pos.CENTER);
-            zoomControls.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 20; -fx-padding: 5 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0); -fx-border-color: #3e3e3e; -fx-border-radius: 20; -fx-border-width: 1;");
+            zoomControls.setStyle(
+                    "-fx-background-color: #2b2b2b; -fx-background-radius: 20; -fx-padding: 5 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0); -fx-border-color: #3e3e3e; -fx-border-radius: 20; -fx-border-width: 1;");
             zoomControls.setMaxWidth(Region.USE_PREF_SIZE);
             zoomControls.setMaxHeight(Region.USE_PREF_SIZE);
             zoomControls.getChildren().addAll(zoomOutBtn, zoomLabel, zoomInBtn);
-            
+
             // Helper for opening editor with spinner
             java.util.function.Consumer<File> openEditorWithSpinner = (file) -> {
                 Node loadingOverlay = LoadingSpinnerHelper.createOverlay("Cargando editor...");
                 mainLayout.getChildren().add(loadingOverlay);
-                
+
                 // Use PauseTransition to allow the UI to render the spinner
                 PauseTransition pause = new PauseTransition(Duration.millis(100));
                 pause.setOnFinished(ev -> {
@@ -3726,16 +4085,20 @@ public class EditorController {
             // Edit Button (Bottom Left)
             Button editBtn = new Button();
             SVGPath editIcon = new SVGPath();
-            editIcon.setContent("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z");
+            editIcon.setContent(
+                    "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z");
             editIcon.setFill(Color.WHITE);
             editBtn.setGraphic(editIcon);
-            editBtn.setStyle("-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);");
+            editBtn.setStyle(
+                    "-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);");
             editBtn.setTooltip(new Tooltip("Abrir en Editor"));
             editBtn.setOnAction(e -> openEditorWithSpinner.accept(imagePath.toFile()));
-            
+
             // Hover effect
-            editBtn.setOnMouseEntered(e -> editBtn.setStyle("-fx-background-color: #0098ff; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
-            editBtn.setOnMouseExited(e -> editBtn.setStyle("-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
+            editBtn.setOnMouseEntered(e -> editBtn.setStyle(
+                    "-fx-background-color: #0098ff; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
+            editBtn.setOnMouseExited(e -> editBtn.setStyle(
+                    "-fx-background-color: #007acc; -fx-cursor: hand; -fx-padding: 8; -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 2);"));
 
             // Context Menu
             ContextMenu contextMenu = new ContextMenu();
@@ -3775,24 +4138,25 @@ public class EditorController {
         try {
             Media media = new Media(audioPath.toUri().toString());
             MediaPlayer mediaPlayer = new MediaPlayer(media);
-            
+
             // Root Container (Full Tab Background)
             VBox rootContainer = new VBox();
             rootContainer.setAlignment(Pos.CENTER);
             rootContainer.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 20;");
-            
+
             // Card Container (The "Div" in the middle)
             VBox card = new VBox(20);
             card.setMaxWidth(600);
             card.setAlignment(Pos.CENTER);
-            card.setStyle("-fx-background-color: #252526; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 5); -fx-padding: 30;");
+            card.setStyle(
+                    "-fx-background-color: #252526; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 5); -fx-padding: 30;");
 
             // --- Card Content ---
-            
+
             // Top Section: Icon + Filename + Time
             HBox infoSection = new HBox(20);
             infoSection.setAlignment(Pos.CENTER_LEFT);
-            
+
             // Icon
             javafx.scene.Node iconNode = FileIconFactory.createIcon(audioPath.getFileName().toString(), false);
             iconNode.setScaleX(4.0);
@@ -3800,39 +4164,40 @@ public class EditorController {
             StackPane iconPane = new StackPane(iconNode);
             iconPane.setPrefSize(80, 80);
             iconPane.setAlignment(Pos.CENTER);
-            
+
             // Text Info
             VBox textInfo = new VBox(5);
             textInfo.setAlignment(Pos.CENTER_LEFT);
-            
+
             Label nameLabel = new Label(audioPath.getFileName().toString());
             nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
             nameLabel.setWrapText(true);
-            
+
             Label timeLabel = new Label("00:00 / 00:00");
             timeLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px; -fx-font-family: 'Consolas', monospace;");
-            
+
             textInfo.getChildren().addAll(nameLabel, timeLabel);
             HBox.setHgrow(textInfo, Priority.ALWAYS);
-            
+
             infoSection.getChildren().addAll(iconPane, textInfo);
-            
+
             // Controls Section
             VBox controlsSection = new VBox(15);
             controlsSection.setAlignment(Pos.CENTER);
-            
+
             // Progress Slider
             Slider progressSlider = new Slider();
             progressSlider.setMaxWidth(Double.MAX_VALUE);
             progressSlider.setStyle("-fx-cursor: hand;");
-            
+
             // Buttons Row
             HBox buttonsRow = new HBox(20);
             buttonsRow.setAlignment(Pos.CENTER);
-            
+
             Button playBtn = new Button("▶");
-            playBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 32px; -fx-cursor: hand; -fx-padding: 0;");
-            
+            playBtn.setStyle(
+                    "-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 32px; -fx-cursor: hand; -fx-padding: 0;");
+
             // Volume Control
             HBox volBox = new HBox(10);
             volBox.setAlignment(Pos.CENTER);
@@ -3841,24 +4206,25 @@ public class EditorController {
             Slider volSlider = new Slider(0, 1, 1);
             volSlider.setPrefWidth(100);
             volBox.getChildren().addAll(volIcon, volSlider);
-            
+
             buttonsRow.getChildren().addAll(playBtn, volBox);
-            
+
             controlsSection.getChildren().addAll(progressSlider, buttonsRow);
-            
+
             // Add all to Card
             card.getChildren().addAll(infoSection, new Separator(), controlsSection);
-            
+
             // Add Card to Root
             rootContainer.getChildren().add(card);
-            
+
             // Logic
             playBtn.setOnAction(e -> {
                 MediaPlayer.Status status = mediaPlayer.getStatus();
                 if (status == MediaPlayer.Status.UNKNOWN || status == MediaPlayer.Status.HALTED) {
                     return;
                 }
-                if (status == MediaPlayer.Status.PAUSED || status == MediaPlayer.Status.READY || status == MediaPlayer.Status.STOPPED) {
+                if (status == MediaPlayer.Status.PAUSED || status == MediaPlayer.Status.READY
+                        || status == MediaPlayer.Status.STOPPED) {
                     mediaPlayer.play();
                     playBtn.setText("⏸");
                 } else {
@@ -3866,24 +4232,24 @@ public class EditorController {
                     playBtn.setText("▶");
                 }
             });
-            
+
             mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
                 if (!progressSlider.isValueChanging()) {
                     progressSlider.setValue(newTime.toMillis() / media.getDuration().toMillis() * 100.0);
                 }
                 updateTimeLabel(timeLabel, newTime, media.getDuration());
             });
-            
+
             progressSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
                 if (progressSlider.isValueChanging()) {
                     mediaPlayer.seek(media.getDuration().multiply(newVal.doubleValue() / 100.0));
                 }
             });
-            
+
             progressSlider.setOnMouseReleased(e -> {
-                 mediaPlayer.seek(media.getDuration().multiply(progressSlider.getValue() / 100.0));
+                mediaPlayer.seek(media.getDuration().multiply(progressSlider.getValue() / 100.0));
             });
-            
+
             volSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
                 mediaPlayer.setVolume(newVal.doubleValue());
                 if (newVal.doubleValue() == 0) {
@@ -3894,22 +4260,22 @@ public class EditorController {
                     volIcon.setText("🔊");
                 }
             });
-            
+
             mediaPlayer.setOnEndOfMedia(() -> {
                 mediaPlayer.stop();
                 playBtn.setText("▶");
                 progressSlider.setValue(0);
             });
-            
+
             mediaPlayer.setOnReady(() -> {
-                 updateTimeLabel(timeLabel, mediaPlayer.getCurrentTime(), media.getDuration());
+                updateTimeLabel(timeLabel, mediaPlayer.getCurrentTime(), media.getDuration());
             });
 
             // Tab Setup
             Tab tab = new Tab(audioPath.getFileName().toString());
             setupTab(tab, audioPath);
             tab.setContent(rootContainer);
-            
+
             // Cleanup on close
             tab.setOnClosed(e -> {
                 mediaPlayer.stop();
@@ -3931,14 +4297,16 @@ public class EditorController {
     }
 
     private void updateTimeLabel(Label label, Duration current, Duration total) {
-        if (total == null || current == null) return;
+        if (total == null || current == null)
+            return;
         String currStr = formatDuration(current);
         String totalStr = formatDuration(total);
         label.setText(currStr + " / " + totalStr);
     }
 
     private String formatDuration(Duration duration) {
-        if (duration == null) return "00:00";
+        if (duration == null)
+            return "00:00";
         int seconds = (int) duration.toSeconds();
         int minutes = seconds / 60;
         seconds = seconds % 60;
@@ -3951,10 +4319,10 @@ public class EditorController {
             Group root3D = new Group();
             SubScene subScene = new SubScene(root3D, 800, 600, true, SceneAntialiasing.BALANCED);
             subScene.setFill(Color.rgb(30, 30, 30));
-            
+
             // Add Grid/Floor
             root3D.getChildren().add(createGrid());
-            
+
             PerspectiveCamera camera = new PerspectiveCamera(true);
             camera.setNearClip(0.1);
             camera.setFarClip(1000.0);
@@ -3989,7 +4357,7 @@ public class EditorController {
             // Wrapper to handle events
             StackPane container = new StackPane(subScene);
             container.setStyle("-fx-background-color: #1e1e1e;");
-            
+
             // Resize logic
             subScene.widthProperty().bind(container.widthProperty());
             subScene.heightProperty().bind(container.heightProperty());
@@ -4000,20 +4368,20 @@ public class EditorController {
                 lastMouse[0] = event.getSceneX();
                 lastMouse[1] = event.getSceneY();
             });
-            
+
             container.setOnMouseDragged(event -> {
                 double dx = event.getSceneX() - lastMouse[0];
                 double dy = event.getSceneY() - lastMouse[1];
-                
+
                 if (event.isPrimaryButtonDown()) {
                     rotateY.setAngle(rotateY.getAngle() + dx * 0.5);
                     rotateX.setAngle(rotateX.getAngle() - dy * 0.5);
                 }
-                
+
                 lastMouse[0] = event.getSceneX();
                 lastMouse[1] = event.getSceneY();
             });
-            
+
             // Zoom with scroll
             container.setOnScroll(event -> {
                 double delta = event.getDeltaY();
@@ -4055,26 +4423,26 @@ public class EditorController {
                                     JsonObject cubeObj = cube.getAsJsonObject();
                                     JsonArray origin = cubeObj.getAsJsonArray("origin");
                                     JsonArray size = cubeObj.getAsJsonArray("size");
-                                    
+
                                     if (origin != null && size != null) {
                                         double w = size.get(0).getAsDouble();
                                         double h = size.get(1).getAsDouble();
                                         double d = size.get(2).getAsDouble();
-                                        
+
                                         double x = origin.get(0).getAsDouble();
                                         double y = origin.get(1).getAsDouble();
                                         double z = origin.get(2).getAsDouble();
-                                        
+
                                         Box box = new Box(w, h, d);
                                         box.setMaterial(new PhongMaterial(Color.LIGHTGRAY));
-                                        
+
                                         // Position adjustment (JavaFX center vs Bedrock corner)
                                         // Bedrock Y is up. JavaFX Y is down.
-                                        
-                                        box.setTranslateX(x + w/2);
-                                        box.setTranslateY(-(y + h/2)); // Invert Y
-                                        box.setTranslateZ(z + d/2);
-                                        
+
+                                        box.setTranslateX(x + w / 2);
+                                        box.setTranslateY(-(y + h / 2)); // Invert Y
+                                        box.setTranslateZ(z + d / 2);
+
                                         root.getChildren().add(box);
                                     }
                                 }
@@ -4092,11 +4460,11 @@ public class EditorController {
         Group grid = new Group();
         int size = 100;
         int spacing = 10;
-        
+
         Color gridColor = Color.rgb(80, 80, 80);
         Color axisXColor = Color.RED;
         Color axisZColor = Color.BLUE;
-        
+
         for (int i = -size; i <= size; i += spacing) {
             // Line parallel to X axis (at Z = i)
             Cylinder lineX = new Cylinder(0.05, size * 2);
@@ -4104,17 +4472,17 @@ public class EditorController {
             lineX.setRotationAxis(Rotate.Z_AXIS);
             lineX.setRotate(90);
             lineX.setTranslateZ(i);
-            
+
             // Line parallel to Z axis (at X = i)
             Cylinder lineZ = new Cylinder(0.05, size * 2);
             lineZ.setMaterial(new PhongMaterial(i == 0 ? axisZColor : gridColor));
             lineZ.setRotationAxis(Rotate.X_AXIS);
             lineZ.setRotate(90);
             lineZ.setTranslateX(i);
-            
+
             grid.getChildren().addAll(lineX, lineZ);
         }
-        
+
         return grid;
     }
 
@@ -4126,8 +4494,9 @@ public class EditorController {
             Path filePath = tabFileMap.get(selectedTab);
             if (filePath != null) {
                 String fileName = filePath.getFileName().toString().toLowerCase();
-                boolean isImage = fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".gif");
-                
+                boolean isImage = fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")
+                        || fileName.endsWith(".gif");
+
                 // Only enable if not an image AND is dirty
                 if (!isImage && tabDirtyMap.getOrDefault(selectedTab, false)) {
                     shouldEnable = true;
@@ -4135,7 +4504,8 @@ public class EditorController {
             }
         }
 
-        if (btnSave != null) btnSave.setDisable(!shouldEnable);
+        if (btnSave != null)
+            btnSave.setDisable(!shouldEnable);
         menuSave.setDisable(!shouldEnable);
     }
 
@@ -4149,12 +4519,12 @@ public class EditorController {
         Path filePath = tabFileMap.get(selectedTab);
         String content = "";
         javafx.scene.Node node = selectedTab.getContent();
-        
+
         // Handle wrapped content (like Markdown split view)
         if (node instanceof Pane && node.getUserData() instanceof javafx.scene.Node) {
             node = (javafx.scene.Node) node.getUserData();
         }
-        
+
         if (node instanceof WebView) {
             WebView webView = (WebView) node;
             Object result = webView.getEngine().executeScript("getContent()");
@@ -4169,14 +4539,14 @@ public class EditorController {
         try {
             Files.writeString(filePath, content);
             log("✓ Guardado: " + filePath.getFileName());
-            
+
             // Mark as clean
             tabDirtyMap.put(selectedTab, false);
             if (selectedTab.getUserData() instanceof Runnable) {
                 ((Runnable) selectedTab.getUserData()).run();
             }
             updateSaveButtonState();
-            
+
         } catch (IOException e) {
             logger.error("Failed to save file", e);
             log("✗ Error al guardar: " + e.getMessage());
@@ -4188,12 +4558,12 @@ public class EditorController {
             Path filePath = tabFileMap.get(tab);
             String content = "";
             javafx.scene.Node node = tab.getContent();
-            
+
             // Handle wrapped content (like Markdown split view)
             if (node instanceof Pane && node.getUserData() instanceof javafx.scene.Node) {
                 node = (javafx.scene.Node) node.getUserData();
             }
-            
+
             if (node instanceof WebView) {
                 WebView webView = (WebView) node;
                 Object result = webView.getEngine().executeScript("getContent()");
@@ -4238,6 +4608,13 @@ public class EditorController {
         dialog.setHeaderText("Crear nueva entidad");
         dialog.setContentText("Nombre de la entidad:");
 
+        // Add icon
+        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+        try {
+            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+        } catch (Exception e) {
+        }
+
         dialog.showAndWait().ifPresent(entityName -> {
             if (entityName.trim().isEmpty()) {
                 showError("Error", "El nombre no puede estar vacío");
@@ -4268,6 +4645,13 @@ public class EditorController {
         dialog.setHeaderText("Crear nuevo item");
         dialog.setContentText("Nombre del item:");
 
+        // Add icon
+        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+        try {
+            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+        } catch (Exception e) {
+        }
+
         dialog.showAndWait().ifPresent(itemName -> {
             if (itemName.trim().isEmpty()) {
                 showError("Error", "El nombre no puede estar vacío");
@@ -4297,6 +4681,13 @@ public class EditorController {
         dialog.setTitle("Añadir Bloque");
         dialog.setHeaderText("Crear nuevo bloque");
         dialog.setContentText("Nombre del bloque:");
+
+        // Add icon
+        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+        try {
+            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+        } catch (Exception e) {
+        }
 
         dialog.showAndWait().ifPresent(blockName -> {
             if (blockName.trim().isEmpty()) {
@@ -4349,11 +4740,11 @@ public class EditorController {
             consoleContainer.setMaxHeight(30);
             bottomTabPane.setVisible(false);
         }
-        
+
         // Ensure button is always visible by not hiding the container
         // consoleContainer.setVisible(true); // Always true now
         // consoleContainer.setManaged(true); // Always true now
-        
+
         // Update menu check
         menuToggleConsole.setSelected(consoleVisible);
     }
@@ -4361,13 +4752,15 @@ public class EditorController {
     private void moveSidebarToLeft() {
         try {
             // Fallback for sidebarContainer if null
-            if (sidebarContainer == null && projectExplorerView != null && projectExplorerView.getParent() instanceof StackPane) {
+            if (sidebarContainer == null && projectExplorerView != null
+                    && projectExplorerView.getParent() instanceof StackPane) {
                 sidebarContainer = (StackPane) projectExplorerView.getParent();
                 logger.info("Recovered sidebarContainer from projectExplorerView parent");
             }
-            
+
             // Fallback for mainLayout if null
-            if (mainLayout == null && btnBack != null && btnBack.getScene() != null && btnBack.getScene().getRoot() instanceof BorderPane) {
+            if (mainLayout == null && btnBack != null && btnBack.getScene() != null
+                    && btnBack.getScene().getRoot() instanceof BorderPane) {
                 mainLayout = (BorderPane) btnBack.getScene().getRoot();
                 logger.info("Recovered mainLayout from scene root");
             }
@@ -4388,7 +4781,7 @@ public class EditorController {
                 logger.error("Components not initialized: splitPane={}, sidebar={}", ideSplitPane, sidebarContainer);
                 return;
             }
-            
+
             javafx.application.Platform.runLater(() -> {
                 try {
                     // Move Activity Bar to Left
@@ -4397,7 +4790,8 @@ public class EditorController {
                         mainLayout.setRight(null);
                         mainLayout.setLeft(activityBar);
                     } else {
-                        logger.warn("Could not move activityBar: mainLayout={}, activityBar={}", mainLayout, activityBar);
+                        logger.warn("Could not move activityBar: mainLayout={}, activityBar={}", mainLayout,
+                                activityBar);
                     }
 
                     // Check if already on left (index 0)
@@ -4410,7 +4804,7 @@ public class EditorController {
                     List<Node> newItems = new ArrayList<>(ideSplitPane.getItems());
                     newItems.remove(sidebarContainer);
                     newItems.add(0, sidebarContainer);
-                    
+
                     ideSplitPane.getItems().setAll(newItems);
                     ideSplitPane.setDividerPositions(0.15);
                 } catch (Exception ex) {
@@ -4425,13 +4819,15 @@ public class EditorController {
     private void moveSidebarToRight() {
         try {
             // Fallback for sidebarContainer if null
-            if (sidebarContainer == null && projectExplorerView != null && projectExplorerView.getParent() instanceof StackPane) {
+            if (sidebarContainer == null && projectExplorerView != null
+                    && projectExplorerView.getParent() instanceof StackPane) {
                 sidebarContainer = (StackPane) projectExplorerView.getParent();
                 logger.info("Recovered sidebarContainer from projectExplorerView parent");
             }
-            
+
             // Fallback for mainLayout if null
-            if (mainLayout == null && btnBack != null && btnBack.getScene() != null && btnBack.getScene().getRoot() instanceof BorderPane) {
+            if (mainLayout == null && btnBack != null && btnBack.getScene() != null
+                    && btnBack.getScene().getRoot() instanceof BorderPane) {
                 mainLayout = (BorderPane) btnBack.getScene().getRoot();
                 logger.info("Recovered mainLayout from scene root");
             }
@@ -4461,7 +4857,8 @@ public class EditorController {
                         mainLayout.setLeft(null);
                         mainLayout.setRight(activityBar);
                     } else {
-                        logger.warn("Could not move activityBar: mainLayout={}, activityBar={}", mainLayout, activityBar);
+                        logger.warn("Could not move activityBar: mainLayout={}, activityBar={}", mainLayout,
+                                activityBar);
                     }
 
                     // Check if already on right (last index)
@@ -4474,7 +4871,7 @@ public class EditorController {
                     List<Node> newItems = new ArrayList<>(ideSplitPane.getItems());
                     newItems.remove(sidebarContainer);
                     newItems.add(sidebarContainer); // Adds to end
-                    
+
                     ideSplitPane.getItems().setAll(newItems);
                     ideSplitPane.setDividerPositions(0.85);
                 } catch (Exception ex) {
@@ -4496,7 +4893,7 @@ public class EditorController {
 
     private void showLicenses() {
         StringBuilder content = new StringBuilder();
-        
+
         // Project License
         try (java.io.InputStream is = getClass().getResourceAsStream("/LICENSE")) {
             if (is != null) {
@@ -4530,13 +4927,13 @@ public class EditorController {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Licencias");
         alert.setHeaderText("Licencias del Proyecto y Terceros");
-        
+
         TextArea textArea = new TextArea(content.toString());
         textArea.setEditable(false);
         textArea.setWrapText(true);
         textArea.setPrefWidth(600);
         textArea.setPrefHeight(400);
-        
+
         alert.getDialogPane().setContent(textArea);
         alert.setResizable(true);
         alert.showAndWait();
@@ -4547,10 +4944,10 @@ public class EditorController {
         editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             updateLanguageLabel(newTab);
         });
-        
+
         // Initial update
         updateLanguageLabel(editorTabs.getSelectionModel().getSelectedItem());
-        
+
         // Click listener for changing language
         if (languageStatusLabel != null) {
             languageStatusLabel.setOnMouseClicked(e -> showLanguageSelector(e));
@@ -4558,8 +4955,9 @@ public class EditorController {
     }
 
     private void updateLanguageLabel(Tab tab) {
-        if (languageStatusLabel == null) return;
-        
+        if (languageStatusLabel == null)
+            return;
+
         if (tab != null && tabFileMap.containsKey(tab)) {
             Path path = tabFileMap.get(tab);
             String lang = getMonacoLanguage(path.getFileName().toString());
@@ -4571,11 +4969,13 @@ public class EditorController {
 
     private void showLanguageSelector(javafx.scene.input.MouseEvent e) {
         Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
-        if (selectedTab == null || !tabFileMap.containsKey(selectedTab)) return;
+        if (selectedTab == null || !tabFileMap.containsKey(selectedTab))
+            return;
 
         ContextMenu menu = new ContextMenu();
-        String[] languages = {"json", "javascript", "typescript", "html", "css", "java", "xml", "markdown", "plaintext"};
-        
+        String[] languages = { "json", "javascript", "typescript", "html", "css", "java", "xml", "markdown",
+                "plaintext" };
+
         for (String lang : languages) {
             MenuItem item = new MenuItem(lang.toUpperCase());
             item.setOnAction(event -> {
@@ -4584,7 +4984,7 @@ public class EditorController {
             });
             menu.getItems().add(item);
         }
-        
+
         menu.show(languageStatusLabel, javafx.geometry.Side.TOP, 0, 0);
     }
 
@@ -4608,9 +5008,9 @@ public class EditorController {
             javafx.application.Platform.runLater(() -> {
                 errorStatusLabel.setText(errorCount + " Errors");
                 if (errorCount > 0) {
-                     // Keep style but maybe change color if errors > 0?
-                     // The FXML defines default style.
-                     // Let's just update text. The icon is red.
+                    // Keep style but maybe change color if errors > 0?
+                    // The FXML defines default style.
+                    // Let's just update text. The icon is red.
                 }
             });
         }
@@ -4632,11 +5032,10 @@ public class EditorController {
     private void log(String message) {
         consoleOutput.appendText(message + "\n");
         logger.info(message);
-        
-        if (message != null && (
-            message.toLowerCase().contains("error") || 
-            message.toLowerCase().contains("exception") || 
-            message.toLowerCase().contains("fail"))) {
+
+        if (message != null && (message.toLowerCase().contains("error") ||
+                message.toLowerCase().contains("exception") ||
+                message.toLowerCase().contains("fail"))) {
             errorCount++;
             lastErrorSource = "log";
             updateErrorLabel();
@@ -4647,7 +5046,7 @@ public class EditorController {
         errorCount++;
         lastErrorSource = "log";
         updateErrorLabel();
-        
+
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
@@ -4665,14 +5064,24 @@ public class EditorController {
 
     private String getMonacoLanguage(String filename) {
         String lower = filename.toLowerCase();
-        if (lower.endsWith(".json")) return "json";
-        if (lower.endsWith(".js")) return "javascript";
-        if (lower.endsWith(".ts")) return "typescript";
-        if (lower.endsWith(".html")) return "html";
-        if (lower.endsWith(".css")) return "css";
-        if (lower.endsWith(".java")) return "java";
-        if (lower.endsWith(".xml")) return "xml";
-        if (lower.endsWith(".md")) return "markdown";
+        if (lower.endsWith(".json"))
+            return "json";
+        if (lower.endsWith(".js"))
+            return "javascript";
+        if (lower.endsWith(".ts"))
+            return "typescript";
+        if (lower.endsWith(".html"))
+            return "html";
+        if (lower.endsWith(".css"))
+            return "css";
+        if (lower.endsWith(".java"))
+            return "java";
+        if (lower.endsWith(".xml"))
+            return "xml";
+        if (lower.endsWith(".md"))
+            return "markdown";
+        if (lower.endsWith(".ps1"))
+            return "powershell";
         return "plaintext";
     }
 
@@ -4713,7 +5122,7 @@ public class EditorController {
         pasteItem.setAccelerator(new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN));
 
         contextMenu.getItems().addAll(cutItem, copyItem, new SeparatorMenuItem(), pasteItem);
-        
+
         // Attach context menu to WebView
         webView.setOnContextMenuRequested(e -> {
             contextMenu.show(webView, e.getScreenX(), e.getScreenY());
@@ -4722,23 +5131,21 @@ public class EditorController {
 
     private void performCopy(WebView webView) {
         webView.getEngine().executeScript(
-            "if(typeof editor !== 'undefined' && editor.getModel()) { " +
-            "   var selection = editor.getModel().getValueInRange(editor.getSelection()); " +
-            "   if(selection) { javaApp.copyToClipboard(selection); } " +
-            "}"
-        );
+                "if(typeof editor !== 'undefined' && editor.getModel()) { " +
+                        "   var selection = editor.getModel().getValueInRange(editor.getSelection()); " +
+                        "   if(selection) { javaApp.copyToClipboard(selection); } " +
+                        "}");
     }
 
     private void performCut(WebView webView) {
         webView.getEngine().executeScript(
-            "if(typeof editor !== 'undefined' && editor.getModel()) { " +
-            "   var selection = editor.getModel().getValueInRange(editor.getSelection()); " +
-            "   if(selection) { " +
-            "       javaApp.copyToClipboard(selection); " +
-            "       editor.executeEdits('source', [{range: editor.getSelection(), text: ''}]); " +
-            "   } " +
-            "}"
-        );
+                "if(typeof editor !== 'undefined' && editor.getModel()) { " +
+                        "   var selection = editor.getModel().getValueInRange(editor.getSelection()); " +
+                        "   if(selection) { " +
+                        "       javaApp.copyToClipboard(selection); " +
+                        "       editor.executeEdits('source', [{range: editor.getSelection(), text: ''}]); " +
+                        "   } " +
+                        "}");
     }
 
     private void performPaste(WebView webView) {
@@ -4749,12 +5156,11 @@ public class EditorController {
                 // Use Gson to safely escape string for JS
                 String jsonText = new Gson().toJson(text);
                 webView.getEngine().executeScript(
-                    "if(typeof editor !== 'undefined') { " +
-                    "   var selection = editor.getSelection();" +
-                    "   var op = {range: selection, text: " + jsonText + ", forceMoveMarkers: true};" +
-                    "   editor.executeEdits('source', [op]);" +
-                    "}"
-                );
+                        "if(typeof editor !== 'undefined') { " +
+                                "   var selection = editor.getSelection();" +
+                                "   var op = {range: selection, text: " + jsonText + ", forceMoveMarkers: true};" +
+                                "   editor.executeEdits('source', [op]);" +
+                                "}");
             }
         }
     }
@@ -4782,7 +5188,7 @@ public class EditorController {
         public String getContent() {
             return content;
         }
-        
+
         public void log(String msg) {
             EditorController.this.log(msg);
         }
@@ -4804,7 +5210,7 @@ public class EditorController {
                         // Mark as dirty
                         if (!tabDirtyMap.getOrDefault(selectedTab, false)) {
                             tabDirtyMap.put(selectedTab, true);
-                            
+
                             // Update UI
                             if (selectedTab.getUserData() instanceof Runnable) {
                                 ((Runnable) selectedTab.getUserData()).run();
@@ -4818,40 +5224,41 @@ public class EditorController {
     }
 
     private void setupUserProfile() {
-        if (userProfileIcon == null) return;
-        
+        if (userProfileIcon == null)
+            return;
+
         // Target size: 18x18 pixels (Radius 9)
         // Center: (9, 9)
-        
+
         // Background Circle
         Circle bg = new Circle(9, 9, 9);
         bg.setFill(Color.web("#5E5E5E"));
-        
+
         // Head: Center at (9, 7.5), Radius 3.15
         Circle head = new Circle(9, 7.5, 3.15);
         head.setFill(Color.web("#C4C4C4"));
-        
+
         // Body: Center at (9, 17.55), Radius 6.75
         Circle body = new Circle(9, 17.55, 6.75);
         body.setFill(Color.web("#C4C4C4"));
-        
+
         // Clip group for the body/head inside the main circle
         Group content = new Group(head, body);
         Circle clip = new Circle(9, 9, 9);
         content.setClip(clip);
-        
+
         userProfileIcon.getChildren().clear();
         userProfileIcon.getChildren().addAll(bg, content);
-        
+
         if (btnUserProfile != null) {
             btnUserProfile.setOnAction(e -> handleUserProfile());
-            
+
             // Logout Context Menu
             ContextMenu contextMenu = new ContextMenu();
             MenuItem logoutItem = new MenuItem("Cerrar sesión");
             logoutItem.setOnAction(e -> handleLogout());
             contextMenu.getItems().add(logoutItem);
-            
+
             btnUserProfile.setContextMenu(contextMenu);
         }
 
@@ -4864,7 +5271,8 @@ public class EditorController {
 
     private void handleUserProfile() {
         // Prevent login dialog if already logged in
-        if (SettingsManager.getInstance().getGitUser() != null && !SettingsManager.getInstance().getGitUser().isEmpty()) {
+        if (SettingsManager.getInstance().getGitUser() != null
+                && !SettingsManager.getInstance().getGitUser().isEmpty()) {
             return;
         }
 
@@ -4879,7 +5287,7 @@ public class EditorController {
         SettingsManager.getInstance().clearGitCredentials();
         resetUserProfileButton();
         log("Sesión cerrada");
-        
+
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Sesión Cerrada");
         alert.setHeaderText(null);
@@ -4890,11 +5298,12 @@ public class EditorController {
     private void resetUserProfileButton() {
         // Restore default icon
         SVGPath defaultIcon = new SVGPath();
-        defaultIcon.setContent("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z");
+        defaultIcon.setContent(
+                "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z");
         defaultIcon.setFill(Color.WHITE);
         defaultIcon.setScaleX(1.0);
         defaultIcon.setScaleY(1.0);
-        
+
         userProfileIcon.getChildren().setAll(defaultIcon);
     }
 
@@ -4902,14 +5311,14 @@ public class EditorController {
         try {
             String avatarUrl = "https://github.com/" + user + ".png";
             Image image = new Image(avatarUrl, true);
-            
+
             image.progressProperty().addListener((obs, oldV, newV) -> {
                 if (newV.doubleValue() == 1.0 && !image.isError()) {
                     javafx.application.Platform.runLater(() -> {
-                         // Update with avatar, keeping size 18x18
-                         Circle avatar = new Circle(9, 9, 9);
-                         avatar.setFill(new ImagePattern(image));
-                         userProfileIcon.getChildren().setAll(avatar);
+                        // Update with avatar, keeping size 18x18
+                        Circle avatar = new Circle(9, 9, 9);
+                        avatar.setFill(new ImagePattern(image));
+                        userProfileIcon.getChildren().setAll(avatar);
                     });
                 }
             });
@@ -4933,14 +5342,13 @@ public class EditorController {
         if (btnNewPixelArt != null) {
             btnNewPixelArt.setOnAction(e -> openPixelArtEditor(null));
         }
-        
+
         if (btnOpenPixelArt != null) {
             btnOpenPixelArt.setOnAction(e -> {
                 FileChooser fileChooser = new FileChooser();
                 fileChooser.setTitle("Open Image for Pixel Art");
                 fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")
-                );
+                        new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp"));
                 if (currentProject != null) {
                     fileChooser.setInitialDirectory(new File(currentProject.getRootPath()));
                 }
@@ -4954,8 +5362,9 @@ public class EditorController {
         // Setup Back Button for Ez Mode
         if (btnEzBackFromPixelArt != null) {
             btnEzBackFromPixelArt.setOnAction(e -> {
-                if (ezPixelArtContainer != null) ezPixelArtContainer.setVisible(false);
-                
+                if (ezPixelArtContainer != null)
+                    ezPixelArtContainer.setVisible(false);
+
                 // Restore Top Bar
                 if (ezTopBar != null) {
                     ezTopBar.setVisible(true);
@@ -4964,13 +5373,15 @@ public class EditorController {
 
                 // Return to Textures view by default
                 switchEzView("textures");
-                if (btnEzTextures != null) btnEzTextures.setSelected(true);
+                if (btnEzTextures != null)
+                    btnEzTextures.setSelected(true);
             });
         }
     }
 
     private void togglePixelArtView() {
-        if (pixelArtView == null) return;
+        if (pixelArtView == null)
+            return;
 
         boolean isVisible = pixelArtView.isVisible();
 
@@ -4981,14 +5392,14 @@ public class EditorController {
             pixelArtView.setVisible(true);
             pixelArtView.setManaged(true);
         } else {
-             // If we are closing, check if we should default to Explorer (Code Mode only)
-             boolean isEzMode = uiEzModeView.isVisible();
-             if (!isEzMode) {
-                  if (projectExplorerView != null) {
-                      projectExplorerView.setVisible(true);
-                      projectExplorerView.setManaged(true);
-                  }
-             }
+            // If we are closing, check if we should default to Explorer (Code Mode only)
+            boolean isEzMode = uiEzModeView.isVisible();
+            if (!isEzMode) {
+                if (projectExplorerView != null) {
+                    projectExplorerView.setVisible(true);
+                    projectExplorerView.setManaged(true);
+                }
+            }
         }
         updateSidebarVisibility();
     }
@@ -4998,7 +5409,7 @@ public class EditorController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PixelArtEditor.fxml"));
             javafx.scene.Parent root = loader.load();
             PixelArtEditorController controller = loader.getController();
-            
+
             // Pass project context
             if (currentProject != null) {
                 controller.setProjectRoot(new File(currentProject.getRootPath()));
@@ -5016,21 +5427,25 @@ public class EditorController {
                     ezPixelArtContent.getChildren().clear();
                     ezPixelArtContent.getChildren().add(root);
                 }
-                
+
                 // Hide other containers explicitly to ensure clean switch
-                if (ezMainContainer != null) ezMainContainer.setVisible(false);
-                if (ezTexturesContainer != null) ezTexturesContainer.setVisible(false);
-                if (ezModelsContainer != null) ezModelsContainer.setVisible(false);
-                if (ezSoundsContainer != null) ezSoundsContainer.setVisible(false);
+                if (ezMainContainer != null)
+                    ezMainContainer.setVisible(false);
+                if (ezTexturesContainer != null)
+                    ezTexturesContainer.setVisible(false);
+                if (ezModelsContainer != null)
+                    ezModelsContainer.setVisible(false);
+                if (ezSoundsContainer != null)
+                    ezSoundsContainer.setVisible(false);
 
                 if (ezPixelArtContainer != null) {
                     ezPixelArtContainer.setVisible(true);
                 }
-                
+
                 // Hide sidebar to allow full screen editing
                 hideAllSidebarViews();
                 updateSidebarVisibility();
-                
+
                 // Hide Easy Mode Top Bar
                 if (ezTopBar != null) {
                     ezTopBar.setVisible(false);
@@ -5041,7 +5456,7 @@ public class EditorController {
                 Tab tab = new Tab(file != null ? file.getName() : "Untitled.png");
                 tab.setContent(root);
                 tab.setTooltip(new Tooltip(file != null ? file.getAbsolutePath() : "New Pixel Art"));
-                
+
                 // Add to editor tab pane
                 if (editorTabs != null) {
                     editorTabs.getTabs().add(tab);
@@ -5057,8 +5472,9 @@ public class EditorController {
 
     private javafx.scene.Node createPixelArtIcon() {
         Group group = new Group();
-        
-        // Frame: <rect x="1" y="1" width="22" height="22" fill="none" stroke="#9A9A9A" stroke-width="2"/>
+
+        // Frame: <rect x="1" y="1" width="22" height="22" fill="none" stroke="#9A9A9A"
+        // stroke-width="2"/>
         Rectangle frame = new Rectangle(1, 1, 22, 22);
         frame.setFill(Color.TRANSPARENT);
         frame.setStroke(Color.web("#9A9A9A"));
@@ -5074,7 +5490,7 @@ public class EditorController {
         mountain.setFill(Color.web("#9A9A9A"));
 
         group.getChildren().addAll(frame, sun, mountain);
-        
+
         // Scale to fit if needed, but 24x24 is standard
         return group;
     }
@@ -5086,9 +5502,10 @@ public class EditorController {
     private void setupBlockbench() {
         if (iconBlockbench != null) {
             // Set SVG content provided by user
-            iconBlockbench.setContent("m 145.06822,40.428534 c -3.01561,0.02572 -12.18472,0.6913 -41.90597,2.737818 -36.807655,2.531284 -73.710665,5.076129 -110.0666748,7.565429 -36.7671502,2.517098 -33.1316902,2.176272 -34.8800402,3.268536 -1.96474,1.227444 -3.07408,3.30931 -3.72638,6.993887 -5.4411,26.301837 -9.80331,45.175926 -13.32426,60.473836 -0.18562,0.48507 -0.56305,2.15194 -0.8387,3.70416 -0.46694,2.62926 -0.45741,2.88253 0.13952,3.70417 1.26003,1.73434 2.78125,2.12738 13.75369,3.55275 41.5927202,5.4354 85.03644,11.17517 123.36662,16.2016 15.09035,1.97836 28.646945,3.77145 38.629175,5.10873 11.24149,1.50598 11.44852,1.51071 11.94345,0.27234 0.39233,-0.98157 1.11078,-4.34345 2.50579,-11.73004 5.75577,-29.80759 12.43761,-64.810606 17.30748,-89.605384 1.52339,-7.755877 1.5947,-8.6047 0.83508,-9.905339 -0.37978,-0.650287 -1.21063,-1.485953 -1.8464,-1.85725 -0.48873,-0.285451 -0.083,-0.500669 -1.89238,-0.485243 z M -68.112565,137.14667 c -1.44679,-0.0153 -2.82363,0.0896 -4.23231,0.30799 -1.94027,0.30081 -17.10055,2.46944 -33.689925,4.81934 -16.58937,2.3499 -30.85056,4.52186 -31.6916,4.82658 -2.53065,0.91687 -3.5546,3.43793 -2.3456,5.77587 0.74574,1.4421 2.60325,2.30177 8.46047,3.91501 0.77611,0.21376 1.80833,0.51912 2.2934,0.67851 54.829435,15.38457 112.774935,32.35174 164.041655,46.94959 2.87828,0.86432 6.8059,2.37672 9.30848,2.38435 1.89216,-0.51009 12.70579,-5.84538 37.21788,-18.18028 19.909935,-10.01902 36.494155,-18.47188 36.853575,-18.78439 1.36459,-1.18662 2.08816,-3.74768 1.36942,-4.84725 -0.14255,-0.21808 -2.08469,-0.66565 -4.31601,-0.99477 -5.30049,-0.78184 -21.811045,-3.19512 -27.869625,-4.07365 -2.61938,-0.37983 -6.35017,-0.93463 -8.29045,-1.233 -1.94028,-0.29837 -7.89341,-1.17442 -13.22917,-1.94665 -5.33576,-0.77224 -14.06667,-2.04277 -19.40243,-2.8236 -5.33576,-0.78082 -12.95576,-1.89003 -16.93333,-2.46497 -9.18097,-1.32707 -28.71164976,-4.19037 -39.6875,-5.81825 -4.65666,-0.69065 -11.72122,-1.72507 -15.69879,-2.29857 -24.31816,-3.50619 -31.82475,-4.63294 -33.86666,-5.08392 -3.27407,-0.72313 -5.88018,-1.0824 -8.29148,-1.10794 z m -20.29541,39.41878 c -0.0876,-0.007 -0.15118,-0.007 -0.18758,5.3e-4 -0.6509,0.1375 -13.558855,27.81692 -13.558855,29.07522 0,1.28756 0.92654,2.86871 2.03295,3.46904 1.225105,0.66472 2.000835,0.67553 3.775985,0.0532 5.3657,-1.66964 11.08586,-3.53236 16.41606,-5.13354 15.89405,-4.76687 16.15683,-4.86434 17.84128,-6.62233 1.39528,-1.45619 3.95908,-6.78895 4.71238,-9.80199 0.14667,-0.58664 0.45558,-1.42008 0.68678,-1.85208 0.23119,-0.432 0.36115,-0.78548 0.28835,-0.78548 -9.27449,-2.40047 -18.9032,-5.01484 -27.68513,-7.4228 -1.91546,-0.52529 -3.70876,-0.92841 -4.32222,-0.97979 z m 164.78064,21.60953 c -0.27094,-0.0111 -0.69713,0.18978 -1.4826,0.64854 -0.84555,0.49386 -3.28396,1.87763 -5.41827,3.07475 -5.80886,3.5129 -11.32035,7.16469 -17.4625,10.06347 -4.98392,3.11929 -7.18033,3.79919 -9.6759,2.99619 -2.43519,-0.78356 -8.9187,-2.47323 -9.48934,-2.47323 -0.33679,0 -0.70145,0.27747 -0.8108,0.61702 -0.19123,0.59383 -0.79709,2.29576 -2.29185,6.43836 -2.40719,6.19663 -4.4796,12.4538 -6.65128,18.34462 -1.03601,2.80799 -2.84621,9.26604 -2.81791,10.05313 0.0278,0.7759 1.71343,2.36598 3.01635,2.84531 0.799,0.29393 1.97486,0.43012 2.79156,0.32349 15.17811,-6.14222 26.74997,-13.89026 39.66012,-20.65145 3.95125,-2.06247 5.40144,-3.50576 5.97017,-5.94227 0.47659,-2.04182 1.37007,-6.01442 1.9513,-8.67699 0.29649,-1.3582 0.8781,-3.97757 1.29295,-5.82084 2.20478,-9.79651 2.34535,-10.71102 1.7818,-11.60084 -0.0948,-0.14971 -0.20123,-0.23262 -0.3638,-0.23926 z");
+            iconBlockbench.setContent(
+                    "m 145.06822,40.428534 c -3.01561,0.02572 -12.18472,0.6913 -41.90597,2.737818 -36.807655,2.531284 -73.710665,5.076129 -110.0666748,7.565429 -36.7671502,2.517098 -33.1316902,2.176272 -34.8800402,3.268536 -1.96474,1.227444 -3.07408,3.30931 -3.72638,6.993887 -5.4411,26.301837 -9.80331,45.175926 -13.32426,60.473836 -0.18562,0.48507 -0.56305,2.15194 -0.8387,3.70416 -0.46694,2.62926 -0.45741,2.88253 0.13952,3.70417 1.26003,1.73434 2.78125,2.12738 13.75369,3.55275 41.5927202,5.4354 85.03644,11.17517 123.36662,16.2016 15.09035,1.97836 28.646945,3.77145 38.629175,5.10873 11.24149,1.50598 11.44852,1.51071 11.94345,0.27234 0.39233,-0.98157 1.11078,-4.34345 2.50579,-11.73004 5.75577,-29.80759 12.43761,-64.810606 17.30748,-89.605384 1.52339,-7.755877 1.5947,-8.6047 0.83508,-9.905339 -0.37978,-0.650287 -1.21063,-1.485953 -1.8464,-1.85725 -0.48873,-0.285451 -0.083,-0.500669 -1.89238,-0.485243 z M -68.112565,137.14667 c -1.44679,-0.0153 -2.82363,0.0896 -4.23231,0.30799 -1.94027,0.30081 -17.10055,2.46944 -33.689925,4.81934 -16.58937,2.3499 -30.85056,4.52186 -31.6916,4.82658 -2.53065,0.91687 -3.5546,3.43793 -2.3456,5.77587 0.74574,1.4421 2.60325,2.30177 8.46047,3.91501 0.77611,0.21376 1.80833,0.51912 2.2934,0.67851 54.829435,15.38457 112.774935,32.35174 164.041655,46.94959 2.87828,0.86432 6.8059,2.37672 9.30848,2.38435 1.89216,-0.51009 12.70579,-5.84538 37.21788,-18.18028 19.909935,-10.01902 36.494155,-18.47188 36.853575,-18.78439 1.36459,-1.18662 2.08816,-3.74768 1.36942,-4.84725 -0.14255,-0.21808 -2.08469,-0.66565 -4.31601,-0.99477 -5.30049,-0.78184 -21.811045,-3.19512 -27.869625,-4.07365 -2.61938,-0.37983 -6.35017,-0.93463 -8.29045,-1.233 -1.94028,-0.29837 -7.89341,-1.17442 -13.22917,-1.94665 -5.33576,-0.77224 -14.06667,-2.04277 -19.40243,-2.8236 -5.33576,-0.78082 -12.95576,-1.89003 -16.93333,-2.46497 -9.18097,-1.32707 -28.71164976,-4.19037 -39.6875,-5.81825 -4.65666,-0.69065 -11.72122,-1.72507 -15.69879,-2.29857 -24.31816,-3.50619 -31.82475,-4.63294 -33.86666,-5.08392 -3.27407,-0.72313 -5.88018,-1.0824 -8.29148,-1.10794 z m -20.29541,39.41878 c -0.0876,-0.007 -0.15118,-0.007 -0.18758,5.3e-4 -0.6509,0.1375 -13.558855,27.81692 -13.558855,29.07522 0,1.28756 0.92654,2.86871 2.03295,3.46904 1.225105,0.66472 2.000835,0.67553 3.775985,0.0532 5.3657,-1.66964 11.08586,-3.53236 16.41606,-5.13354 15.89405,-4.76687 16.15683,-4.86434 17.84128,-6.62233 1.39528,-1.45619 3.95908,-6.78895 4.71238,-9.80199 0.14667,-0.58664 0.45558,-1.42008 0.68678,-1.85208 0.23119,-0.432 0.36115,-0.78548 0.28835,-0.78548 -9.27449,-2.40047 -18.9032,-5.01484 -27.68513,-7.4228 -1.91546,-0.52529 -3.70876,-0.92841 -4.32222,-0.97979 z m 164.78064,21.60953 c -0.27094,-0.0111 -0.69713,0.18978 -1.4826,0.64854 -0.84555,0.49386 -3.28396,1.87763 -5.41827,3.07475 -5.80886,3.5129 -11.32035,7.16469 -17.4625,10.06347 -4.98392,3.11929 -7.18033,3.79919 -9.6759,2.99619 -2.43519,-0.78356 -8.9187,-2.47323 -9.48934,-2.47323 -0.33679,0 -0.70145,0.27747 -0.8108,0.61702 -0.19123,0.59383 -0.79709,2.29576 -2.29185,6.43836 -2.40719,6.19663 -4.4796,12.4538 -6.65128,18.34462 -1.03601,2.80799 -2.84621,9.26604 -2.81791,10.05313 0.0278,0.7759 1.71343,2.36598 3.01635,2.84531 0.799,0.29393 1.97486,0.43012 2.79156,0.32349 15.17811,-6.14222 26.74997,-13.89026 39.66012,-20.65145 3.95125,-2.06247 5.40144,-3.50576 5.97017,-5.94227 0.47659,-2.04182 1.37007,-6.01442 1.9513,-8.67699 0.29649,-1.3582 0.8781,-3.97757 1.29295,-5.82084 2.20478,-9.79651 2.34535,-10.71102 1.7818,-11.60084 -0.0948,-0.14971 -0.20123,-0.23262 -0.3638,-0.23926 z");
         }
-        
+
         if (btnBlockbench != null) {
             btnBlockbench.setOnAction(e -> handleBlockbench());
             // Add hover effect
@@ -5103,23 +5520,24 @@ public class EditorController {
 
     private void openInBlockbench(File file) {
         String path = SettingsManager.getInstance().getBlockbenchPath();
-        
+
         if (path == null || path.isEmpty() || !new File(path).exists()) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Configurar Blockbench");
             alert.setHeaderText("Blockbench no está configurado");
             alert.setContentText("Selecciona el ejecutable de Blockbench para continuar.");
-            
+
             ButtonType btnSelect = new ButtonType("Seleccionar");
             ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
             alert.getButtonTypes().setAll(btnSelect, btnCancel);
-            
+
             if (alert.showAndWait().orElse(btnCancel) == btnSelect) {
                 FileChooser fileChooser = new FileChooser();
                 fileChooser.setTitle("Seleccionar Ejecutable de Blockbench");
-                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "blockbench"));
+                fileChooser.getExtensionFilters()
+                        .add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "blockbench"));
                 File exe = fileChooser.showOpenDialog(mainLayout.getScene().getWindow());
-                
+
                 if (exe != null) {
                     SettingsManager.getInstance().setBlockbenchPath(exe.getAbsolutePath());
                     openInBlockbench(file); // Retry
@@ -5127,12 +5545,12 @@ public class EditorController {
             }
             return;
         }
-        
+
         try {
             if (file != null) {
                 new ProcessBuilder(path, file.getAbsolutePath()).start();
             } else {
-                 new ProcessBuilder(path).start();
+                new ProcessBuilder(path).start();
             }
         } catch (Exception ex) {
             logger.error("Error al abrir Blockbench", ex);
@@ -5146,7 +5564,7 @@ public class EditorController {
         private static final String FILE_BODY = "M14 2H6C4.89 2 4 2.9 4 4V20C4 21.1 4.89 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z";
         private static final String FILE_CORNER = "M14 2V8H20";
         private static final String TODO_PATH = "M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z";
-        
+
         // Audio Icon Paths
         private static final String AUDIO_BODY = "M14 2H6C4.89 2 4 2.9 4 4V20C4 21.1 4.89 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z";
         private static final String AUDIO_CORNER = "M14 2V8H20";
@@ -5154,10 +5572,10 @@ public class EditorController {
         // 3D Model Icon Paths (Deprecated/Replaced)
         // private static final String MODEL_PATH_1 = "M12 2L2 7l10 5 10-5-10-5z";
         // ...
-        
+
         public static javafx.scene.Node createIcon(String filename, boolean isDir) {
             String nameLower = filename.toLowerCase();
-            
+
             // Special check for .TODO folder
             if (isDir && nameLower.equals(".todo")) {
                 SVGPath todoIcon = new SVGPath();
@@ -5172,33 +5590,59 @@ public class EditorController {
                 folder.setFill(Color.web("#FFC107")); // Amber
                 return createScaledIcon(folder);
             }
-            
+
             // Special check for tasks.json
             if (nameLower.equals("tasks.json")) {
-                 SVGPath todoIcon = new SVGPath();
-                 todoIcon.setContent(TODO_PATH);
-                 todoIcon.setFill(Color.web("#90A4AE")); // Match default file color or distinct
-                 return createScaledIcon(todoIcon);
+                SVGPath todoIcon = new SVGPath();
+                todoIcon.setContent(TODO_PATH);
+                todoIcon.setFill(Color.web("#90A4AE")); // Match default file color or distinct
+                return createScaledIcon(todoIcon);
             }
-            
+
             String ext = getExtension(filename);
-            
+
+            // PowerShell Files
+            if (nameLower.endsWith(".ps1")) {
+                // Terminal Icon
+                Group g = new Group();
+
+                // Background (Dark Blue console)
+                Rectangle console = new Rectangle(2, 4, 20, 16);
+                console.setArcWidth(4);
+                console.setArcHeight(4);
+                console.setFill(Color.web("#012456"));
+
+                // Header bar
+                Rectangle header = new Rectangle(2, 4, 20, 4);
+                header.setArcWidth(4);
+                header.setArcHeight(4);
+                header.setFill(Color.web("#FFFFFF"));
+
+                // Prompt >_
+                Text prompt = new Text(5, 14, ">_");
+                prompt.setFont(Font.font("Consolas", FontWeight.BOLD, 10));
+                prompt.setFill(Color.WHITE);
+
+                g.getChildren().addAll(console, header, prompt);
+                return createScaledIcon(g);
+            }
+
             // Audio Files
             if (nameLower.endsWith(".mp3") || nameLower.endsWith(".ogg") || nameLower.endsWith(".wav")) {
                 SVGPath body = new SVGPath();
                 body.setContent(AUDIO_BODY);
                 body.setFill(Color.web("#4F46E5"));
-                
+
                 SVGPath corner = new SVGPath();
                 corner.setContent(AUDIO_CORNER);
                 corner.setFill(Color.web("#3730A3"));
-                
+
                 Text note = new Text("♫");
                 note.setFill(Color.WHITE);
                 note.setFont(Font.font("Arial", FontWeight.BOLD, 10));
                 note.setX(6);
                 note.setY(18);
-                
+
                 Group group = new Group(body, corner, note);
                 return createScaledIcon(group);
             }
@@ -5207,42 +5651,43 @@ public class EditorController {
             if (nameLower.startsWith("readme")) {
                 // Info Icon
                 Group g = new Group();
-                
+
                 Circle circle = new Circle(12, 12, 10);
                 circle.setFill(Color.TRANSPARENT);
                 circle.setStroke(Color.web("#007ACC"));
                 circle.setStrokeWidth(2);
-                
+
                 Line l1 = new Line(12, 16, 12, 12);
                 l1.setStroke(Color.web("#007ACC"));
                 l1.setStrokeWidth(2);
                 l1.setStrokeLineCap(StrokeLineCap.ROUND);
-                
+
                 Line l2 = new Line(12, 8, 12.01, 8);
                 l2.setStroke(Color.web("#007ACC"));
                 l2.setStrokeWidth(2);
                 l2.setStrokeLineCap(StrokeLineCap.ROUND);
-                
+
                 g.getChildren().addAll(circle, l1, l2);
                 return createScaledIcon(g);
             }
-            
+
             if (nameLower.endsWith(".lang")) {
                 // Globe Icon
                 Group g = new Group();
-                
+
                 Circle circle = new Circle(12, 12, 10);
                 circle.setFill(Color.TRANSPARENT);
                 circle.setStroke(Color.web("#4CAF50"));
                 circle.setStrokeWidth(2);
-                
+
                 Line equator = new Line(2, 12, 22, 12);
                 equator.setStroke(Color.web("#4CAF50"));
                 equator.setStrokeWidth(2);
                 equator.setStrokeLineCap(StrokeLineCap.ROUND);
-                
+
                 SVGPath meridians = new SVGPath();
-                meridians.setContent("M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z");
+                meridians.setContent(
+                        "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z");
                 meridians.setFill(Color.TRANSPARENT);
                 meridians.setStroke(Color.web("#4CAF50"));
                 meridians.setStrokeWidth(2);
@@ -5256,7 +5701,7 @@ public class EditorController {
             if (nameLower.contains("license") || nameLower.contains("licencia")) {
                 // License Icon
                 Group g = new Group();
-                
+
                 SVGPath body = new SVGPath();
                 body.setContent("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z");
                 body.setFill(Color.TRANSPARENT);
@@ -5264,18 +5709,18 @@ public class EditorController {
                 body.setStrokeWidth(2);
                 body.setStrokeLineCap(StrokeLineCap.ROUND);
                 body.setStrokeLineJoin(StrokeLineJoin.ROUND);
-                
+
                 Polyline corner = new Polyline(14, 2, 14, 8, 20, 8);
                 corner.setStroke(Color.web("#FFB300"));
                 corner.setStrokeWidth(2);
                 corner.setStrokeLineCap(StrokeLineCap.ROUND);
                 corner.setStrokeLineJoin(StrokeLineJoin.ROUND);
-                
+
                 Circle seal = new Circle(10, 15, 2);
                 seal.setFill(Color.TRANSPARENT);
                 seal.setStroke(Color.web("#FFB300"));
                 seal.setStrokeWidth(2);
-                
+
                 Line ribbon = new Line(11.5, 16.5, 13, 18);
                 ribbon.setStroke(Color.web("#FFB300"));
                 ribbon.setStrokeWidth(2);
@@ -5284,11 +5729,11 @@ public class EditorController {
                 g.getChildren().addAll(body, corner, seal, ribbon);
                 return createScaledIcon(g);
             }
-            
+
             if (nameLower.startsWith(".git") || nameLower.equals("git")) {
                 // Git Icon
                 Group g = new Group();
-                
+
                 Circle c1 = new Circle(18, 6, 3);
                 c1.setFill(Color.TRANSPARENT);
                 c1.setStroke(Color.WHITE);
@@ -5310,109 +5755,120 @@ public class EditorController {
                 g.getChildren().addAll(c1, c2, path);
                 return createScaledIcon(g);
             }
-            
+
             if (nameLower.endsWith(".mcaddon") || nameLower.endsWith(".mcpack")) {
                 return createMcPackIcon();
             }
 
             if (nameLower.endsWith(".bbmodel") || nameLower.endsWith(".geo.json")) {
                 Group g = new Group();
-                
+
                 // Cara superior
                 SVGPath top = new SVGPath();
                 top.setContent("M12 2 L22 7 L12 12 L2 7 Z");
                 top.setFill(Color.web("#3B82F6"));
-                
+
                 // Cara izquierda
                 SVGPath left = new SVGPath();
                 left.setContent("M2 7 L12 12 L12 22 L2 17 Z");
                 left.setFill(Color.web("#2563EB"));
-                
+
                 // Cara derecha
                 SVGPath right = new SVGPath();
                 right.setContent("M22 7 L12 12 L12 22 L22 17 Z");
                 right.setFill(Color.web("#60A5FA"));
 
                 g.getChildren().addAll(top, left, right);
-                
+
                 return createScaledIcon(g);
             }
 
             Group group = new Group();
-            
+
             // Base
             SVGPath body = new SVGPath();
             body.setContent(FILE_BODY);
-            
+
             SVGPath corner = new SVGPath();
             corner.setContent(FILE_CORNER);
-            
+
             // Default Colors (Text)
             Color bodyColor = Color.web("#90A4AE");
             Color cornerColor = Color.web("#78909C");
-            
+
             Group extra = new Group();
-            
+
             switch (ext) {
                 case "js":
                     bodyColor = Color.web("#F7DF1E");
                     cornerColor = Color.web("#D1BC19");
-                    
+
                     Text jsText = new Text(7, 18, "JS");
                     jsText.setFont(Font.font("Arial", FontWeight.BOLD, 6));
                     jsText.setFill(Color.web("#323330"));
                     extra.getChildren().add(jsText);
                     break;
-                    
+
                 case "json":
                     bodyColor = Color.web("#292D3E");
                     cornerColor = Color.web("#1A1C25");
-                    
+
                     Text jsonText = new Text(6, 17, "{ }");
                     jsonText.setFont(Font.font("Monospaced", FontWeight.BOLD, 7));
                     jsonText.setFill(Color.web("#82AAFF"));
                     extra.getChildren().add(jsonText);
                     break;
-                    
-                case "png": case "jpg": case "jpeg": case "webp": case "gif":
+
+                case "png":
+                case "jpg":
+                case "jpeg":
+                case "webp":
+                case "gif":
                     bodyColor = Color.web("#4CAF50");
                     cornerColor = Color.web("#388E3C");
-                    
+
                     Circle circle = new Circle(8.5, 11.5, 1.5);
                     circle.setFill(Color.WHITE);
-                    
+
                     SVGPath mountains = new SVGPath();
                     mountains.setContent("M6 19L9 15L11 17L14 13L18 19H6Z");
                     mountains.setFill(Color.WHITE);
-                    
+
                     extra.getChildren().addAll(circle, mountains);
                     break;
-                    
+
                 default: // TXT or others
                     // Lines
-                    Line l1 = new Line(8, 12, 16, 12); l1.setStroke(Color.WHITE); l1.setStrokeWidth(1.5);
-                    Line l2 = new Line(8, 15, 16, 15); l2.setStroke(Color.WHITE); l2.setStrokeWidth(1.5);
-                    Line l3 = new Line(8, 18, 13, 18); l3.setStroke(Color.WHITE); l3.setStrokeWidth(1.5);
+                    Line l1 = new Line(8, 12, 16, 12);
+                    l1.setStroke(Color.WHITE);
+                    l1.setStrokeWidth(1.5);
+                    Line l2 = new Line(8, 15, 16, 15);
+                    l2.setStroke(Color.WHITE);
+                    l2.setStrokeWidth(1.5);
+                    Line l3 = new Line(8, 18, 13, 18);
+                    l3.setStroke(Color.WHITE);
+                    l3.setStrokeWidth(1.5);
                     extra.getChildren().addAll(l1, l2, l3);
                     break;
             }
-            
+
             body.setFill(bodyColor);
             corner.setFill(cornerColor);
-            
+
             group.getChildren().addAll(body, corner, extra);
-            
+
             return createScaledIcon(group);
         }
-        
+
         private static javafx.scene.Node createMcPackIcon() {
             try {
-                javafx.scene.image.Image img = new javafx.scene.image.Image(EditorController.class.getResourceAsStream("/images/mcfiles.png"));
+                javafx.scene.image.Image img = new javafx.scene.image.Image(
+                        EditorController.class.getResourceAsStream("/images/mcfiles.png"));
                 javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
                 iv.setFitWidth(18);
                 iv.setFitHeight(18);
                 iv.setPreserveRatio(true);
-                
+
                 StackPane p = new StackPane(iv);
                 p.setPrefSize(18, 18);
                 p.setMinSize(18, 18);
@@ -5429,7 +5885,7 @@ public class EditorController {
 
         private static javafx.scene.Node createScaledIcon(javafx.scene.Node node) {
             Group g = new Group(node);
-            g.setScaleX(0.75); 
+            g.setScaleX(0.75);
             g.setScaleY(0.75);
             // Wrap in StackPane to enforce size
             StackPane p = new StackPane(g);
@@ -5438,7 +5894,7 @@ public class EditorController {
             p.setMaxSize(18, 18);
             return p;
         }
-        
+
         private static String getExtension(String filename) {
             int i = filename.lastIndexOf('.');
             if (i > 0) {

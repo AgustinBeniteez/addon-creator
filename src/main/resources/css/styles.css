@@ -513,11 +513,31 @@
 /* ===== DIALOGS ===== */
 
 .dialog-pane {
-    -fx-background-color: #2d2d2d;
+    -fx-background-color: #252526;
+    -fx-border-color: #454545;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #252526;
+    -fx-padding: 15 15 5 15;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.dialog-pane .content {
+    -fx-padding: 10 15 15 15;
 }
 
 .dialog-pane .label {
     -fx-text-fill: #cccccc;
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
 }
 
 .dialog-pane .text-field {
@@ -535,13 +555,19 @@
     -fx-border-width: 2;
 }
 
+.dialog-pane .button-bar {
+    -fx-background-color: #252526;
+    -fx-padding: 15;
+}
+
 .dialog-pane .button {
     -fx-background-color: #0e639c;
     -fx-text-fill: white;
-    -fx-padding: 6 16;
+    -fx-padding: 8 20;
     -fx-border-radius: 3;
     -fx-background-radius: 3;
     -fx-cursor: hand;
+    -fx-font-weight: bold;
 }
 
 .dialog-pane .button:hover {
@@ -550,6 +576,7 @@
 
 .dialog-pane .button:default {
     -fx-background-color: #0e639c;
+    -fx-effect: dropshadow(three-pass-box, rgba(14, 99, 156, 0.4), 5, 0, 0, 0);
 }
 
 /* ===== SEPARATOR ===== */
@@ -1011,4 +1038,21 @@
 
 .layer-list .viewport {
     -fx-background-color: #252526;
+}
+
+/* ===== CUSTOM MODAL STYLES ===== */
+.custom-dialog .dialog-pane {
+    -fx-border-color: #007acc;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 20, 0, 0, 0);
+}
+
+.custom-dialog .dialog-pane .header-panel {
+    -fx-background-color: #333333;
+    -fx-border-color: #007acc;
+    -fx-border-width: 0 0 1 0;
+}
+
+.custom-dialog .dialog-pane .label {
+    -fx-font-size: 14px;
 }
