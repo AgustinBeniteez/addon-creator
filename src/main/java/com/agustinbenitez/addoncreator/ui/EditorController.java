@@ -108,6 +108,9 @@ import javafx.scene.image.Image;
 import javafx.scene.paint.ImagePattern;
 
 import com.agustinbenitez.addoncreator.core.SettingsManager;
+import org.eclipse.jgit.revwalk.RevCommit;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class EditorController {
 
@@ -148,6 +151,17 @@ public class EditorController {
     private MenuItem menuLicenses;
 
     @FXML
+    private TabPane gitTabPane;
+    @FXML
+    private Tab tabGitChanges;
+    @FXML
+    private Tab tabGitHistory;
+    @FXML
+    private ListView<RevCommit> gitHistoryList;
+    @FXML
+    private ListView<String> gitCommitChangesList;
+
+    @FXML
     private RadioMenuItem menuSidebarLeft;
 
     // Toolbar
@@ -179,6 +193,8 @@ public class EditorController {
     private Button btnBlockbench;
     @FXML
     private SVGPath iconBlockbench;
+    @FXML
+    private SVGPath iconEzModels;
     @FXML
     private Label projectNameToolbar;
 
@@ -224,6 +240,8 @@ public class EditorController {
     @FXML
     private ToggleButton btnEzSounds;
     @FXML
+    private ToggleButton btnEzRecipes; // New Recipes Button
+    @FXML
     private ToggleButton btnEzMain;
     @FXML
     private TextField txtEzFilter;
@@ -240,6 +258,8 @@ public class EditorController {
     private VBox ezModelsContainer;
     @FXML
     private VBox ezSoundsContainer;
+    @FXML
+    private VBox ezRecipesContainer; // New Recipes Container
     @FXML
     private VBox ezMainContainer;
     @FXML
@@ -258,6 +278,8 @@ public class EditorController {
     private FlowPane modelsFlowPane;
     @FXML
     private FlowPane soundsFlowPane;
+    @FXML
+    private FlowPane recipesFlowPane; // New Recipes FlowPane
     @FXML
     private FlowPane mainElementsFlowPane;
     @FXML
@@ -413,10 +435,52 @@ public class EditorController {
             updateSaveButtonState();
         });
 
+        // Add Context Menu to all new tabs (Close, Close All, Close Others)
+        editorTabs.getTabs().addListener((javafx.collections.ListChangeListener<Tab>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    for (Tab tab : c.getAddedSubList()) {
+                        setupTabContextMenu(tab);
+                    }
+                }
+            }
+        });
+
         // Initial state
         updateSaveButtonState();
 
         log("IDE initialized successfully");
+    }
+
+    private void setupTabContextMenu(Tab tab) {
+        ContextMenu cm = new ContextMenu();
+
+        MenuItem close = new MenuItem("Close");
+        close.setOnAction(e -> {
+            if (tab.getOnClosed() != null) {
+                tab.getOnClosed().handle(null);
+            }
+            editorTabs.getTabs().remove(tab);
+        });
+
+        MenuItem closeOthers = new MenuItem("Close Others");
+        closeOthers.setOnAction(e -> {
+            List<Tab> toClose = new ArrayList<>(editorTabs.getTabs());
+            toClose.remove(tab);
+            editorTabs.getTabs().removeAll(toClose);
+        });
+
+        MenuItem closeAll = new MenuItem("Close All");
+        closeAll.setOnAction(e -> editorTabs.getTabs().clear());
+
+        cm.getItems().addAll(close, closeOthers, closeAll);
+        tab.setContextMenu(cm);
+    }
+
+    private void closeGitDiffTabs() {
+        if (editorTabs != null) {
+            editorTabs.getTabs().removeIf(t -> t.getText() != null && t.getText().startsWith("Diff:"));
+        }
     }
 
     private void setupModeSwitch() {
@@ -541,6 +605,14 @@ public class EditorController {
             });
         }
 
+        if (btnEzRecipes != null) {
+            btnEzRecipes.setToggleGroup(ezGroup);
+            btnEzRecipes.setOnAction(e -> {
+                if (btnEzRecipes.isSelected())
+                    switchEzView("recipes");
+            });
+        }
+
         if (txtEzFilter != null) {
             txtEzFilter.textProperty().addListener((obs, oldVal, newVal) -> {
                 switchEzView(currentEzViewName);
@@ -564,6 +636,8 @@ public class EditorController {
             ezModelsContainer.setVisible(false);
         if (ezSoundsContainer != null)
             ezSoundsContainer.setVisible(false);
+        if (ezRecipesContainer != null)
+            ezRecipesContainer.setVisible(false);
         if (ezPixelArtContainer != null)
             ezPixelArtContainer.setVisible(false);
 
@@ -608,6 +682,11 @@ public class EditorController {
                 if (ezSoundsContainer != null)
                     ezSoundsContainer.setVisible(true);
                 loadSoundsView();
+                break;
+            case "recipes":
+                if (ezRecipesContainer != null)
+                    ezRecipesContainer.setVisible(true);
+                loadRecipesView();
                 break;
         }
     }
@@ -915,6 +994,31 @@ public class EditorController {
         }
     }
 
+    private void loadRecipesView() {
+        if (recipesFlowPane == null || currentProject == null)
+            return;
+        recipesFlowPane.getChildren().clear();
+        recipesFlowPane.getChildren().add(createAddCard(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Próximamente");
+            alert.setHeaderText("Crear Receta");
+            alert.setContentText("¡El creador de recetas estará disponible pronto!");
+            styleDialog(alert);
+            alert.showAndWait();
+        }));
+
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        Path recipesDir = root.resolve("BP/recipes");
+
+        java.util.List<Path> recipeFiles = findFiles(recipesDir, ".json");
+        for (Path path : recipeFiles) {
+            if (shouldShow(path.getFileName().toString())) {
+                String name = path.getFileName().toString().replace(".json", "");
+                recipesFlowPane.getChildren().add(createEzCard("Recipe", name, null));
+            }
+        }
+    }
+
     private java.util.List<Path> findFiles(Path root, String... extensions) {
         java.util.List<Path> result = new java.util.ArrayList<>();
         if (!java.nio.file.Files.exists(root))
@@ -1011,6 +1115,69 @@ public class EditorController {
         return card;
     }
 
+    private boolean hasModel(String entityName) {
+        if (currentProject == null)
+            return false;
+        try {
+            Path root = Paths.get(currentProject.getRootPath());
+            Path modelsDir = root.resolve("RP/models/entity"); // Standard path
+            if (!Files.exists(modelsDir))
+                return false;
+
+            // Check for json or geo.json containing the name
+            try (Stream<Path> stream = Files.walk(modelsDir)) {
+                return stream
+                        .filter(p -> !Files.isDirectory(p))
+                        .anyMatch(p -> p.getFileName().toString().toLowerCase().contains(entityName.toLowerCase()));
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private Node createTypeIcon(String type) {
+        SVGPath icon = new SVGPath();
+        icon.setFill(Color.WHITE);
+        icon.setScaleX(0.7);
+        icon.setScaleY(0.7);
+
+        String color = "#007ACC"; // Default blue
+
+        switch (type.toLowerCase()) {
+            case "item":
+                // Sword/Item icon
+                icon.setContent("M12 2L2 22h20L12 2zm0 4l6 14H6l6-14z");
+                color = "#FF5722"; // Orange
+                break;
+            case "block":
+                // Cube icon
+                icon.setContent(
+                        "M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zM13 12.58v6.71l6-3.38v-6.7l-6 3.37z");
+                color = "#4CAF50"; // Green
+                break;
+            case "entity":
+                // Face/Mob icon
+                icon.setContent(
+                        "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-4.41-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-4-8c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm8 0c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm-4 4c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z");
+                color = "#9C27B0"; // Purple
+                break;
+            case "recipe":
+            case "crafteo":
+                // Book icon
+                icon.setContent(
+                        "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z");
+                color = "#FFC107"; // Amber
+                break;
+        }
+
+        StackPane container = new StackPane(icon);
+        container.setPrefSize(24, 24);
+        container.setMaxSize(24, 24);
+        container.setStyle("-fx-background-color: " + color
+                + "; -fx-background-radius: 50%; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 2, 0, 0, 1);");
+        return container;
+    }
+
     private Node createEzCard(String type, String title, String iconName) {
         VBox card = new VBox(5);
         card.setStyle(
@@ -1020,13 +1187,43 @@ public class EditorController {
 
         Node iconNode;
         javafx.scene.image.Image img = findElementImage(title, type);
+
         if (img != null) {
             javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
-            iv.setFitWidth(50);
-            iv.setFitHeight(50);
+            iv.setFitWidth(64);
+            iv.setFitHeight(64);
+            iv.setPreserveRatio(true);
             iconNode = iv;
         } else {
-            iconNode = new Rectangle(50, 50, Color.DARKGRAY);
+            Rectangle rect = new Rectangle(50, 50, Color.DARKGRAY);
+            rect.setArcWidth(10);
+            rect.setArcHeight(10);
+            iconNode = rect;
+        }
+
+        // Type Icon (Top Right)
+        Node typeIcon = createTypeIcon(type);
+
+        // Icon Container with Overlay
+        StackPane iconContainer = new StackPane();
+        iconContainer.setPrefSize(80, 80);
+        iconContainer.setAlignment(Pos.CENTER);
+        iconContainer.getChildren().add(iconNode);
+
+        // Add type icon to top right of the icon area
+        StackPane.setAlignment(typeIcon, Pos.TOP_RIGHT);
+        // Translate slightly to overlap nicely
+        typeIcon.setTranslateX(10);
+        typeIcon.setTranslateY(-10);
+        iconContainer.getChildren().add(typeIcon);
+
+        // 3D Model Indicator for Entities
+        if (type.equalsIgnoreCase("Entity") && hasModel(title)) {
+            Label modelBadge = new Label("3D");
+            modelBadge.setStyle(
+                    "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2 4; -fx-background-radius: 3;");
+            StackPane.setAlignment(modelBadge, Pos.BOTTOM_RIGHT);
+            iconContainer.getChildren().add(modelBadge);
         }
 
         Label typeLabel = new Label(type);
@@ -1037,7 +1234,7 @@ public class EditorController {
         titleLabel.setWrapText(true);
         titleLabel.setTextAlignment(TextAlignment.CENTER);
 
-        card.getChildren().addAll(iconNode, titleLabel, typeLabel);
+        card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
         return card;
     }
 
@@ -1755,6 +1952,167 @@ public class EditorController {
                 }
             }
         });
+
+        setupGitHistory();
+    }
+
+    private void setupGitHistory() {
+        if (gitHistoryList == null)
+            return;
+
+        gitHistoryList.setCellFactory(lv -> new ListCell<RevCommit>() {
+            @Override
+            protected void updateItem(RevCommit item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    String msg = item.getShortMessage();
+                    String author = item.getAuthorIdent().getName();
+                    String time = new SimpleDateFormat("yyyy-MM-dd HH:mm")
+                            .format(new Date(item.getCommitTime() * 1000L));
+
+                    VBox root = new VBox(2);
+                    Label msgLabel = new Label(msg);
+                    msgLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+                    Label metaLabel = new Label(author + " • " + time);
+                    metaLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
+
+                    root.getChildren().addAll(msgLabel, metaLabel);
+                    setGraphic(root);
+
+                    // Context Menu
+                    ContextMenu cm = new ContextMenu();
+
+                    MenuItem copySha = new MenuItem("Copy SHA");
+                    copySha.setOnAction(e -> {
+                        ClipboardContent content = new ClipboardContent();
+                        content.putString(item.getName());
+                        Clipboard.getSystemClipboard().setContent(content);
+                    });
+
+                    MenuItem resetSoft = new MenuItem("Reset to commit (Soft)");
+                    resetSoft.setOnAction(e -> handleReset(item, "SOFT"));
+
+                    MenuItem resetMixed = new MenuItem("Reset to commit (Mixed)");
+                    resetMixed.setOnAction(e -> handleReset(item, "MIXED"));
+
+                    MenuItem resetHard = new MenuItem("Reset to commit (Hard)");
+                    resetHard.setOnAction(e -> handleReset(item, "HARD"));
+
+                    cm.getItems().addAll(copySha, new SeparatorMenuItem(), resetSoft, resetMixed, resetHard);
+
+                    // Check if HEAD (for amend)
+                    try {
+                        if (getIndex() == 0) {
+                            MenuItem amend = new MenuItem("Amend Commit");
+                            amend.setOnAction(e -> handleAmend(item));
+                            cm.getItems().add(1, amend);
+                        }
+                    } catch (Exception ex) {
+                    }
+
+                    setContextMenu(cm);
+                }
+            }
+        });
+
+        gitHistoryList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                showCommitChanges(newVal);
+            }
+        });
+
+        if (gitCommitChangesList != null) {
+            gitCommitChangesList.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2) {
+                    String selectedFile = gitCommitChangesList.getSelectionModel().getSelectedItem();
+                    RevCommit selectedCommit = gitHistoryList.getSelectionModel().getSelectedItem();
+                    if (selectedFile != null && selectedCommit != null) {
+                        showDiffForCommit(selectedCommit, selectedFile);
+                    }
+                }
+            });
+        }
+
+        // Initial Refresh
+        refreshGitHistory();
+    }
+
+    private void refreshGitHistory() {
+        if (gitHistoryList == null || gitManager == null)
+            return;
+        List<RevCommit> commits = gitManager.getCommitHistory(50);
+        gitHistoryList.getItems().setAll(commits);
+    }
+
+    private void showCommitChanges(RevCommit commit) {
+        if (gitCommitChangesList == null)
+            return;
+        List<String> files = gitManager.getChangedFiles(commit);
+        gitCommitChangesList.getItems().setAll(files);
+    }
+
+    private void handleReset(RevCommit commit, String mode) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Reset Git");
+        alert.setHeaderText("Reset to " + commit.getShortMessage());
+        alert.setContentText("Are you sure you want to perform a " + mode + " reset? This may lose changes.");
+        styleDialog(alert);
+
+        alert.showAndWait().ifPresent(type -> {
+            if (type == ButtonType.OK) {
+                try {
+                    gitManager.resetToCommit(commit, mode);
+                    refreshGitHistory();
+                    refreshProjectStructure();
+                } catch (Exception e) {
+                    logger.error("Reset failed", e);
+                    showError("Git Error", "Reset failed: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void handleAmend(RevCommit commit) {
+        TextInputDialog dialog = new TextInputDialog(commit.getFullMessage());
+        dialog.setTitle("Amend Commit");
+        dialog.setHeaderText("Edit commit message");
+        dialog.setContentText("Message:");
+        styleDialog(dialog);
+
+        dialog.showAndWait().ifPresent(msg -> {
+            try {
+                gitManager.amendLastCommit(msg);
+                refreshGitHistory();
+            } catch (Exception e) {
+                logger.error("Amend failed", e);
+                showError("Git Error", "Amend failed: " + e.getMessage());
+            }
+        });
+    }
+
+    private void showDiffForCommit(RevCommit commit, String filePath) {
+        String patch = gitManager.getDiffForCommit(commit, filePath);
+
+        Tab tab = new Tab("Diff: " + filePath + " (" + commit.getShortMessage() + ")");
+        SplitPane splitPane = new SplitPane();
+
+        String newContent = gitManager.getFileContentAtCommit(commit, filePath);
+        String oldContent = gitManager.getPreviousFileContent(commit, filePath);
+
+        VBox leftBox = createDiffSide("Previous", oldContent, true);
+        VBox rightBox = createDiffSide("Commit (" + commit.getShortMessage() + ")", newContent, false);
+
+        highlightDiff(leftBox, rightBox, oldContent, newContent, patch);
+
+        splitPane.getItems().addAll(leftBox, rightBox);
+        splitPane.setDividerPositions(0.5);
+
+        tab.setContent(splitPane);
+        editorTabs.getTabs().add(tab);
+        editorTabs.getSelectionModel().select(tab);
     }
 
     private void updateCommitButtonText() {
@@ -1807,7 +2165,8 @@ public class EditorController {
         VBox rightBox = createDiffSide("Working Tree (New)", newContent, false);
 
         // Compute Diff and highlight
-        highlightDiff(leftBox, rightBox, oldContent, newContent, change.filePath);
+        String patch = gitManager.getDiff(change.filePath);
+        highlightDiff(leftBox, rightBox, oldContent, newContent, patch);
 
         splitPane.getItems().addAll(leftBox, rightBox);
         splitPane.setDividerPositions(0.5);
@@ -1841,7 +2200,7 @@ public class EditorController {
         return container;
     }
 
-    private void highlightDiff(VBox leftBox, VBox rightBox, String oldContent, String newContent, String filePath) {
+    private void highlightDiff(VBox leftBox, VBox rightBox, String oldContent, String newContent, String patch) {
         ListView<HBox> leftList = (ListView<HBox>) leftBox.getProperties().get("listView");
         ListView<HBox> rightList = (ListView<HBox>) rightBox.getProperties().get("listView");
 
@@ -1852,7 +2211,6 @@ public class EditorController {
         Set<Integer> deletedLineIndices = new HashSet<>();
         Set<Integer> addedLineIndices = new HashSet<>();
 
-        String patch = gitManager.getDiff(filePath);
         if (patch != null && !patch.isEmpty()) {
             String[] patchLines = patch.split("\\r?\\n");
             int currentOldLine = 0;
@@ -1915,13 +2273,26 @@ public class EditorController {
     }
 
     // Helper class for scrolling (Inner class or static)
+    // Helper class for scrolling (Inner class or static)
     private static class ScrollBarSkinProxy {
         static void bindScrollBars(ListView<?> lv1, ListView<?> lv2) {
-            // This requires access to the VirtualFlow or ScrollBar, which is only available
-            // after layout.
-            // We can use a simpler approach: bind formatted positions?
-            // Not easy in standard JavaFX API.
-            // We'll skip sync scrolling for this iteration to avoid crashes/complexity.
+            javafx.application.Platform.runLater(() -> attemptBind(lv1, lv2, 0));
+        }
+
+        private static void attemptBind(ListView<?> lv1, ListView<?> lv2, int attempt) {
+            Set<Node> bars1 = lv1.lookupAll(".scroll-bar:vertical");
+            Set<Node> bars2 = lv2.lookupAll(".scroll-bar:vertical");
+
+            if (!bars1.isEmpty() && !bars2.isEmpty()) {
+                ScrollBar sb1 = (ScrollBar) bars1.iterator().next();
+                ScrollBar sb2 = (ScrollBar) bars2.iterator().next();
+                sb1.valueProperty().bindBidirectional(sb2.valueProperty());
+            } else if (attempt < 10) {
+                // Retry checking for scrollbars
+                PauseTransition pause = new PauseTransition(Duration.millis(100));
+                pause.setOnFinished(e -> attemptBind(lv1, lv2, attempt + 1));
+                pause.play();
+            }
         }
     }
 
@@ -2168,6 +2539,7 @@ public class EditorController {
 
     private void handleExplorer() {
         hideAllSidebarViews();
+        closeGitDiffTabs();
         if (projectExplorerView != null) {
             projectExplorerView.setVisible(true);
             projectExplorerView.setManaged(true);
@@ -2177,6 +2549,7 @@ public class EditorController {
 
     private void handleSearch() {
         hideAllSidebarViews();
+        closeGitDiffTabs();
         if (searchView != null) {
             searchView.setVisible(true);
             searchView.setManaged(true);
@@ -2306,9 +2679,11 @@ public class EditorController {
             // Update Push/Fetch buttons
             if (btnGitPush != null && btnGitFetch != null) {
                 int[] counts = gitManager.getAheadBehindCounts();
-                btnGitPush.setText("Push (" + counts[0] + ")");
-                btnGitFetch.setText("Fetch (" + counts[1] + ")");
+                btnGitPush.setText(counts[0] > 0 ? "↑ " + counts[0] : "↑");
+                btnGitFetch.setText(counts[1] > 0 ? "↓ " + counts[1] : "↓");
             }
+
+            refreshGitHistory();
         } catch (Exception e) {
             logger.error("Failed to refresh git status", e);
         }
@@ -5504,6 +5879,10 @@ public class EditorController {
             // Set SVG content provided by user
             iconBlockbench.setContent(
                     "m 145.06822,40.428534 c -3.01561,0.02572 -12.18472,0.6913 -41.90597,2.737818 -36.807655,2.531284 -73.710665,5.076129 -110.0666748,7.565429 -36.7671502,2.517098 -33.1316902,2.176272 -34.8800402,3.268536 -1.96474,1.227444 -3.07408,3.30931 -3.72638,6.993887 -5.4411,26.301837 -9.80331,45.175926 -13.32426,60.473836 -0.18562,0.48507 -0.56305,2.15194 -0.8387,3.70416 -0.46694,2.62926 -0.45741,2.88253 0.13952,3.70417 1.26003,1.73434 2.78125,2.12738 13.75369,3.55275 41.5927202,5.4354 85.03644,11.17517 123.36662,16.2016 15.09035,1.97836 28.646945,3.77145 38.629175,5.10873 11.24149,1.50598 11.44852,1.51071 11.94345,0.27234 0.39233,-0.98157 1.11078,-4.34345 2.50579,-11.73004 5.75577,-29.80759 12.43761,-64.810606 17.30748,-89.605384 1.52339,-7.755877 1.5947,-8.6047 0.83508,-9.905339 -0.37978,-0.650287 -1.21063,-1.485953 -1.8464,-1.85725 -0.48873,-0.285451 -0.083,-0.500669 -1.89238,-0.485243 z M -68.112565,137.14667 c -1.44679,-0.0153 -2.82363,0.0896 -4.23231,0.30799 -1.94027,0.30081 -17.10055,2.46944 -33.689925,4.81934 -16.58937,2.3499 -30.85056,4.52186 -31.6916,4.82658 -2.53065,0.91687 -3.5546,3.43793 -2.3456,5.77587 0.74574,1.4421 2.60325,2.30177 8.46047,3.91501 0.77611,0.21376 1.80833,0.51912 2.2934,0.67851 54.829435,15.38457 112.774935,32.35174 164.041655,46.94959 2.87828,0.86432 6.8059,2.37672 9.30848,2.38435 1.89216,-0.51009 12.70579,-5.84538 37.21788,-18.18028 19.909935,-10.01902 36.494155,-18.47188 36.853575,-18.78439 1.36459,-1.18662 2.08816,-3.74768 1.36942,-4.84725 -0.14255,-0.21808 -2.08469,-0.66565 -4.31601,-0.99477 -5.30049,-0.78184 -21.811045,-3.19512 -27.869625,-4.07365 -2.61938,-0.37983 -6.35017,-0.93463 -8.29045,-1.233 -1.94028,-0.29837 -7.89341,-1.17442 -13.22917,-1.94665 -5.33576,-0.77224 -14.06667,-2.04277 -19.40243,-2.8236 -5.33576,-0.78082 -12.95576,-1.89003 -16.93333,-2.46497 -9.18097,-1.32707 -28.71164976,-4.19037 -39.6875,-5.81825 -4.65666,-0.69065 -11.72122,-1.72507 -15.69879,-2.29857 -24.31816,-3.50619 -31.82475,-4.63294 -33.86666,-5.08392 -3.27407,-0.72313 -5.88018,-1.0824 -8.29148,-1.10794 z m -20.29541,39.41878 c -0.0876,-0.007 -0.15118,-0.007 -0.18758,5.3e-4 -0.6509,0.1375 -13.558855,27.81692 -13.558855,29.07522 0,1.28756 0.92654,2.86871 2.03295,3.46904 1.225105,0.66472 2.000835,0.67553 3.775985,0.0532 5.3657,-1.66964 11.08586,-3.53236 16.41606,-5.13354 15.89405,-4.76687 16.15683,-4.86434 17.84128,-6.62233 1.39528,-1.45619 3.95908,-6.78895 4.71238,-9.80199 0.14667,-0.58664 0.45558,-1.42008 0.68678,-1.85208 0.23119,-0.432 0.36115,-0.78548 0.28835,-0.78548 -9.27449,-2.40047 -18.9032,-5.01484 -27.68513,-7.4228 -1.91546,-0.52529 -3.70876,-0.92841 -4.32222,-0.97979 z m 164.78064,21.60953 c -0.27094,-0.0111 -0.69713,0.18978 -1.4826,0.64854 -0.84555,0.49386 -3.28396,1.87763 -5.41827,3.07475 -5.80886,3.5129 -11.32035,7.16469 -17.4625,10.06347 -4.98392,3.11929 -7.18033,3.79919 -9.6759,2.99619 -2.43519,-0.78356 -8.9187,-2.47323 -9.48934,-2.47323 -0.33679,0 -0.70145,0.27747 -0.8108,0.61702 -0.19123,0.59383 -0.79709,2.29576 -2.29185,6.43836 -2.40719,6.19663 -4.4796,12.4538 -6.65128,18.34462 -1.03601,2.80799 -2.84621,9.26604 -2.81791,10.05313 0.0278,0.7759 1.71343,2.36598 3.01635,2.84531 0.799,0.29393 1.97486,0.43012 2.79156,0.32349 15.17811,-6.14222 26.74997,-13.89026 39.66012,-20.65145 3.95125,-2.06247 5.40144,-3.50576 5.97017,-5.94227 0.47659,-2.04182 1.37007,-6.01442 1.9513,-8.67699 0.29649,-1.3582 0.8781,-3.97757 1.29295,-5.82084 2.20478,-9.79651 2.34535,-10.71102 1.7818,-11.60084 -0.0948,-0.14971 -0.20123,-0.23262 -0.3638,-0.23926 z");
+        }
+
+        if (iconEzModels != null && iconBlockbench != null) {
+            iconEzModels.setContent(iconBlockbench.getContent());
         }
 
         if (btnBlockbench != null) {

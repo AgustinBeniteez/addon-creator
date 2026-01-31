@@ -266,38 +266,54 @@
                     </VBox>
 
                     <!-- Repo Content -->
-                    <VBox fx:id="gitRepoContent" spacing="10" VBox.vgrow="ALWAYS" visible="false" managed="false">
-                        <HBox spacing="5" alignment="CENTER_LEFT">
+                    <VBox fx:id="gitRepoContent" spacing="5" VBox.vgrow="ALWAYS" visible="false" managed="false">
+                        <HBox spacing="5" alignment="CENTER_LEFT" style="-fx-padding: 0 0 5 0;">
                              <Label text="Branch:" style="-fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
                              <Label fx:id="gitBranchLabel" text="main" style="-fx-text-fill: #cccccc;"/>
                              <Region HBox.hgrow="ALWAYS"/>
                              <Button fx:id="btnLinkRemote" text="Link" style="-fx-font-size: 10px;"/>
-                        </HBox>
-                        
-                        <HBox spacing="5" alignment="CENTER_LEFT">
-                             <Button fx:id="btnGitPush" text="Push" style="-fx-font-size: 10px;" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                             <Button fx:id="btnGitPush" style="-fx-font-size: 10px;">
+                                 <tooltip><Tooltip text="Push"/></tooltip>
                                  <graphic>
                                      <SVGPath content="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
                                  </graphic>
                              </Button>
-                             <Button fx:id="btnGitFetch" text="Fetch" style="-fx-font-size: 10px;" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                             <Button fx:id="btnGitFetch" style="-fx-font-size: 10px;">
+                                 <tooltip><Tooltip text="Fetch"/></tooltip>
                                  <graphic>
                                      <SVGPath content="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z" style="-fx-fill: #cccccc;" scaleX="0.7" scaleY="0.7"/>
                                  </graphic>
                              </Button>
                         </HBox>
                         
-                        <Separator styleClass="separator"/>
-                        
-                        <Label text="Changes" styleClass="section-title" style="-fx-font-size: 12px;"/>
-                        <ListView fx:id="gitChangesList" VBox.vgrow="ALWAYS" styleClass="git-file-list"/>
-                        
-                        <VBox styleClass="git-commit-area" spacing="5">
-                            <TextField fx:id="commitTitleField" promptText="Commit Title (Summary)" style="-fx-font-weight: bold;"/>
-                            <TextArea fx:id="commitDescriptionArea" promptText="Description (Optional)" 
-                                      prefRowCount="3" wrapText="true"/>
-                            <Button fx:id="commitButton" text="Commit" maxWidth="Infinity"/>
-                        </VBox>
+                        <TabPane fx:id="gitTabPane" VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+                            <Tab fx:id="tabGitChanges" text="Changes">
+                                <VBox spacing="10" style="-fx-padding: 5 0 0 0;">
+                                    <ListView fx:id="gitChangesList" VBox.vgrow="ALWAYS" styleClass="git-file-list"/>
+                                    
+                                    <VBox styleClass="git-commit-area" spacing="5">
+                                        <TextField fx:id="commitTitleField" promptText="Commit Title (Summary)" style="-fx-font-weight: bold;"/>
+                                        <TextArea fx:id="commitDescriptionArea" promptText="Description (Optional)" 
+                                                  prefRowCount="3" wrapText="true"/>
+                                        <Button fx:id="commitButton" text="Commit" maxWidth="Infinity"/>
+                                    </VBox>
+                                </VBox>
+                            </Tab>
+                            <Tab fx:id="tabGitHistory" text="History">
+                                <VBox spacing="5" style="-fx-padding: 5 0 0 0;">
+                                    <SplitPane VBox.vgrow="ALWAYS" orientation="VERTICAL" style="-fx-background-color: transparent;" dividerPositions="0.6">
+                                        <VBox spacing="2">
+                                            <Label text="Commit History" style="-fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
+                                            <ListView fx:id="gitHistoryList" VBox.vgrow="ALWAYS" styleClass="git-history-list"/>
+                                        </VBox>
+                                        <VBox spacing="2">
+                                            <Label text="Changed Files" style="-fx-font-weight: bold; -fx-text-fill: #cccccc;"/>
+                                            <ListView fx:id="gitCommitChangesList" VBox.vgrow="ALWAYS" styleClass="git-file-list"/>
+                                        </VBox>
+                                    </SplitPane>
+                                </VBox>
+                            </Tab>
+                        </TabPane>
                     </VBox>
                 </VBox>
 
@@ -379,10 +395,10 @@
                                      </graphic>
                                  </ToggleButton>
                                  <ToggleButton fx:id="btnEzBlocks" text="Bloques" styleClass="button-primary">
-                                     <graphic>
-                                         <SVGPath content="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
-                                     </graphic>
-                                 </ToggleButton>
+                                    <graphic>
+                                        <SVGPath content="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zM13 19.29l6-3.38v-6.7l-6 3.38v6.7z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+                                    </graphic>
+                                </ToggleButton>
                                  <ToggleButton fx:id="btnEzTextures" text="Texturas" styleClass="button-primary">
                                      <graphic>
                                          <SVGPath content="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
@@ -394,10 +410,15 @@
                                      </graphic>
                                  </ToggleButton>
                                  <ToggleButton fx:id="btnEzSounds" text="Sonidos" styleClass="button-primary">
-                                     <graphic>
-                                         <SVGPath content="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
-                                     </graphic>
-                                 </ToggleButton>
+                                    <graphic>
+                                        <SVGPath content="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+                                    </graphic>
+                                </ToggleButton>
+                                <ToggleButton fx:id="btnEzRecipes" text="Crafteos" styleClass="button-primary">
+                                    <graphic>
+                                        <SVGPath content="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+                                    </graphic>
+                                </ToggleButton>
                                  
                                  <Region HBox.hgrow="ALWAYS" />
                                  
@@ -465,6 +486,14 @@
                                    <Label text="Sonidos" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
                                    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
                                        <FlowPane fx:id="soundsFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
+                                   </ScrollPane>
+                              </VBox>
+
+                              <!-- Recipes View -->
+                              <VBox fx:id="ezRecipesContainer" visible="false" spacing="10">
+                                   <Label text="Crafteos" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+                                   <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
+                                       <FlowPane fx:id="recipesFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
                                    </ScrollPane>
                               </VBox>
 

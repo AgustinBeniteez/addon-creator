@@ -372,7 +372,8 @@
 
 .ide-splitpane .split-pane-divider {
     -fx-background-color: #1e1e1e;
-    -fx-padding: 0 1 0 1; /* Keep width for grabbing but make it look like background */
+    -fx-padding: 0 1 0 1;
+    /* Keep width for grabbing but make it look like background */
     -fx-border-style: none;
 }
 
@@ -400,18 +401,20 @@
 }
 
 .diff-list-view .scroll-bar:horizontal .track,
-.diff-list-view .scroll-bar:vertical .track{
-    -fx-background-color:transparent;
-    -fx-border-color:transparent;
+.diff-list-view .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
     -fx-background-radius: 0em;
 }
 
 .diff-line-added {
-    -fx-background-color: rgba(46, 160, 67, 0.2); /* Green tint */
+    -fx-background-color: rgba(46, 160, 67, 0.2);
+    /* Green tint */
 }
 
 .diff-line-deleted {
-    -fx-background-color: rgba(248, 81, 73, 0.2); /* Red tint */
+    -fx-background-color: rgba(248, 81, 73, 0.2);
+    /* Red tint */
 }
 
 /* ===== SCROLLBARS ===== */
@@ -474,7 +477,8 @@
 .bottom-tab-pane .tab-header-area {
     -fx-background-color: #1e1e1e;
     -fx-border-color: #2d2d2d;
-    -fx-border-width: 1 0 0 0; /* Top border only, but since it's at bottom, maybe? No, tab header is usually at top of tabpane. */
+    -fx-border-width: 1 0 0 0;
+    /* Top border only, but since it's at bottom, maybe? No, tab header is usually at top of tabpane. */
 }
 
 .bottom-tab-pane .tab-header-area .tab-header-background {
@@ -516,7 +520,7 @@
     -fx-background-color: #252526;
     -fx-border-color: #454545;
     -fx-border-width: 1;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.5), 10, 0, 0, 0);
 }
 
 .dialog-pane .header-panel {
@@ -620,7 +624,8 @@
     -fx-border-color: transparent;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
-    -fx-padding: 10; /* Add padding to prevent content from touching the rounded corners */
+    -fx-padding: 10;
+    /* Add padding to prevent content from touching the rounded corners */
 }
 
 .projects-scroll .viewport {
@@ -757,7 +762,7 @@
 }
 
 .activity-button:pressed {
-    -fx-border-color: white; 
+    -fx-border-color: white;
 }
 
 .activity-icon {
@@ -813,6 +818,60 @@
 .git-commit-area {
     -fx-padding: 10;
     -fx-spacing: 10;
+}
+
+.git-history-list {
+    -fx-background-color: transparent;
+}
+
+.git-history-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-padding: 4 5;
+    -fx-border-color: #3e3e3e;
+    -fx-border-width: 0 0 1 0;
+}
+
+.git-history-list .list-cell:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+.git-history-list .list-cell:selected {
+    -fx-background-color: #094771;
+    -fx-text-fill: white;
+}
+
+/* Sidebar Tab Pane (Git) */
+#gitTabPane .tab-header-area {
+    -fx-background-color: #252526;
+    -fx-padding: 0;
+}
+
+#gitTabPane .tab-header-background {
+    -fx-background-color: #252526;
+}
+
+#gitTabPane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 5 10;
+    -fx-text-fill: #969696;
+    -fx-border-width: 0 0 2 0;
+    -fx-border-color: transparent;
+}
+
+#gitTabPane .tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: #007acc;
+}
+
+#gitTabPane .tab-label {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+#gitTabPane .tab:selected .tab-label {
+    -fx-text-fill: white;
 }
 
 /* ===== NEW PROJECT SCREEN ===== */
@@ -940,18 +999,18 @@
     -fx-text-fill: #cccccc;
 }
 
-.titled-pane > .title {
+.titled-pane>.title {
     -fx-background-color: #2d2d2d;
     -fx-border-color: #3e3e3e;
     -fx-border-radius: 3 3 0 0;
     -fx-background-radius: 3 3 0 0;
 }
 
-.titled-pane > .title .arrow-button .arrow {
+.titled-pane>.title .arrow-button .arrow {
     -fx-background-color: #cccccc;
 }
 
-.titled-pane > .content {
+.titled-pane>.content {
     -fx-background-color: #1e1e1e;
     -fx-border-color: #3e3e3e;
     -fx-border-radius: 0 0 3 3;
@@ -993,7 +1052,8 @@
 }
 
 .pixel-art-tool-button:selected {
-    -fx-background-color: #094771; /* VS Code blue accent */
+    -fx-background-color: #094771;
+    /* VS Code blue accent */
     -fx-background-radius: 3px;
     -fx-text-fill: white;
 }
@@ -1044,7 +1104,7 @@
 .custom-dialog .dialog-pane {
     -fx-border-color: #007acc;
     -fx-border-width: 1px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 20, 0, 0, 0);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.8), 20, 0, 0, 0);
 }
 
 .custom-dialog .dialog-pane .header-panel {
