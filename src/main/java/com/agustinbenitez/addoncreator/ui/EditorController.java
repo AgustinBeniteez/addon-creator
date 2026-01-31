@@ -1686,6 +1686,97 @@ public class EditorController {
         return card;
     }
 
+    private Node createScriptPreview() {
+        Pane svgRoot = new Pane();
+        svgRoot.setPrefSize(400, 400);
+
+        // Fondo
+        Rectangle bg = new Rectangle(0, 0, 400, 400);
+        bg.setArcWidth(30);
+        bg.setArcHeight(30);
+        bg.setFill(Color.web("#1c1f22"));
+
+        // Marco
+        Rectangle frame = new Rectangle(20, 20, 360, 360);
+        frame.setArcWidth(28);
+        frame.setArcHeight(28);
+        frame.setFill(Color.TRANSPARENT);
+        frame.setStroke(Color.web("#4da3ff"));
+        frame.setStrokeWidth(3);
+
+        // Texto .js
+        Text jsText = new Text(310, 50, ".js");
+        jsText.setFont(Font.font("Monospaced", FontWeight.BOLD, 24));
+        jsText.setFill(Color.web("#ff9d1e"));
+
+        // Azul grande arriba
+        Rectangle blueTop = new Rectangle(40, 40, 220, 45);
+        blueTop.setArcWidth(10);
+        blueTop.setArcHeight(10);
+        blueTop.setFill(Color.web("#1e5d8c"));
+        blueTop.setStroke(Color.web("#6bb7ff"));
+        blueTop.setStrokeWidth(2);
+
+        // Naranjas
+        Rectangle orange1 = new Rectangle(40, 100, 120, 35);
+        orange1.setArcWidth(8);
+        orange1.setArcHeight(8);
+        orange1.setFill(Color.web("#8a4f00"));
+        orange1.setStroke(Color.web("#ff9d1e"));
+        orange1.setStrokeWidth(2);
+
+        Rectangle orange2 = new Rectangle(40, 145, 180, 35);
+        orange2.setArcWidth(8);
+        orange2.setArcHeight(8);
+        orange2.setFill(Color.web("#8a4f00"));
+        orange2.setStroke(Color.web("#ff9d1e"));
+        orange2.setStrokeWidth(2);
+
+        // Azul centro
+        Rectangle blueCenter = new Rectangle(40, 200, 300, 50);
+        blueCenter.setArcWidth(12);
+        blueCenter.setArcHeight(12);
+        blueCenter.setFill(Color.web("#1e5d8c"));
+        blueCenter.setStroke(Color.web("#6bb7ff"));
+        blueCenter.setStrokeWidth(2);
+
+        // Inferior
+        Rectangle blueBot1 = new Rectangle(40, 280, 90, 40);
+        blueBot1.setArcWidth(10);
+        blueBot1.setArcHeight(10);
+        blueBot1.setFill(Color.web("#1e5d8c"));
+        blueBot1.setStroke(Color.web("#6bb7ff"));
+        blueBot1.setStrokeWidth(2);
+
+        Rectangle orangeBot = new Rectangle(150, 280, 80, 40);
+        orangeBot.setArcWidth(10);
+        orangeBot.setArcHeight(10);
+        orangeBot.setFill(Color.web("#8a4f00"));
+        orangeBot.setStroke(Color.web("#ff9d1e"));
+        orangeBot.setStrokeWidth(2);
+
+        Rectangle blueBot2 = new Rectangle(250, 280, 110, 40);
+        blueBot2.setArcWidth(10);
+        blueBot2.setArcHeight(10);
+        blueBot2.setFill(Color.web("#1e5d8c"));
+        blueBot2.setStroke(Color.web("#6bb7ff"));
+        blueBot2.setStrokeWidth(2);
+
+        svgRoot.getChildren().addAll(bg, frame, jsText, blueTop, orange1, orange2, blueCenter, blueBot1, orangeBot, blueBot2);
+
+        Group scaler = new Group(svgRoot);
+        double scale = 64.0 / 400.0;
+        scaler.setScaleX(scale);
+        scaler.setScaleY(scale);
+        
+        StackPane container = new StackPane(scaler);
+        container.setPrefSize(64, 64);
+        container.setMinSize(64, 64);
+        container.setMaxSize(64, 64);
+        
+        return container;
+    }
+
     private Node createEzCard(String type, String title, String iconName) {
         VBox card = new VBox(5);
         card.setStyle(
@@ -1694,19 +1785,22 @@ public class EditorController {
         card.setAlignment(Pos.CENTER);
 
         Node iconNode;
-        javafx.scene.image.Image img = findElementImage(title, type);
-
-        if (img != null) {
-            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
-            iv.setFitWidth(64);
-            iv.setFitHeight(64);
-            iv.setPreserveRatio(true);
-            iconNode = iv;
+        if ("Script".equalsIgnoreCase(type)) {
+            iconNode = createScriptPreview();
         } else {
-            Rectangle rect = new Rectangle(50, 50, Color.DARKGRAY);
-            rect.setArcWidth(10);
-            rect.setArcHeight(10);
-            iconNode = rect;
+            javafx.scene.image.Image img = findElementImage(title, type);
+            if (img != null) {
+                javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+                iv.setFitWidth(64);
+                iv.setFitHeight(64);
+                iv.setPreserveRatio(true);
+                iconNode = iv;
+            } else {
+                Rectangle rect = new Rectangle(50, 50, Color.DARKGRAY);
+                rect.setArcWidth(10);
+                rect.setArcHeight(10);
+                iconNode = rect;
+            }
         }
 
         // Type Icon (Top Right)
