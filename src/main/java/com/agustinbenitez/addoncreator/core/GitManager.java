@@ -293,11 +293,11 @@ public class GitManager {
                     treeWalk.addTree(tree);
                     treeWalk.setRecursive(true);
                     treeWalk.setFilter(PathFilter.create(filePath));
-                    
+
                     if (!treeWalk.next()) {
                         return ""; // File not found in HEAD
                     }
-                    
+
                     ObjectId objectId = treeWalk.getObjectId(0);
                     ObjectLoader loader = repository.open(objectId);
                     return new String(loader.getBytes(), StandardCharsets.UTF_8);
@@ -310,32 +310,37 @@ public class GitManager {
     }
 
     public void push(String username, String password) throws GitAPIException {
-        if (git == null) return;
+        if (git == null)
+            return;
         CredentialsProvider credentials = new UsernamePasswordCredentialsProvider(username, password);
         git.push().setCredentialsProvider(credentials).call();
         logger.info("Pushed to remote");
     }
 
     public void fetch(String username, String password) throws GitAPIException {
-        if (git == null) return;
+        if (git == null)
+            return;
         CredentialsProvider credentials = new UsernamePasswordCredentialsProvider(username, password);
         git.fetch().setCredentialsProvider(credentials).call();
         logger.info("Fetched from remote");
     }
 
     public void addAll() throws GitAPIException {
-        if (git == null) return;
+        if (git == null)
+            return;
         git.add().addFilepattern(".").call();
     }
 
     public void commit(String message) throws GitAPIException {
-        if (git == null) return;
+        if (git == null)
+            return;
         git.commit().setMessage(message).call();
         logger.info("Committed changes with message: {}", message);
     }
 
     public void addRemote(String name, String url) throws GitAPIException, URISyntaxException {
-        if (git == null) return;
+        if (git == null)
+            return;
         git.remoteAdd().setName(name).setUri(new URIish(url)).call();
         logger.info("Added remote {} with url {}", name, url);
     }
@@ -350,10 +355,57 @@ public class GitManager {
             repository = null;
         }
     }
-    
+
     public boolean isRepositoryOpen() {
         return git != null;
     }
+
+    public List<RevCommit> getCommitHistory(int limit) {
+        if (git == null)
+            return List.of();
+        try {
+            List<RevCommit> commits = new ArrayList<>();
+            Iterable<RevCommit> log = git.log().setMaxCount(limit).call();
+            log.forEach(commits::add);
+            return commits;
+        } catch (Exception e) {
+            logger.error("Failed to get commit history", e);
+            return List.of();
+        }
+    }
+
+    public List<String> getChangedFiles(RevCommit commit) {
+        if (repository == null)
+            return List.of();
+        List<String> changedFiles = new ArrayList<>();
+        try (RevWalk rw = new RevWalk(repository)) {
+            RevCommit parent = null;
+            if (commit.getParentCount() > 0) {
+                parent = rw.parseCommit(commit.getParent(0).getId());
+            }
+
+            try (DiffFormatter df = new DiffFormatter(org.eclipse.jgit.util.io.DisabledOutputStream.INSTANCE)) {
+                df.setRepository(repository);
+                df.setDiffComparator(org.eclipse.jgit.diff.RawTextComparator.DEFAULT);
+                df.setDetectRenames(true);
+
+                List<DiffEntry> diffs;
+                if (parent != null) {
+                    diffs = df.scan(parent.getTree(), commit.getTree());
+                } else {
+                    diffs = df.scan(new org.eclipse.jgit.treewalk.EmptyTreeIterator(),
+                            new org.eclipse.jgit.treewalk.CanonicalTreeParser(null, rw.getObjectReader(),
+                                    commit.getTree().getId()));
+                }
+
+                for (DiffEntry diff : diffs) {
+                    changedFiles.add(diff.getNewPath());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get changed files for commit " + commit.getId().getName(), e);
+        }
+        return changedFiles;
     }
 
     public String getDiffForCommit(RevCommit commit, String filePath) {
