@@ -20,13 +20,20 @@ import java.util.Optional;
 
 public class RecipeCreatorController {
 
-    @FXML private TextField identifierField;
-    @FXML private TextField descriptionField;
-    @FXML private TextField groupField;
-    @FXML private ComboBox<String> typeCombo;
-    @FXML private GridPane craftingGrid;
-    @FXML private Button resultSlot;
-    @FXML private Spinner<Integer> resultCount;
+    @FXML
+    private TextField identifierField;
+    @FXML
+    private TextField descriptionField;
+    @FXML
+    private TextField groupField;
+    @FXML
+    private ComboBox<String> typeCombo;
+    @FXML
+    private GridPane craftingGrid;
+    @FXML
+    private Button resultSlot;
+    @FXML
+    private Spinner<Integer> resultCount;
 
     private Project project;
     private final Button[][] gridButtons = new Button[3][3];
@@ -35,7 +42,8 @@ public class RecipeCreatorController {
 
     @FXML
     public void initialize() {
-        typeCombo.getItems().addAll("Crafting Table (Shaped)", "Crafting Table (Shapeless)", "Furnace", "Blast Furnace", "Smoker", "Campfire", "Stonecutter");
+        typeCombo.getItems().addAll("Crafting Table (Shaped)", "Crafting Table (Shapeless)", "Furnace", "Blast Furnace",
+                "Smoker", "Campfire", "Stonecutter");
         typeCombo.getSelectionModel().select(0);
 
         resultCount.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 64, 1));
@@ -46,21 +54,43 @@ public class RecipeCreatorController {
 
     public void setProject(Project project) {
         this.project = project;
+        if (project != null) {
+            String ns = findNamespace(project);
+            if (ns != null && identifierField.getText().isEmpty()) {
+                identifierField.setText(ns + ":");
+                identifierField.positionCaret(ns.length() + 1);
+            }
+        }
+    }
+
+    private String findNamespace(Project proj) {
+        // Try to find a namespace from existing entities
+        if (proj.getEntities() != null && !proj.getEntities().isEmpty()) {
+            for (String e : proj.getEntities()) {
+                if (e.contains(":"))
+                    return e.split(":")[0];
+            }
+        }
+        // Fallback to project name (sanitized)
+        if (proj.getName() != null) {
+            return proj.getName().toLowerCase().replaceAll("[^a-z0-9_]", "_");
+        }
+        return "namespace";
     }
 
     public void loadRecipe(File file) {
         try {
             JsonObject root = com.google.gson.JsonParser.parseReader(new java.io.FileReader(file)).getAsJsonObject();
-            
+
             // Check format version
             if (!root.has("format_version") || !root.get("format_version").getAsString().equals("1.20.0")) {
                 // Warning or try to parse anyway
             }
-            
+
             // Assuming minecraft:recipe_shaped
             if (root.has("minecraft:recipe_shaped")) {
                 JsonObject recipe = root.getAsJsonObject("minecraft:recipe_shaped");
-                
+
                 // Description
                 if (recipe.has("description")) {
                     JsonObject desc = recipe.getAsJsonObject("description");
@@ -68,35 +98,37 @@ public class RecipeCreatorController {
                         identifierField.setText(desc.get("identifier").getAsString());
                     }
                 }
-                
+
                 // Tags (to set type)
                 if (recipe.has("tags")) {
                     JsonArray tags = recipe.getAsJsonArray("tags");
                     for (com.google.gson.JsonElement tag : tags) {
                         String t = tag.getAsString();
-                        if (t.equals("crafting_table")) typeCombo.getSelectionModel().select(0);
+                        if (t.equals("crafting_table"))
+                            typeCombo.getSelectionModel().select(0);
                         // Add other types mapping if needed
                     }
                 }
-                
+
                 // Result
                 if (recipe.has("result")) {
                     JsonObject result = recipe.getAsJsonObject("result");
                     if (result.has("item")) {
                         resultItem = result.get("item").getAsString();
-                        resultSlot.setText(resultItem.isEmpty() ? "?" : resultItem.substring(0, Math.min(4, resultItem.length())));
+                        resultSlot.setText(
+                                resultItem.isEmpty() ? "?" : resultItem.substring(0, Math.min(4, resultItem.length())));
                         resultSlot.setTooltip(new Tooltip(resultItem));
                     }
                     if (result.has("count")) {
                         resultCount.getValueFactory().setValue(result.get("count").getAsInt());
                     }
                 }
-                
+
                 // Pattern and Key (Reverse engineer grid)
                 if (recipe.has("pattern") && recipe.has("key")) {
                     JsonArray pattern = recipe.getAsJsonArray("pattern");
                     JsonObject key = recipe.getAsJsonObject("key");
-                    
+
                     Map<Character, String> charToItem = new HashMap<>();
                     for (String k : key.keySet()) {
                         JsonObject itemObj = key.getAsJsonObject(k);
@@ -104,14 +136,15 @@ public class RecipeCreatorController {
                             charToItem.put(k.charAt(0), itemObj.get("item").getAsString());
                         }
                     }
-                    
+
                     // Clear grid
-                    for(int r=0; r<3; r++) for(int c=0; c<3; c++) {
-                        gridItems[r][c] = null;
-                        gridButtons[r][c].setText("");
-                        gridButtons[r][c].setTooltip(null);
-                    }
-                    
+                    for (int r = 0; r < 3; r++)
+                        for (int c = 0; c < 3; c++) {
+                            gridItems[r][c] = null;
+                            gridButtons[r][c].setText("");
+                            gridButtons[r][c].setTooltip(null);
+                        }
+
                     for (int r = 0; r < pattern.size() && r < 3; r++) {
                         String rowStr = pattern.get(r).getAsString();
                         for (int c = 0; c < rowStr.length() && c < 3; c++) {
@@ -126,7 +159,7 @@ public class RecipeCreatorController {
                     }
                 }
             }
-            
+
         } catch (Exception e) {
             showAlert("Error", "Failed to load recipe: " + e.getMessage());
         }
@@ -138,11 +171,11 @@ public class RecipeCreatorController {
                 Button btn = new Button();
                 btn.setPrefSize(50, 50);
                 btn.setStyle("-fx-base: #3c3f41;");
-                
+
                 int r = row;
                 int c = col;
                 btn.setOnAction(e -> handleSlotClick(r, c));
-                
+
                 gridButtons[row][col] = btn;
                 craftingGrid.add(btn, col, row);
             }
@@ -157,7 +190,7 @@ public class RecipeCreatorController {
     private void handleSlotClick(int row, int col) {
         String current = gridItems[row][col];
         String newItem = showItemSelectionDialog(current != null ? current : "");
-        
+
         if (newItem != null) {
             gridItems[row][col] = newItem;
             updateButtonVisual(gridButtons[row][col], newItem);
@@ -185,23 +218,23 @@ public class RecipeCreatorController {
             btn.setTooltip(null);
             return;
         }
-        
+
         // Strip namespace
         String name = item;
         if (name.contains(":")) {
             name = name.split(":")[1];
         }
-        
+
         // Create Icon
         StackPane icon = new StackPane();
         icon.setPrefSize(40, 40);
         icon.setMaxSize(40, 40); // Ensure it doesn't grow too much
-        
+
         // Background
         javafx.scene.shape.Rectangle bg = new javafx.scene.shape.Rectangle(40, 40);
         bg.setArcWidth(8);
         bg.setArcHeight(8);
-        
+
         // Generate color from hash
         int hash = item.hashCode();
         // Ensure positive
@@ -209,22 +242,24 @@ public class RecipeCreatorController {
         int r = (hash & 0xFF0000) >> 16;
         int g = (hash & 0x00FF00) >> 8;
         int b = hash & 0x0000FF;
-        
+
         // Make sure it's not too dark
         if (r < 50 && g < 50 && b < 50) {
-            r += 100; g += 100; b += 100;
+            r += 100;
+            g += 100;
+            b += 100;
         }
-        
+
         bg.setFill(javafx.scene.paint.Color.rgb(r, g, b));
-        
+
         // Text
         String text = name.length() > 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase();
         javafx.scene.text.Text label = new javafx.scene.text.Text(text);
         label.setFill(javafx.scene.paint.Color.WHITE);
         label.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(one-pass-box, black, 2, 0.5, 0, 0);");
-        
+
         icon.getChildren().addAll(bg, label);
-        
+
         btn.setGraphic(icon);
         btn.setText(""); // clear text
         btn.setTooltip(new Tooltip(item));
@@ -233,7 +268,8 @@ public class RecipeCreatorController {
     @FXML
     private void handlePreview() {
         String json = generateJson();
-        if (json == null) return;
+        if (json == null)
+            return;
 
         TextArea textArea = new TextArea(json);
         textArea.setEditable(false);
@@ -258,7 +294,8 @@ public class RecipeCreatorController {
         }
 
         String json = generateJson();
-        if (json == null) return;
+        if (json == null)
+            return;
 
         if (project == null) {
             showAlert("Error", "No project loaded.");
@@ -267,7 +304,8 @@ public class RecipeCreatorController {
 
         try {
             File recipesDir = new File(project.getRootPath(), "BP/recipes");
-            if (!recipesDir.exists()) recipesDir.mkdirs();
+            if (!recipesDir.exists())
+                recipesDir.mkdirs();
 
             String filename = identifierField.getText().replace(":", "_") + ".json";
             File file = new File(recipesDir, filename);
@@ -277,7 +315,7 @@ public class RecipeCreatorController {
             }
 
             showAlert("Success", "Recipe created: " + file.getName());
-            
+
             // Close window if opened as separate stage
             Stage stage = (Stage) identifierField.getScene().getWindow();
             stage.close();
@@ -290,7 +328,7 @@ public class RecipeCreatorController {
     private String generateJson() {
         String identifier = identifierField.getText().trim();
         String description = descriptionField.getText().trim();
-        
+
         if (identifier.isEmpty()) {
             showAlert("Validation Error", "Identifier cannot be empty.");
             return null;
@@ -315,7 +353,7 @@ public class RecipeCreatorController {
         char currentChar = 'A';
 
         // 3x3 Grid processing
-        // Simplify pattern: Remove empty rows/cols if possible? 
+        // Simplify pattern: Remove empty rows/cols if possible?
         // For now, let's output full 3x3 or trim empty lines.
         // User requested standard shaped recipe.
 
@@ -336,7 +374,8 @@ public class RecipeCreatorController {
             rows[r] = sb.toString();
         }
 
-        // Add pattern rows (skipping empty surrounding rows is better practice but full 3x3 is valid)
+        // Add pattern rows (skipping empty surrounding rows is better practice but full
+        // 3x3 is valid)
         for (String row : rows) {
             pattern.add(row);
         }

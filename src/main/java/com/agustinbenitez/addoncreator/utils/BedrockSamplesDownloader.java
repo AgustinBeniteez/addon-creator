@@ -37,6 +37,7 @@ public class BedrockSamplesDownloader {
     // Paths inside the ZIP (it usually starts with bedrock-samples-main/)
     private static final String ZIP_ROOT_PREFIX = "bedrock-samples-main/";
     private static final String RP_PREFIX = "resource_pack/";
+    private static final String BP_PREFIX = "behavior_pack/";
 
     public enum TextureCategory {
         ITEMS,
@@ -55,6 +56,10 @@ public class BedrockSamplesDownloader {
 
     public static List<String> fetchModelList() throws IOException {
         return fetchFileList("resource_pack/models/", ".json", ".geo.json");
+    }
+
+    public static List<String> fetchEntityList() throws IOException {
+        return fetchFileList("behavior_pack/entities/", ".json");
     }
 
     public static List<String> fetchSoundList() throws IOException {
@@ -108,16 +113,23 @@ public class BedrockSamplesDownloader {
      */
     public static void downloadSpecificFiles(List<String> relativePaths, Path projectRoot, Runnable onProgress) {
         Path rpRoot = projectRoot.resolve("RP");
+        Path bpRoot = projectRoot.resolve("BP");
         
         for (String relativePath : relativePaths) {
             try {
-                // Construct target path (remove resource_pack/ prefix to put in RP/)
-                String pathInsideRp = relativePath;
+                Path targetRoot = rpRoot;
+                String pathInsidePack = relativePath;
+                
+                // Determine target pack (RP or BP)
                 if (relativePath.startsWith("resource_pack/")) {
-                    pathInsideRp = relativePath.substring("resource_pack/".length());
+                    pathInsidePack = relativePath.substring("resource_pack/".length());
+                    targetRoot = rpRoot;
+                } else if (relativePath.startsWith("behavior_pack/")) {
+                    pathInsidePack = relativePath.substring("behavior_pack/".length());
+                    targetRoot = bpRoot;
                 }
                 
-                Path targetPath = rpRoot.resolve(pathInsideRp);
+                Path targetPath = targetRoot.resolve(pathInsidePack);
                 Files.createDirectories(targetPath.getParent());
                 
                 // Download file

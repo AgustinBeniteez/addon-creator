@@ -1,0 +1,185 @@
+.recipe-creator-root {
+    -fx-background-color: #1e1e1e;
+    -fx-font-family: 'Segoe UI', sans-serif;
+    -fx-padding: 20;
+}
+
+.recipe-creator-title {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.recipe-creator-label {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 14px;
+}
+
+.recipe-creator-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 4;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+    -fx-border-color: #555555;
+    -fx-border-radius: 4;
+}
+
+.recipe-creator-button:hover {
+    -fx-background-color: #4a4a4a;
+    -fx-border-color: #007acc;
+}
+
+.recipe-creator-primary-button {
+    -fx-background-color: #007acc;
+    -fx-text-fill: white;
+    -fx-background-radius: 4;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.recipe-creator-primary-button:hover {
+    -fx-background-color: #0062a3;
+}
+
+/* --- Text Fields --- */
+.text-field {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 4;
+    -fx-padding: 8;
+    -fx-border-color: #555555;
+    -fx-border-radius: 4;
+}
+
+.text-field:focused {
+    -fx-border-color: #007acc;
+    -fx-background-color: #252526;
+}
+
+/* --- Combo Box --- */
+.combo-box {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 4;
+    -fx-border-color: #555555;
+    -fx-border-radius: 4;
+}
+
+.combo-box .cell {
+    -fx-text-fill: white;
+    -fx-background-color: transparent;
+}
+
+.combo-box .arrow {
+    -fx-background-color: #cccccc;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.combo-box:hover {
+    -fx-background-color: #4a4a4a;
+    -fx-border-color: #007acc;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #252526;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.6), 8, 0.0, 0, 0);
+}
+
+.combo-box-popup .list-cell {
+    -fx-text-fill: white;
+    -fx-background-color: transparent;
+    -fx-padding: 8 10;
+}
+
+.combo-box-popup .list-cell:filled:selected,
+.combo-box-popup .list-cell:filled:hover {
+    -fx-background-color: #007acc;
+    -fx-text-fill: white;
+}
+
+/* --- Spinner --- */
+.spinner {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #555555;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.spinner .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-alignment: center-right;
+}
+
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 4;
+}
+
+.spinner .increment-arrow,
+.spinner .decrement-arrow {
+    -fx-background-color: #cccccc;
+}
+
+.spinner:hover {
+    -fx-border-color: #007acc;
+}
+
+/* --- Crafting Grid --- */
+.slot-button {
+    -fx-background-color: #2d2d30;
+    -fx-background-radius: 4;
+    -fx-border-color: #555555;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+    -fx-min-width: 48px;
+    -fx-min-height: 48px;
+    -fx-alignment: center;
+}
+
+.slot-button:hover {
+    -fx-border-color: #007acc;
+    -fx-background-color: #3e3e42;
+}
+
+.slot-button:pressed {
+    -fx-background-color: #007acc;
+}
+
+/* --- ScrollPane (if used) --- */
+.scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane>.viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:horizontal,
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #424242;
+    -fx-background-radius: 5em;
+}
+
+.scroll-bar:vertical .thumb:hover,
+.scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #4f4f4f;
+}
+
+/* --- Separator --- */
+.separator *.line {
+    -fx-background-color: #3e3e42;
+    -fx-border-style: solid;
+    -fx-border-width: 1;
+}

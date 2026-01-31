@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="700.0" prefWidth="1000.0" styleClass="entity-creator-root" stylesheets="@../css/entity-creator.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.agustinbenitez.addoncreator.ui.EntityCreatorController">
+   <center>
+      <SplitPane dividerPositions="0.4" style="-fx-background-color: transparent;">
+         <items>
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;">
+               <content>
+                  <VBox spacing="15.0" styleClass="entity-creator-settings">
+                     <children>
+                        <Label styleClass="entity-creator-title" text="Entity Settings" />
+                        
+                        <!-- Identifier Section -->
+                        <VBox spacing="5.0">
+                           <children>
+                              <Label styleClass="entity-creator-label" text="Identifier (e.g. namespace:entity_name)" />
+                              <TextField fx:id="identifierField" promptText="namespace:my_entity" />
+                           </children>
+                        </VBox>
+                        
+                        <Separator opacity="0.1" />
+                        
+                        <!-- Appearance Section -->
+                        <Label styleClass="entity-creator-section-title" text="Appearance" />
+                        <VBox spacing="5.0">
+                           <children>
+                              <Label styleClass="entity-creator-label" text="Base Model / Skin" />
+                              <HBox spacing="10.0">
+                                  <ComboBox fx:id="baseModelCombo" editable="true" maxWidth="1.7976931348623157E308" promptText="Select Minecraft Base Model..." HBox.hgrow="ALWAYS" />
+                                  <Button fx:id="btnRefreshModels" mnemonicParsing="false" onAction="#handleRefreshModels" styleClass="entity-creator-button" text="↻" />
+                              </HBox>
+                              <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleImportCustomModel" styleClass="entity-creator-button" text="Import Custom Model (.geo.json)" />
+                              <Label styleClass="entity-creator-label" text="* Selecting a model will download it from Mojang's repo if not present." wrapText="true" />
+                           </children>
+                        </VBox>
+      
+                        <Separator opacity="0.1" />
+                        
+                        <!-- Attributes Section -->
+                        <Label styleClass="entity-creator-section-title" text="Attributes" />
+                        <VBox spacing="10.0">
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <Label prefWidth="80.0" styleClass="entity-creator-label" text="Health:" />
+                                <Spinner fx:id="healthSpinner" editable="true" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <Label prefWidth="80.0" styleClass="entity-creator-label" text="Damage:" />
+                                <Spinner fx:id="damageSpinner" editable="true" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <Label prefWidth="80.0" styleClass="entity-creator-label" text="Scale:" />
+                                <Spinner fx:id="scaleSpinner" editable="true" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+                            </HBox>
+                        </VBox>
+      
+                        <Separator opacity="0.1" />
+                        
+                        <!-- Loot / Drops Section -->
+                        <Label styleClass="entity-creator-section-title" text="Loot / Drops" />
+                        <VBox spacing="10.0">
+                           <children>
+                              <TableView fx:id="lootTable" prefHeight="200.0">
+                                <columns>
+                                  <TableColumn fx:id="colItem" prefWidth="150.0" text="Item" />
+                                  <TableColumn fx:id="colMin" prefWidth="50.0" text="Min" />
+                                  <TableColumn fx:id="colMax" prefWidth="50.0" text="Max" />
+                                  <TableColumn fx:id="colChance" prefWidth="50.0" text="Chance (%)" />
+                                </columns>
+                                 <columnResizePolicy>
+                                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                 </columnResizePolicy>
+                              </TableView>
+                              <HBox spacing="10.0">
+                                 <children>
+                                    <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAddDrop" styleClass="entity-creator-button" text="Add Drop" HBox.hgrow="ALWAYS" />
+                                    <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleRemoveDrop" styleClass="entity-creator-button" text="Remove Selected" HBox.hgrow="ALWAYS" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+      
+                        <Separator opacity="0.1" />
+                        
+                        <!-- Texture Section -->
+                        <Label styleClass="entity-creator-section-title" text="Texture" />
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="entity-creator-texture-box">
+                           <children>
+                              <ImageView fx:id="texturePreview" fitHeight="100.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true" />
+                              <Button mnemonicParsing="false" onAction="#handleSelectTexture" styleClass="entity-creator-button" text="Select Texture" />
+                              <Label fx:id="textureNameLabel" styleClass="entity-creator-label" text="No texture selected" />
+                           </children>
+                        </VBox>
+      
+                        <Separator opacity="0.1" />
+                        
+                        <!-- Action Buttons -->
+                        <HBox spacing="10.0">
+                           <children>
+                              <Button fx:id="createButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleCreate" styleClass="entity-creator-primary-button" text="Create Entity" HBox.hgrow="ALWAYS" />
+                              <Button cancelButton="true" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleCancel" styleClass="entity-creator-button" text="Cancel" HBox.hgrow="ALWAYS" />
+                           </children>
+                           <padding>
+                              <Insets top="10.0" />
+                           </padding>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </content>
+            </ScrollPane>
+            
+            <!-- Right Side Preview -->
+            <Pane fx:id="previewContainer" style="-fx-background-color: #111;" />
+         </items>
+      </SplitPane>
+   </center>
+</BorderPane>

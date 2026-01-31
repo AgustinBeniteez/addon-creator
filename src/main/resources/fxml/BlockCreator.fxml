@@ -38,6 +38,7 @@
                             <HBox spacing="10">
                                 <RadioButton fx:id="rbCubeAll" text="Cube (All Faces Same)" selected="true"/>
                                 <RadioButton fx:id="rbCubeSided" text="Cube (Side/Top/Bottom)"/>
+                                <RadioButton fx:id="rbCubeSix" text="Cube (6 Faces)"/>
                                 <RadioButton fx:id="rbCustom" text="Custom Model"/>
                             </HBox>
 
@@ -67,6 +68,45 @@
                                             <Label text="Sides" styleClass="block-creator-label"/>
                                             <Button fx:id="btnTextureSide" text="Select" onAction="#handleSelectTextureSide" maxWidth="Infinity" styleClass="block-creator-button"/>
                                             <ImageView fx:id="imgTextureSide" fitWidth="48" fitHeight="48" preserveRatio="true"/>
+                                        </VBox>
+                                    </GridPane>
+                                </VBox>
+                                
+                                <!-- Cube 6 Faces -->
+                                <VBox fx:id="boxTextureSix" spacing="5" visible="false">
+                                    <GridPane hgap="10" vgap="10">
+                                        <!-- Top/Bottom -->
+                                        <VBox spacing="2" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                            <Label text="Up (Top)" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureUp" text="Select" onAction="#handleSelectTextureUp" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureUp" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                                        </VBox>
+                                        <VBox spacing="2" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                            <Label text="Down (Bottom)" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureDown" text="Select" onAction="#handleSelectTextureDown" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureDown" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                                        </VBox>
+                                        
+                                        <!-- Sides -->
+                                        <VBox spacing="2" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                            <Label text="North" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureNorth" text="Select" onAction="#handleSelectTextureNorth" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureNorth" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                                        </VBox>
+                                        <VBox spacing="2" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                            <Label text="South" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureSouth" text="Select" onAction="#handleSelectTextureSouth" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureSouth" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                                        </VBox>
+                                        <VBox spacing="2" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                                            <Label text="East" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureEast" text="Select" onAction="#handleSelectTextureEast" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureEast" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                                        </VBox>
+                                        <VBox spacing="2" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                                            <Label text="West" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureWest" text="Select" onAction="#handleSelectTextureWest" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureWest" fitWidth="32" fitHeight="32" preserveRatio="true"/>
                                         </VBox>
                                     </GridPane>
                                 </VBox>
@@ -118,11 +158,19 @@
                              <Label text="Sound Category" styleClass="block-creator-label"/>
                              <ComboBox fx:id="soundCategoryCombo" maxWidth="Infinity"/>
 
-                             <Label text="Dropped Item (Simple)" styleClass="block-creator-label"/>
-                             <TextField fx:id="dropItemField" promptText="minecraft:diamond"/>
-
-                             <Label text="Loot Table Path (Advanced)" styleClass="block-creator-label"/>
-                             <TextField fx:id="lootTableField" promptText="loot_tables/blocks/drop.json"/>
+                             <Label text="Loot Table (Drops)" styleClass="block-creator-label"/>
+                             <TableView fx:id="lootTable" prefHeight="200.0">
+                               <columns>
+                                 <TableColumn fx:id="colItem" prefWidth="150.0" text="Item" />
+                                 <TableColumn fx:id="colMin" prefWidth="50.0" text="Min" />
+                                 <TableColumn fx:id="colMax" prefWidth="50.0" text="Max" />
+                                 <TableColumn fx:id="colChance" prefWidth="75.0" text="Chance (%)" />
+                               </columns>
+                             </TableView>
+                             <HBox spacing="10.0">
+                               <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAddDrop" styleClass="block-creator-button" text="Add Drop" HBox.hgrow="ALWAYS" />
+                               <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleRemoveDrop" styleClass="block-creator-button" text="Remove Selected" HBox.hgrow="ALWAYS" />
+                             </HBox>
                         </VBox>
 
                     </VBox>
@@ -130,7 +178,7 @@
 
                 <HBox spacing="10" alignment="CENTER_RIGHT">
                     <Button text="Cancel" onAction="#handleCancel" styleClass="block-creator-button"/>
-                    <Button text="Create Block" onAction="#handleCreate" styleClass="block-creator-primary-button"/>
+                    <Button fx:id="createButton" text="Create Block" onAction="#handleCreate" styleClass="block-creator-primary-button"/>
                 </HBox>
             </VBox>
 

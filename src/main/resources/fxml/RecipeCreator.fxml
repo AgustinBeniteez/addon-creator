@@ -8,14 +8,11 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
       fx:controller="com.agustinbenitez.addoncreator.ui.RecipeCreatorController"
-      spacing="20" styleClass="ide-root" style="-fx-padding: 20; -fx-background-color: #2b2b2b;">
+      spacing="20" styleClass="recipe-creator-root" stylesheets="@../css/recipe-creator.css"
+      style="-fx-padding: 20; -fx-min-width: 800; -fx-min-height: 600;">
 
     <!-- Header -->
-    <Label text="Recipe Creator" textFill="WHITE">
-        <font>
-            <Font name="System Bold" size="24"/>
-        </font>
-    </Label>
+    <Label text="Recipe Creator" styleClass="recipe-creator-title"/>
 
     <Separator/>
 
@@ -26,17 +23,17 @@
             <ColumnConstraints hgrow="ALWAYS" />
         </columnConstraints>
 
-        <Label text="Identifier:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-        <TextField fx:id="identifierField" promptText="namespace:recipe_name" styleClass="text-field-dark" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        <Label text="Identifier:" styleClass="recipe-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="identifierField" promptText="namespace:recipe_name" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-        <Label text="Description:" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-        <TextField fx:id="descriptionField" promptText="Recipe Identifier" styleClass="text-field-dark" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+        <Label text="Description:" styleClass="recipe-creator-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <TextField fx:id="descriptionField" promptText="Recipe Identifier" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-        <Label text="Group (Optional):" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-        <TextField fx:id="groupField" promptText="item_group" styleClass="text-field-dark" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+        <Label text="Group (Optional):" styleClass="recipe-creator-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <TextField fx:id="groupField" promptText="item_group" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
 
-        <Label text="Type:" textFill="#cccccc" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-        <ComboBox fx:id="typeCombo" promptText="Select Type" maxWidth="Infinity" styleClass="combo-box-dark" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+        <Label text="Type:" styleClass="recipe-creator-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="typeCombo" promptText="Select Type" maxWidth="Infinity" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
     </GridPane>
 
     <Separator/>
@@ -45,21 +42,21 @@
     <HBox spacing="40" alignment="CENTER" VBox.vgrow="ALWAYS">
         <!-- Crafting Grid -->
         <VBox spacing="5" alignment="CENTER">
-            <Label text="Pattern" textFill="#cccccc"/>
-            <GridPane fx:id="craftingGrid" hgap="5" vgap="5" style="-fx-padding: 10; -fx-background-color: #3c3f41; -fx-background-radius: 5;">
+            <Label text="Pattern" styleClass="recipe-creator-label"/>
+            <GridPane fx:id="craftingGrid" hgap="5" vgap="5" style="-fx-padding: 10; -fx-background-color: #2d2d30; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-radius: 5;">
                 <!-- 3x3 Grid generated in Controller -->
             </GridPane>
         </VBox>
 
         <!-- Arrow -->
-        <SVGPath content="M 0 0 L 20 10 L 0 20 L 5 10 Z" fill="#cccccc" scaleX="2" scaleY="2"/>
+        <SVGPath content="M 0 0 L 20 10 L 0 20 L 5 10 Z" fill="#888888" scaleX="2" scaleY="2"/>
 
         <!-- Result -->
         <VBox spacing="5" alignment="CENTER">
-            <Label text="Result" textFill="#cccccc"/>
+            <Label text="Result" styleClass="recipe-creator-label"/>
             <Button fx:id="resultSlot" prefWidth="64" prefHeight="64" styleClass="slot-button"/>
             <HBox spacing="5" alignment="CENTER">
-                <Label text="Count:" textFill="#cccccc"/>
+                <Label text="Count:" styleClass="recipe-creator-label"/>
                 <Spinner fx:id="resultCount" prefWidth="80" editable="true"/>
             </HBox>
         </VBox>
@@ -69,8 +66,8 @@
 
     <!-- Action Buttons -->
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="Preview JSON" onAction="#handlePreview" styleClass="secondary-button"/>
-        <Button text="Create Recipe" onAction="#handleCreate" styleClass="primary-button"/>
+        <Button text="Preview JSON" onAction="#handlePreview" styleClass="recipe-creator-button"/>
+        <Button fx:id="createButton" text="Create Recipe" onAction="#handleCreate" styleClass="recipe-creator-primary-button"/>
     </HBox>
 
 </VBox>

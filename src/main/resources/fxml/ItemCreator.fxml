@@ -148,7 +148,7 @@
     <!-- Action Buttons -->
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <Button text="Cancel" onAction="#handleCancel" styleClass="item-creator-button"/>
-        <Button text="Create Item" onAction="#handleCreate" styleClass="item-creator-primary-button"/>
+        <Button fx:id="createButton" text="Create Item" onAction="#handleCreate" styleClass="item-creator-primary-button"/>
     </HBox>
 
 </VBox>

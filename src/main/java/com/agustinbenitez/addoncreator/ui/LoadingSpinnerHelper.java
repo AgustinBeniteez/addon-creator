@@ -3,13 +3,18 @@ package com.agustinbenitez.addoncreator.ui;
 import javafx.animation.*;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polygon;
+import javafx.scene.shape.Polyline;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.StrokeLineJoin;
 import javafx.util.Duration;
 
 /**
@@ -316,6 +321,154 @@ public class LoadingSpinnerHelper {
         return container;
     }
     
+    public static Node createEntityLoadingSpinner() {
+        // Container
+        StackPane container = new StackPane();
+        container.setMinSize(100, 100);
+        container.setPrefSize(100, 100);
+        container.setMaxSize(100, 100);
+
+        // 1. Rotating Circle
+        Circle circle = new Circle(40);
+        circle.setFill(Color.TRANSPARENT);
+        circle.setStroke(Color.web("#3498db"));
+        circle.setStrokeWidth(8);
+        circle.setStrokeLineCap(StrokeLineCap.ROUND);
+        circle.getStrokeDashArray().addAll(62.8, 188.4);
+
+        RotateTransition rotate = new RotateTransition(Duration.seconds(1), circle);
+        rotate.setByAngle(360);
+        rotate.setCycleCount(Animation.INDEFINITE);
+        rotate.setInterpolator(Interpolator.LINEAR);
+        rotate.play();
+
+        // 2. Person Icon
+        Group iconGroup = new Group();
+
+        // Head
+        Rectangle head = new Rectangle(44, 28, 12, 12);
+        head.setArcWidth(2);
+        head.setArcHeight(2);
+        head.setFill(Color.web("#3498db"));
+
+        // Body
+        Rectangle body = new Rectangle(42, 42, 16, 22);
+        body.setArcWidth(3);
+        body.setArcHeight(3);
+        body.setFill(Color.web("#3498db"));
+
+        // Left Arm
+        Rectangle leftArm = new Rectangle(36, 44, 4, 16);
+        leftArm.setArcWidth(2);
+        leftArm.setArcHeight(2);
+        leftArm.setFill(Color.web("#3498db"));
+
+        // Right Arm
+        Rectangle rightArm = new Rectangle(60, 44, 4, 16);
+        rightArm.setArcWidth(2);
+        rightArm.setArcHeight(2);
+        rightArm.setFill(Color.web("#3498db"));
+
+        // Left Leg
+        Rectangle leftLeg = new Rectangle(44, 66, 5, 12);
+        leftLeg.setArcWidth(2);
+        leftLeg.setArcHeight(2);
+        leftLeg.setFill(Color.web("#3498db"));
+
+        // Right Leg
+        Rectangle rightLeg = new Rectangle(51, 66, 5, 12);
+        rightLeg.setArcWidth(2);
+        rightLeg.setArcHeight(2);
+        rightLeg.setFill(Color.web("#3498db"));
+
+        iconGroup.getChildren().addAll(head, body, leftArm, rightArm, leftLeg, rightLeg);
+
+        // Opacity Animation
+        Timeline opacityTimeline = new Timeline(
+            new KeyFrame(Duration.ZERO, new KeyValue(iconGroup.opacityProperty(), 1.0)),
+            new KeyFrame(Duration.seconds(1), new KeyValue(iconGroup.opacityProperty(), 0.0)),
+            new KeyFrame(Duration.seconds(3), new KeyValue(iconGroup.opacityProperty(), 0.0)),
+            new KeyFrame(Duration.seconds(4), new KeyValue(iconGroup.opacityProperty(), 1.0))
+        );
+        opacityTimeline.setCycleCount(Animation.INDEFINITE);
+        opacityTimeline.play();
+
+        container.getChildren().addAll(circle, iconGroup);
+
+        return container;
+    }
+
+    public static Node create3DModelLoadingSpinner() {
+        // Container
+        StackPane container = new StackPane();
+        container.setMinSize(100, 100);
+        container.setPrefSize(100, 100);
+        container.setMaxSize(100, 100);
+
+        // 1. Rotating Circle
+        Circle circle = new Circle(40);
+        circle.setFill(Color.TRANSPARENT);
+        circle.setStroke(Color.web("#3498db"));
+        circle.setStrokeWidth(8);
+        circle.setStrokeLineCap(StrokeLineCap.ROUND);
+        circle.getStrokeDashArray().addAll(62.8, 188.4);
+
+        RotateTransition rotate = new RotateTransition(Duration.seconds(1), circle);
+        rotate.setByAngle(360);
+        rotate.setCycleCount(Animation.INDEFINITE);
+        rotate.setInterpolator(Interpolator.LINEAR);
+        rotate.play();
+
+        // 2. 3D Cube Icon
+        Group iconGroup = new Group();
+
+        // Top Face
+        Polygon topFace = new Polygon(
+            0.0, -14.0,
+            14.0, -7.0,
+            0.0, 0.0,
+            -14.0, -7.0
+        );
+        topFace.setFill(Color.web("#3498db"));
+        topFace.setOpacity(0.9);
+
+        // Left Face
+        Polygon leftFace = new Polygon(
+            -14.0, -7.0,
+            0.0, 0.0,
+            0.0, 18.0,
+            -14.0, 11.0
+        );
+        leftFace.setFill(Color.web("#3498db"));
+        leftFace.setOpacity(0.7);
+
+        // Right Face
+        Polygon rightFace = new Polygon(
+            14.0, -7.0,
+            0.0, 0.0,
+            0.0, 18.0,
+            14.0, 11.0
+        );
+        rightFace.setFill(Color.web("#3498db"));
+        rightFace.setOpacity(0.5);
+
+        iconGroup.getChildren().addAll(topFace, leftFace, rightFace);
+
+        // Opacity Animation
+        Timeline opacityTimeline = new Timeline(
+            new KeyFrame(Duration.ZERO, new KeyValue(iconGroup.opacityProperty(), 1.0)),
+            new KeyFrame(Duration.seconds(1), new KeyValue(iconGroup.opacityProperty(), 0.0)),
+            new KeyFrame(Duration.seconds(3), new KeyValue(iconGroup.opacityProperty(), 0.0)),
+            new KeyFrame(Duration.seconds(4), new KeyValue(iconGroup.opacityProperty(), 1.0))
+        );
+        opacityTimeline.setCycleCount(Animation.INDEFINITE);
+        opacityTimeline.play();
+
+        container.getChildren().addAll(circle, iconGroup);
+
+        return container;
+    }
+
     public static Node createLoadingOverlay(String message, String type) {
         Node spinner;
         switch (type.toLowerCase()) {
@@ -333,6 +486,18 @@ public class LoadingSpinnerHelper {
             case "script":
             case "scripts":
                 spinner = createCodeLoadingSpinner();
+                break;
+            case "entities":
+            case "entidades":
+            case "entity":
+            case "entidad":
+                spinner = createEntityLoadingSpinner();
+                break;
+            case "models3d":
+            case "modelos3d":
+            case "3dmodels":
+            case "3dmodel":
+                spinner = create3DModelLoadingSpinner();
                 break;
             case "textures":
             case "texturas":
@@ -367,7 +532,7 @@ public class LoadingSpinnerHelper {
         rotate.play();
 
         // 2. Bouncing Arrow (Polyline)
-        javafx.scene.shape.Polyline arrow = new javafx.scene.shape.Polyline(
+        Polyline arrow = new Polyline(
             50.0, 30.0,
             50.0, 60.0,
             43.0, 53.0,
@@ -378,7 +543,7 @@ public class LoadingSpinnerHelper {
         arrow.setStroke(Color.web("#3498db"));
         arrow.setStrokeWidth(6);
         arrow.setStrokeLineCap(StrokeLineCap.ROUND);
-        arrow.setStrokeLineJoin(javafx.scene.shape.StrokeLineJoin.ROUND);
+        arrow.setStrokeLineJoin(StrokeLineJoin.ROUND);
 
         // Translate Animation
         TranslateTransition bounce = new TranslateTransition(Duration.seconds(1), arrow);
@@ -388,7 +553,7 @@ public class LoadingSpinnerHelper {
         bounce.setCycleCount(Animation.INDEFINITE);
         bounce.play();
         
-        javafx.scene.Group svgGroup = new javafx.scene.Group(circle, arrow);
+        Group svgGroup = new Group(circle, arrow);
         circle.setCenterX(50);
         circle.setCenterY(50);
         

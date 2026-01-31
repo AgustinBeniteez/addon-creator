@@ -39,9 +39,80 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
+import javafx.collections.FXCollections;
+import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.converter.IntegerStringConverter;
+import javafx.util.converter.DoubleStringConverter;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+
 public class BlockCreatorController {
 
     private static final Logger logger = LoggerFactory.getLogger(BlockCreatorController.class);
+
+    public static class LootDrop {
+        private final SimpleStringProperty item;
+        private final SimpleIntegerProperty min;
+        private final SimpleIntegerProperty max;
+        private final SimpleDoubleProperty chance;
+
+        public LootDrop(String item, int min, int max, double chance) {
+            this.item = new SimpleStringProperty(item);
+            this.min = new SimpleIntegerProperty(min);
+            this.max = new SimpleIntegerProperty(max);
+            this.chance = new SimpleDoubleProperty(chance);
+        }
+
+        public String getItem() {
+            return item.get();
+        }
+
+        public void setItem(String v) {
+            item.set(v);
+        }
+
+        public SimpleStringProperty itemProperty() {
+            return item;
+        }
+
+        public int getMin() {
+            return min.get();
+        }
+
+        public void setMin(int v) {
+            min.set(v);
+        }
+
+        public SimpleIntegerProperty minProperty() {
+            return min;
+        }
+
+        public int getMax() {
+            return max.get();
+        }
+
+        public void setMax(int v) {
+            max.set(v);
+        }
+
+        public SimpleIntegerProperty maxProperty() {
+            return max;
+        }
+
+        public double getChance() {
+            return chance.get();
+        }
+
+        public void setChance(double v) {
+            chance.set(v);
+        }
+
+        public SimpleDoubleProperty chanceProperty() {
+            return chance;
+        }
+    }
 
     @FXML
     private TextField identifierField;
@@ -49,6 +120,8 @@ public class BlockCreatorController {
     private RadioButton rbCubeAll;
     @FXML
     private RadioButton rbCubeSided;
+    @FXML
+    private RadioButton rbCubeSix;
     @FXML
     private RadioButton rbCustom;
     @FXML
@@ -58,6 +131,8 @@ public class BlockCreatorController {
     private VBox boxTextureAll;
     @FXML
     private Button btnTextureAll;
+    @FXML
+    private Button createButton;
     @FXML
     private ImageView imgTextureAll;
 
@@ -75,6 +150,33 @@ public class BlockCreatorController {
     private Button btnTextureSide;
     @FXML
     private ImageView imgTextureSide;
+
+    @FXML
+    private VBox boxTextureSix;
+    @FXML
+    private Button btnTextureUp;
+    @FXML
+    private ImageView imgTextureUp;
+    @FXML
+    private Button btnTextureDown;
+    @FXML
+    private ImageView imgTextureDown;
+    @FXML
+    private Button btnTextureNorth;
+    @FXML
+    private ImageView imgTextureNorth;
+    @FXML
+    private Button btnTextureSouth;
+    @FXML
+    private ImageView imgTextureSouth;
+    @FXML
+    private Button btnTextureEast;
+    @FXML
+    private ImageView imgTextureEast;
+    @FXML
+    private Button btnTextureWest;
+    @FXML
+    private ImageView imgTextureWest;
 
     @FXML
     private VBox boxCustomModel;
@@ -98,11 +200,17 @@ public class BlockCreatorController {
     @FXML
     private ComboBox<String> soundCategoryCombo;
     @FXML
-    private TextField lootTableField;
+    private TableView<LootDrop> lootTable;
+    @FXML
+    private TableColumn<LootDrop, String> colItem;
+    @FXML
+    private TableColumn<LootDrop, Integer> colMin;
+    @FXML
+    private TableColumn<LootDrop, Integer> colMax;
+    @FXML
+    private TableColumn<LootDrop, Double> colChance;
     @FXML
     private ComboBox<String> toolCombo;
-    @FXML
-    private TextField dropItemField;
 
     @FXML
     private Pane previewContainer;
@@ -112,8 +220,17 @@ public class BlockCreatorController {
     private File fileTextureTop;
     private File fileTextureBottom;
     private File fileTextureSide;
+
+    private File fileTextureUp;
+    private File fileTextureDown;
+    private File fileTextureNorth;
+    private File fileTextureSouth;
+    private File fileTextureEast;
+    private File fileTextureWest;
+
     private File fileTextureCustom;
     private File fileCustomModel;
+    private String customModelGeometryId;
 
     // 3D Preview
     private SubScene subScene;
@@ -131,12 +248,35 @@ public class BlockCreatorController {
 
     public void setProject(Project project) {
         this.project = project;
+        if (project != null) {
+            String ns = findNamespace(project);
+            if (ns != null && identifierField.getText().isEmpty()) {
+                identifierField.setText(ns + ":");
+                identifierField.positionCaret(ns.length() + 1);
+            }
+        }
+    }
+
+    private String findNamespace(Project proj) {
+        // Try to find a namespace from existing entities
+        if (proj.getEntities() != null && !proj.getEntities().isEmpty()) {
+            for (String e : proj.getEntities()) {
+                if (e.contains(":"))
+                    return e.split(":")[0];
+            }
+        }
+        // Fallback to project name (sanitized)
+        if (proj.getName() != null) {
+            return proj.getName().toLowerCase().replaceAll("[^a-z0-9_]", "_");
+        }
+        return "namespace";
     }
 
     private void initializeUI() {
         modelTypeGroup = new ToggleGroup();
         rbCubeAll.setToggleGroup(modelTypeGroup);
         rbCubeSided.setToggleGroup(modelTypeGroup);
+        rbCubeSix.setToggleGroup(modelTypeGroup);
         rbCustom.setToggleGroup(modelTypeGroup);
 
         modelTypeGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
@@ -158,7 +298,43 @@ public class BlockCreatorController {
 
         mapColorPicker.setValue(Color.GRAY);
 
+        // Initialize Loot Table
+        colItem.setCellValueFactory(new PropertyValueFactory<>("item"));
+        colMin.setCellValueFactory(new PropertyValueFactory<>("min"));
+        colMax.setCellValueFactory(new PropertyValueFactory<>("max"));
+        colChance.setCellValueFactory(new PropertyValueFactory<>("chance"));
+
+        lootTable.setEditable(true);
+
+        colItem.setCellFactory(TextFieldTableCell.forTableColumn());
+        colItem.setOnEditCommit(e -> e.getRowValue().setItem(e.getNewValue()));
+
+        colMin.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        colMin.setOnEditCommit(e -> e.getRowValue().setMin(e.getNewValue()));
+
+        colMax.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        colMax.setOnEditCommit(e -> e.getRowValue().setMax(e.getNewValue()));
+
+        colChance.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
+        colChance.setOnEditCommit(e -> e.getRowValue().setChance(e.getNewValue()));
+
         updateVisibility();
+    }
+
+    @FXML
+    private void handleAddDrop() {
+        ItemSelectionDialog dialog = new ItemSelectionDialog(project, "");
+        dialog.showAndWait().ifPresent(selectedItem -> {
+            lootTable.getItems().add(new LootDrop(selectedItem, 1, 1, 100.0));
+        });
+    }
+
+    @FXML
+    private void handleRemoveDrop() {
+        LootDrop selected = lootTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            lootTable.getItems().remove(selected);
+        }
     }
 
     private void updateVisibility() {
@@ -167,6 +343,9 @@ public class BlockCreatorController {
 
         boxTextureSided.setVisible(rbCubeSided.isSelected());
         boxTextureSided.setManaged(rbCubeSided.isSelected());
+
+        boxTextureSix.setVisible(rbCubeSix.isSelected());
+        boxTextureSix.setManaged(rbCubeSix.isSelected());
 
         boxCustomModel.setVisible(rbCustom.isSelected());
         boxCustomModel.setManaged(rbCustom.isSelected());
@@ -195,6 +374,10 @@ public class BlockCreatorController {
 
         // Rotation
         modelGroup.getTransforms().addAll(rotateX, rotateY);
+
+        // Default Isometric View
+        rotateX.setAngle(30);
+        rotateY.setAngle(45);
 
         subScene.setOnMousePressed(event -> {
             mouseOldX = event.getSceneX();
@@ -230,63 +413,21 @@ public class BlockCreatorController {
         modelGroup.getChildren().clear();
 
         if (rbCubeAll.isSelected()) {
-            Box box = new Box(16, 16, 16);
-            PhongMaterial material = new PhongMaterial();
-            if (fileTextureAll != null) {
-                material.setDiffuseMap(loadTexture(fileTextureAll));
-            } else {
-                material.setDiffuseColor(Color.GRAY);
-            }
-            box.setMaterial(material);
-            modelGroup.getChildren().add(box);
+            modelGroup.getChildren().add(com.agustinbenitez.addoncreator.utils.BlockGeometryFactory.createCubeAll(16,
+                    loadTexture(fileTextureAll)));
         } else if (rbCubeSided.isSelected()) {
-            // Build a cube from 6 planes to support different textures
-            double size = 16;
-            double half = size / 2;
-
-            PhongMaterial matTop = new PhongMaterial(Color.GRAY);
-            if (fileTextureTop != null)
-                matTop.setDiffuseMap(loadTexture(fileTextureTop));
-
-            PhongMaterial matBottom = new PhongMaterial(Color.GRAY);
-            if (fileTextureBottom != null)
-                matBottom.setDiffuseMap(loadTexture(fileTextureBottom));
-
-            PhongMaterial matSide = new PhongMaterial(Color.GRAY);
-            if (fileTextureSide != null)
-                matSide.setDiffuseMap(loadTexture(fileTextureSide));
-
-            // Top
-            Box top = new Box(size, 0.1, size);
-            top.setTranslateY(-half);
-            top.setMaterial(matTop);
-
-            // Bottom
-            Box bottom = new Box(size, 0.1, size);
-            bottom.setTranslateY(half);
-            bottom.setMaterial(matBottom);
-
-            // North
-            Box north = new Box(size, size, 0.1);
-            north.setTranslateZ(half);
-            north.setMaterial(matSide);
-
-            // South
-            Box south = new Box(size, size, 0.1);
-            south.setTranslateZ(-half);
-            south.setMaterial(matSide);
-
-            // East
-            Box east = new Box(0.1, size, size);
-            east.setTranslateX(half);
-            east.setMaterial(matSide);
-
-            // West
-            Box west = new Box(0.1, size, size);
-            west.setTranslateX(-half);
-            west.setMaterial(matSide);
-
-            modelGroup.getChildren().addAll(top, bottom, north, south, east, west);
+            modelGroup.getChildren().add(com.agustinbenitez.addoncreator.utils.BlockGeometryFactory.createCubeSided(16,
+                    loadTexture(fileTextureTop),
+                    loadTexture(fileTextureBottom),
+                    loadTexture(fileTextureSide)));
+        } else if (rbCubeSix.isSelected()) {
+            modelGroup.getChildren().add(com.agustinbenitez.addoncreator.utils.BlockGeometryFactory.createCubeSix(16,
+                    loadTexture(fileTextureUp),
+                    loadTexture(fileTextureDown),
+                    loadTexture(fileTextureNorth),
+                    loadTexture(fileTextureSouth),
+                    loadTexture(fileTextureEast),
+                    loadTexture(fileTextureWest)));
         } else if (rbCustom.isSelected()) {
             if (fileCustomModel != null) {
                 try {
@@ -309,16 +450,18 @@ public class BlockCreatorController {
     private void loadCustomModel(File jsonFile) throws IOException {
         Image texture = null;
         if (fileTextureCustom != null) {
-             texture = loadTexture(fileTextureCustom);
+            texture = loadTexture(fileTextureCustom);
         }
-        
-        Group loadedModel = com.agustinbenitez.addoncreator.utils.BedrockModelLoader.loadModel(jsonFile, texture);
-        
+
+        Group loadedModel = com.agustinbenitez.addoncreator.utils.BedrockModelLoader.loadModel(jsonFile,
+                customModelGeometryId, texture);
+
         // Center the model roughly
-        // Bedrock models are usually centered around origin, but JavaFX 3D origin is at center of container?
+        // Bedrock models are usually centered around origin, but JavaFX 3D origin is at
+        // center of container?
         // In initialize3D, we set camera TranslateZ -50.
         // And we rotate modelGroup.
-        
+
         // Bedrock models can be large or offset.
         // Let's just add it.
         modelGroup.getChildren().add(loadedModel);
@@ -346,7 +489,7 @@ public class BlockCreatorController {
             }
             if (components.has("minecraft:friction")) {
                 JsonElement elem = components.get("minecraft:friction");
-                 if (elem.isJsonPrimitive()) {
+                if (elem.isJsonPrimitive()) {
                     frictionSpinner.getValueFactory().setValue(elem.getAsDouble());
                 } else if (elem.isJsonObject() && elem.getAsJsonObject().has("value")) {
                     frictionSpinner.getValueFactory().setValue(elem.getAsJsonObject().get("value").getAsDouble());
@@ -354,18 +497,19 @@ public class BlockCreatorController {
             }
             if (components.has("minecraft:light_emission")) {
                 JsonElement elem = components.get("minecraft:light_emission");
-                 if (elem.isJsonPrimitive()) {
+                if (elem.isJsonPrimitive()) {
                     lightEmissionSpinner.getValueFactory().setValue(elem.getAsInt());
                 } else if (elem.isJsonObject() && elem.getAsJsonObject().has("value")) {
                     lightEmissionSpinner.getValueFactory().setValue(elem.getAsJsonObject().get("value").getAsInt());
                 }
             }
             if (components.has("minecraft:explosion_resistance")) {
-                 JsonElement elem = components.get("minecraft:explosion_resistance");
-                 if (elem.isJsonPrimitive()) {
+                JsonElement elem = components.get("minecraft:explosion_resistance");
+                if (elem.isJsonPrimitive()) {
                     explosionResistanceSpinner.getValueFactory().setValue(elem.getAsDouble());
                 } else if (elem.isJsonObject() && elem.getAsJsonObject().has("value")) {
-                    explosionResistanceSpinner.getValueFactory().setValue(elem.getAsJsonObject().get("value").getAsDouble());
+                    explosionResistanceSpinner.getValueFactory()
+                            .setValue(elem.getAsJsonObject().get("value").getAsDouble());
                 }
             }
             if (components.has("minecraft:map_color")) {
@@ -373,13 +517,75 @@ public class BlockCreatorController {
                 if (elem.isJsonPrimitive()) {
                     mapColorPicker.setValue(Color.web(elem.getAsString()));
                 } else if (elem.isJsonObject() && elem.getAsJsonObject().has("value")) {
-                     mapColorPicker.setValue(Color.web(elem.getAsJsonObject().get("value").getAsString()));
+                    mapColorPicker.setValue(Color.web(elem.getAsJsonObject().get("value").getAsString()));
                 }
             }
             if (components.has("minecraft:loot")) {
                 JsonElement elem = components.get("minecraft:loot");
+                String lootTablePath = null;
                 if (elem.isJsonPrimitive()) {
-                    lootTableField.setText(elem.getAsString());
+                    lootTablePath = elem.getAsString();
+                }
+
+                if (lootTablePath != null) {
+                    File lootFile = new File(project.getRootPath(), "BP/" + lootTablePath);
+                    if (lootFile.exists()) {
+                        try {
+                            JsonObject lootRoot = JsonParser.parseReader(new FileReader(lootFile)).getAsJsonObject();
+                            if (lootRoot.has("pools")) {
+                                JsonArray pools = lootRoot.getAsJsonArray("pools");
+                                if (pools.size() > 0) {
+                                    JsonObject pool = pools.get(0).getAsJsonObject();
+                                    if (pool.has("entries")) {
+                                        JsonArray entries = pool.getAsJsonArray("entries");
+                                        for (JsonElement je : entries) {
+                                            JsonObject entry = je.getAsJsonObject();
+                                            String item = "";
+                                            int min = 1;
+                                            int max = 1;
+                                            double chance = 100.0;
+
+                                            if (entry.has("name")) {
+                                                item = entry.get("name").getAsString();
+                                            }
+
+                                            if (entry.has("functions")) {
+                                                JsonArray funcs = entry.getAsJsonArray("functions");
+                                                for (JsonElement fe : funcs) {
+                                                    JsonObject func = fe.getAsJsonObject();
+                                                    if (func.has("function")
+                                                            && "set_count".equals(func.get("function").getAsString())) {
+                                                        JsonObject count = func.getAsJsonObject("count");
+                                                        if (count.has("min"))
+                                                            min = count.get("min").getAsInt();
+                                                        if (count.has("max"))
+                                                            max = count.get("max").getAsInt();
+                                                    }
+                                                }
+                                            }
+
+                                            if (entry.has("conditions")) {
+                                                JsonArray conds = entry.getAsJsonArray("conditions");
+                                                for (JsonElement ce : conds) {
+                                                    JsonObject cond = ce.getAsJsonObject();
+                                                    if (cond.has("condition") && "random_chance"
+                                                            .equals(cond.get("condition").getAsString())) {
+                                                        chance = cond.get("chance").getAsDouble() * 100.0;
+                                                    }
+                                                }
+                                            }
+
+                                            if (!item.isEmpty()) {
+                                                lootTable.getItems().add(new LootDrop(item, min, max, chance));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            logger.error("Failed to parse loot table", e);
+                        }
+                    }
                 }
             }
 
@@ -387,59 +593,108 @@ public class BlockCreatorController {
             String name = fullId.contains(":") ? fullId.split(":")[1] : fullId;
             File rpTexturesDir = new File(project.getRootPath(), "RP/textures/blocks");
 
-            // Try to resolve specific sided textures first
-            File texTop = resolveTextureFromConfig(fullId, "up");
-            if (texTop == null) texTop = findTextureFile(rpTexturesDir, name + "_top");
+            // Try to resolve textures
+            // We need to check if it's sided, 6-faced, or all-same.
+            // Check resolveTextureFromConfig logic again. It checks blocks.json.
 
-            if (texTop != null && texTop.exists()) {
-                rbCubeSided.setSelected(true);
-                fileTextureTop = texTop;
-                imgTextureTop.setImage(loadTexture(texTop));
-                imgTextureTop.setSmooth(false);
+            // Let's inspect blocks.json directly if possible or infer from keys.
+            // But resolveTextureFromConfig returns a FILE given a key suffix.
 
-                File texBottom = resolveTextureFromConfig(fullId, "down");
-                if (texBottom == null) texBottom = findTextureFile(rpTexturesDir, name + "_bottom");
-                if (texBottom != null && texBottom.exists()) {
-                    fileTextureBottom = texBottom;
-                    imgTextureBottom.setImage(loadTexture(texBottom));
-                    imgTextureBottom.setSmooth(false);
+            // Check for 6-faced keys
+            File texUp = resolveTextureFromConfig(fullId, "up");
+            File texDown = resolveTextureFromConfig(fullId, "down");
+            File texNorth = resolveTextureFromConfig(fullId, "north");
+            File texSouth = resolveTextureFromConfig(fullId, "south");
+            File texEast = resolveTextureFromConfig(fullId, "east");
+            File texWest = resolveTextureFromConfig(fullId, "west");
+
+            // Check for Sided keys (up/down/side)
+            File texSide = resolveTextureFromConfig(fullId, "side");
+
+            // Check for All (null suffix)
+            File texAll = resolveTextureFromConfig(fullId, null);
+
+            if (texNorth != null || texSouth != null || texEast != null || texWest != null) {
+                // It's 6-faced (or partial 6-faced)
+                rbCubeSix.setSelected(true);
+
+                if (texUp != null) {
+                    fileTextureUp = texUp;
+                    imgTextureUp.setImage(loadTexture(texUp));
+                    imgTextureUp.setSmooth(false);
+                }
+                if (texDown != null) {
+                    fileTextureDown = texDown;
+                    imgTextureDown.setImage(loadTexture(texDown));
+                    imgTextureDown.setSmooth(false);
+                }
+                if (texNorth != null) {
+                    fileTextureNorth = texNorth;
+                    imgTextureNorth.setImage(loadTexture(texNorth));
+                    imgTextureNorth.setSmooth(false);
+                }
+                if (texSouth != null) {
+                    fileTextureSouth = texSouth;
+                    imgTextureSouth.setImage(loadTexture(texSouth));
+                    imgTextureSouth.setSmooth(false);
+                }
+                if (texEast != null) {
+                    fileTextureEast = texEast;
+                    imgTextureEast.setImage(loadTexture(texEast));
+                    imgTextureEast.setSmooth(false);
+                }
+                if (texWest != null) {
+                    fileTextureWest = texWest;
+                    imgTextureWest.setImage(loadTexture(texWest));
+                    imgTextureWest.setSmooth(false);
                 }
 
-                File texSide = resolveTextureFromConfig(fullId, "side");
-                if (texSide == null) texSide = findTextureFile(rpTexturesDir, name + "_side");
-                if (texSide != null && texSide.exists()) {
+            } else if (texSide != null || (texUp != null && texDown != null)) {
+                // It's Sided (Top/Bottom/Side)
+                rbCubeSided.setSelected(true);
+
+                if (texUp != null) {
+                    fileTextureTop = texUp;
+                    imgTextureTop.setImage(loadTexture(texUp));
+                    imgTextureTop.setSmooth(false);
+                }
+                if (texDown != null) {
+                    fileTextureBottom = texDown;
+                    imgTextureBottom.setImage(loadTexture(texDown));
+                    imgTextureBottom.setSmooth(false);
+                }
+                if (texSide != null) {
                     fileTextureSide = texSide;
                     imgTextureSide.setImage(loadTexture(texSide));
                     imgTextureSide.setSmooth(false);
                 }
-            } else {
-                // Not sided. Try generic/all.
-                File texAll = resolveTextureFromConfig(fullId, null);
-                if (texAll == null) texAll = findTextureFile(rpTexturesDir, name);
 
-                if (texAll != null && texAll.exists()) {
-                    // Check geometry
-                    boolean isCustom = false;
-                    if (components.has("minecraft:geometry")) {
-                        String geoId = components.get("minecraft:geometry").getAsString();
-                        if (!geoId.equals("geometry.box")) {
-                            isCustom = true;
-                            // Find model file
-                            File modelFile = findGeometryFile(geoId);
-                            if (modelFile != null) {
-                                fileCustomModel = modelFile;
-                                modelPathField.setText(modelFile.getName());
-                            }
+            } else {
+                // Check geometry before assuming Cube All
+                boolean isCustom = false;
+                if (components.has("minecraft:geometry")) {
+                    String geoId = components.get("minecraft:geometry").getAsString();
+                    if (!geoId.equals("geometry.box")) {
+                        isCustom = true;
+                        customModelGeometryId = geoId;
+                        File modelFile = findGeometryFile(geoId);
+                        if (modelFile != null) {
+                            fileCustomModel = modelFile;
+                            modelPathField.setText(modelFile.getName());
                         }
                     }
+                }
 
-                    if (isCustom) {
-                        rbCustom.setSelected(true);
+                if (isCustom) {
+                    rbCustom.setSelected(true);
+                    if (texAll != null) {
                         fileTextureCustom = texAll;
                         imgTextureCustom.setImage(loadTexture(texAll));
                         imgTextureCustom.setSmooth(false);
-                    } else {
-                        rbCubeAll.setSelected(true);
+                    }
+                } else {
+                    rbCubeAll.setSelected(true);
+                    if (texAll != null) {
                         fileTextureAll = texAll;
                         imgTextureAll.setImage(loadTexture(texAll));
                         imgTextureAll.setSmooth(false);
@@ -448,6 +703,12 @@ public class BlockCreatorController {
             }
 
             updatePreview();
+
+            updatePreview();
+
+            if (createButton != null) {
+                createButton.setText("Save Changes");
+            }
 
         } catch (Exception e) {
             logger.error("Error loading block data", e);
@@ -480,6 +741,42 @@ public class BlockCreatorController {
     }
 
     @FXML
+    private void handleSelectTextureUp() {
+        fileTextureUp = selectImage(imgTextureUp);
+        updatePreview();
+    }
+
+    @FXML
+    private void handleSelectTextureDown() {
+        fileTextureDown = selectImage(imgTextureDown);
+        updatePreview();
+    }
+
+    @FXML
+    private void handleSelectTextureNorth() {
+        fileTextureNorth = selectImage(imgTextureNorth);
+        updatePreview();
+    }
+
+    @FXML
+    private void handleSelectTextureSouth() {
+        fileTextureSouth = selectImage(imgTextureSouth);
+        updatePreview();
+    }
+
+    @FXML
+    private void handleSelectTextureEast() {
+        fileTextureEast = selectImage(imgTextureEast);
+        updatePreview();
+    }
+
+    @FXML
+    private void handleSelectTextureWest() {
+        fileTextureWest = selectImage(imgTextureWest);
+        updatePreview();
+    }
+
+    @FXML
     private void handleSelectTextureCustom() {
         fileTextureCustom = selectImage(imgTextureCustom);
         updatePreview();
@@ -504,15 +801,17 @@ public class BlockCreatorController {
                 // Check if small (e.g. <= 64px) and upscale to ensure sharpness
                 int w = bImg.getWidth();
                 int h = bImg.getHeight();
-                
+
                 if (w <= 128 || h <= 128) {
                     int scale = 16; // Upscale significantly
                     int newW = w * scale;
                     int newH = h * scale;
-                    
-                    java.awt.image.BufferedImage scaledImg = new java.awt.image.BufferedImage(newW, newH, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+
+                    java.awt.image.BufferedImage scaledImg = new java.awt.image.BufferedImage(newW, newH,
+                            java.awt.image.BufferedImage.TYPE_INT_ARGB);
                     java.awt.Graphics2D g2 = scaledImg.createGraphics();
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                            java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                     g2.drawImage(bImg, 0, 0, newW, newH, null);
                     g2.dispose();
                     bImg = scaledImg;
@@ -522,7 +821,7 @@ public class BlockCreatorController {
                 javax.imageio.ImageIO.write(bImg, "png", out);
                 return new Image(new java.io.ByteArrayInputStream(out.toByteArray()), 0, 0, true, false);
             }
-            
+
         } catch (Exception e) {
             logger.error("Failed to load texture: " + file.getName(), e);
         }
@@ -596,6 +895,51 @@ public class BlockCreatorController {
         handleCancel();
     }
 
+    private void createLootTable(String blockName) {
+        JsonObject root = new JsonObject();
+        JsonArray pools = new JsonArray();
+        JsonObject pool = new JsonObject();
+        pool.addProperty("rolls", 1);
+
+        JsonArray entries = new JsonArray();
+
+        for (LootDrop drop : lootTable.getItems()) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("type", "item");
+            entry.addProperty("name", drop.getItem());
+            entry.addProperty("weight", 1);
+
+            JsonArray functions = new JsonArray();
+            JsonObject setCount = new JsonObject();
+            setCount.addProperty("function", "set_count");
+            JsonObject count = new JsonObject();
+            count.addProperty("min", drop.getMin());
+            count.addProperty("max", drop.getMax());
+            setCount.add("count", count);
+            functions.add(setCount);
+            entry.add("functions", functions);
+
+            if (drop.getChance() < 100.0) {
+                JsonArray conditions = new JsonArray();
+                JsonObject cond = new JsonObject();
+                cond.addProperty("condition", "random_chance");
+                cond.addProperty("chance", drop.getChance() / 100.0);
+                conditions.add(cond);
+                entry.add("conditions", conditions);
+            }
+            entries.add(entry);
+        }
+
+        pool.add("entries", entries);
+        pools.add(pool);
+        root.add("pools", pools);
+
+        File lootFile = new File(project.getRootPath(), "BP/loot_tables/blocks/" + blockName + ".json");
+        if (lootFile.getParentFile() != null)
+            lootFile.getParentFile().mkdirs();
+        saveJson(root, lootFile);
+    }
+
     private void createBPBlock(String fullId, String namespace, String name) {
         JsonObject root = new JsonObject();
         root.addProperty("format_version", "1.20.0");
@@ -618,8 +962,9 @@ public class BlockCreatorController {
         components.addProperty("minecraft:map_color", hex);
 
         // Loot Table
-        if (lootTableField.getText() != null && !lootTableField.getText().isEmpty()) {
-            components.addProperty("minecraft:loot", lootTableField.getText());
+        if (!lootTable.getItems().isEmpty()) {
+            createLootTable(name);
+            components.addProperty("minecraft:loot", "loot_tables/blocks/" + name + ".json");
         }
 
         // Geometry (if custom)
@@ -705,6 +1050,19 @@ public class BlockCreatorController {
                 String ext = getExtension(fileTextureSide);
                 copyFile(fileTextureSide, new File(texturesDir, textureNameSide + ext));
             }
+        } else if (rbCubeSix.isSelected()) {
+            if (fileTextureUp != null)
+                copyFile(fileTextureUp, new File(texturesDir, name + "_up" + getExtension(fileTextureUp)));
+            if (fileTextureDown != null)
+                copyFile(fileTextureDown, new File(texturesDir, name + "_down" + getExtension(fileTextureDown)));
+            if (fileTextureNorth != null)
+                copyFile(fileTextureNorth, new File(texturesDir, name + "_north" + getExtension(fileTextureNorth)));
+            if (fileTextureSouth != null)
+                copyFile(fileTextureSouth, new File(texturesDir, name + "_south" + getExtension(fileTextureSouth)));
+            if (fileTextureEast != null)
+                copyFile(fileTextureEast, new File(texturesDir, name + "_east" + getExtension(fileTextureEast)));
+            if (fileTextureWest != null)
+                copyFile(fileTextureWest, new File(texturesDir, name + "_west" + getExtension(fileTextureWest)));
         } else if (rbCustom.isSelected() && fileTextureCustom != null) {
             String ext = getExtension(fileTextureCustom);
             copyFile(fileTextureCustom, new File(texturesDir, name + ext));
@@ -730,6 +1088,21 @@ public class BlockCreatorController {
             textures.addProperty("up", textureNameTop);
             textures.addProperty("down", textureNameBottom);
             textures.addProperty("side", textureNameSide);
+            blockDef.add("textures", textures);
+        } else if (rbCubeSix.isSelected()) {
+            JsonObject textures = new JsonObject();
+            if (fileTextureUp != null)
+                textures.addProperty("up", name + "_up");
+            if (fileTextureDown != null)
+                textures.addProperty("down", name + "_down");
+            if (fileTextureNorth != null)
+                textures.addProperty("north", name + "_north");
+            if (fileTextureSouth != null)
+                textures.addProperty("south", name + "_south");
+            if (fileTextureEast != null)
+                textures.addProperty("east", name + "_east");
+            if (fileTextureWest != null)
+                textures.addProperty("west", name + "_west");
             blockDef.add("textures", textures);
         } else if (rbCustom.isSelected()) {
             blockDef.addProperty("textures", textureNameMain);
@@ -759,6 +1132,19 @@ public class BlockCreatorController {
             addTextureData(textureData, textureNameTop, "textures/blocks/" + textureNameTop);
             addTextureData(textureData, textureNameBottom, "textures/blocks/" + textureNameBottom);
             addTextureData(textureData, textureNameSide, "textures/blocks/" + textureNameSide);
+        } else if (rbCubeSix.isSelected()) {
+            if (fileTextureUp != null)
+                addTextureData(textureData, name + "_up", "textures/blocks/" + name + "_up");
+            if (fileTextureDown != null)
+                addTextureData(textureData, name + "_down", "textures/blocks/" + name + "_down");
+            if (fileTextureNorth != null)
+                addTextureData(textureData, name + "_north", "textures/blocks/" + name + "_north");
+            if (fileTextureSouth != null)
+                addTextureData(textureData, name + "_south", "textures/blocks/" + name + "_south");
+            if (fileTextureEast != null)
+                addTextureData(textureData, name + "_east", "textures/blocks/" + name + "_east");
+            if (fileTextureWest != null)
+                addTextureData(textureData, name + "_west", "textures/blocks/" + name + "_west");
         }
 
         terrainRoot.add("texture_data", textureData);
@@ -842,51 +1228,71 @@ public class BlockCreatorController {
     }
 
     private File findGeometryFile(String geometryId) {
-        if (project == null) return null;
-        File modelsDir = new File(project.getRootPath(), "RP/models/blocks");
-        if (!modelsDir.exists() || !modelsDir.isDirectory()) return null;
-        
-        File[] files = modelsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-        if (files == null) return null;
+        if (project == null)
+            return null;
+        // Start scanning from RP/models to catch files in root or subfolders (like
+        // blocks/)
+        File modelsDir = new File(project.getRootPath(), "RP/models");
+        if (!modelsDir.exists() || !modelsDir.isDirectory())
+            return null;
+
+        return scanForGeometryRecursively(modelsDir, geometryId);
+    }
+
+    private File scanForGeometryRecursively(File dir, String geometryId) {
+        File[] files = dir.listFiles();
+        if (files == null)
+            return null;
 
         for (File f : files) {
-            try {
-                JsonObject json = JsonParser.parseReader(new FileReader(f)).getAsJsonObject();
-                if (json.has("minecraft:geometry")) {
-                    JsonElement geo = json.get("minecraft:geometry");
-                    if (geo.isJsonArray()) {
-                        for (JsonElement e : geo.getAsJsonArray()) {
-                             if (e.isJsonObject() && e.getAsJsonObject().has("description")) {
-                                 JsonObject desc = e.getAsJsonObject().getAsJsonObject("description");
-                                 if (desc.has("identifier") && desc.get("identifier").getAsString().equals(geometryId)) {
-                                     return f;
-                                 }
-                             }
+            if (f.isDirectory()) {
+                File found = scanForGeometryRecursively(f, geometryId);
+                if (found != null)
+                    return found;
+            } else if (f.getName().toLowerCase().endsWith(".json")) {
+                try {
+                    JsonObject json = JsonParser.parseReader(new FileReader(f)).getAsJsonObject();
+                    if (json.has("minecraft:geometry")) {
+                        JsonElement geo = json.get("minecraft:geometry");
+                        if (geo.isJsonArray()) {
+                            for (JsonElement e : geo.getAsJsonArray()) {
+                                if (e.isJsonObject() && e.getAsJsonObject().has("description")) {
+                                    JsonObject desc = e.getAsJsonObject().getAsJsonObject("description");
+                                    if (desc.has("identifier")
+                                            && desc.get("identifier").getAsString().equals(geometryId)) {
+                                        return f;
+                                    }
+                                }
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    // Ignore invalid files
                 }
-            } catch (Exception e) {
-                // Ignore invalid files
             }
         }
         return null;
     }
 
     private File resolveTextureFromConfig(String blockId, String suffix) {
-        if (project == null) return null;
+        if (project == null)
+            return null;
         try {
             File blocksJson = new File(project.getRootPath(), "RP/blocks.json");
-            if (!blocksJson.exists()) return null;
-            
+            if (!blocksJson.exists())
+                return null;
+
             JsonObject blocksRoot = JsonParser.parseReader(new FileReader(blocksJson)).getAsJsonObject();
-            if (!blocksRoot.has(blockId)) return null;
-            
+            if (!blocksRoot.has(blockId))
+                return null;
+
             JsonObject def = blocksRoot.getAsJsonObject(blockId);
-            if (!def.has("textures")) return null;
-            
+            if (!def.has("textures"))
+                return null;
+
             JsonElement textures = def.get("textures");
             String textureKey = null;
-            
+
             if (textures.isJsonPrimitive()) {
                 textureKey = textures.getAsString();
             } else if (textures.isJsonObject()) {
@@ -895,18 +1301,24 @@ public class BlockCreatorController {
                     textureKey = tObj.get(suffix).getAsString();
                 } else if (suffix == null) {
                     // Try "up", "down", "side" order or just pick one
-                    if (tObj.has("up")) textureKey = tObj.get("up").getAsString();
-                    else if (tObj.has("down")) textureKey = tObj.get("down").getAsString();
-                    else if (tObj.has("side")) textureKey = tObj.get("side").getAsString();
-                    else if (tObj.keySet().size() > 0) textureKey = tObj.get(tObj.keySet().iterator().next()).getAsString();
+                    if (tObj.has("up"))
+                        textureKey = tObj.get("up").getAsString();
+                    else if (tObj.has("down"))
+                        textureKey = tObj.get("down").getAsString();
+                    else if (tObj.has("side"))
+                        textureKey = tObj.get("side").getAsString();
+                    else if (tObj.keySet().size() > 0)
+                        textureKey = tObj.get(tObj.keySet().iterator().next()).getAsString();
                 }
             }
-            
-            if (textureKey == null) return null;
-            
+
+            if (textureKey == null)
+                return null;
+
             File terrainFile = new File(project.getRootPath(), "RP/textures/terrain_texture.json");
-            if (!terrainFile.exists()) return null;
-            
+            if (!terrainFile.exists())
+                return null;
+
             JsonObject terrainRoot = JsonParser.parseReader(new FileReader(terrainFile)).getAsJsonObject();
             JsonObject data = null;
             if (terrainRoot.has("texture_data")) {
@@ -914,38 +1326,45 @@ public class BlockCreatorController {
             } else {
                 return null;
             }
-            
-            if (!data.has(textureKey)) return null;
-            
+
+            if (!data.has(textureKey))
+                return null;
+
             JsonObject texEntry = data.getAsJsonObject(textureKey);
-            if (!texEntry.has("textures")) return null;
-            
+            if (!texEntry.has("textures"))
+                return null;
+
             JsonElement pathElem = texEntry.get("textures");
             String path = null;
             if (pathElem.isJsonPrimitive()) {
                 path = pathElem.getAsString();
             } else if (pathElem.isJsonArray()) {
-                 path = pathElem.getAsJsonArray().get(0).getAsString();
+                path = pathElem.getAsJsonArray().get(0).getAsString();
             } else if (pathElem.isJsonObject()) {
-                 if (pathElem.getAsJsonObject().has("path"))
+                if (pathElem.getAsJsonObject().has("path"))
                     path = pathElem.getAsJsonObject().get("path").getAsString();
             }
-            
-            if (path == null) return null;
-            
+
+            if (path == null)
+                return null;
+
             File rpDir = new File(project.getRootPath(), "RP");
             File texFile = new File(rpDir, path + ".png");
-            if (texFile.exists()) return texFile;
-            
+            if (texFile.exists())
+                return texFile;
+
             texFile = new File(rpDir, path + ".tga");
-            if (texFile.exists()) return texFile;
-            
+            if (texFile.exists())
+                return texFile;
+
             texFile = new File(rpDir, path + ".jpg");
-            if (texFile.exists()) return texFile;
-             
+            if (texFile.exists())
+                return texFile;
+
             texFile = new File(rpDir, path + ".jpeg");
-            if (texFile.exists()) return texFile;
-            
+            if (texFile.exists())
+                return texFile;
+
         } catch (Exception e) {
             logger.error("Error resolving texture", e);
         }

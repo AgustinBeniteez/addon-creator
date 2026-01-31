@@ -6,9 +6,20 @@ import com.agustinbenitez.addoncreator.core.ProjectGenerator;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.core.TodoManager;
 import com.agustinbenitez.addoncreator.models.Project;
+import com.agustinbenitez.addoncreator.utils.BlockGeometryFactory;
+import com.agustinbenitez.addoncreator.utils.BedrockModelLoader;
+import java.awt.image.BufferedImage;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import javafx.embed.swing.SwingFXUtils;
+import javax.imageio.ImageIO;
 import com.agustinbenitez.addoncreator.utils.BedrockSamplesDownloader;
 import com.agustinbenitez.addoncreator.utils.TgaImageLoader;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import java.io.FileReader;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -115,7 +126,10 @@ import javafx.geometry.Insets;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.ImagePattern;
+import javafx.scene.SnapshotParameters;
 
 import com.agustinbenitez.addoncreator.core.SettingsManager;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -603,6 +617,7 @@ public class EditorController {
         }
 
         if (btnEzEntities != null) {
+            startEntityIconSetup(btnEzEntities);
             btnEzEntities.setToggleGroup(ezGroup);
             btnEzEntities.setOnAction(e -> {
                 if (btnEzEntities.isSelected())
@@ -611,6 +626,7 @@ public class EditorController {
         }
 
         if (btnEzItems != null) {
+            startItemIconSetup(btnEzItems);
             btnEzItems.setToggleGroup(ezGroup);
             btnEzItems.setOnAction(e -> {
                 if (btnEzItems.isSelected())
@@ -635,6 +651,7 @@ public class EditorController {
         }
 
         if (btnEzModels != null) {
+            startModelIconSetup(btnEzModels);
             btnEzModels.setToggleGroup(ezGroup);
             btnEzModels.setOnAction(e -> {
                 if (btnEzModels.isSelected())
@@ -681,6 +698,84 @@ public class EditorController {
                 switchEzView(currentEzViewName);
             });
         }
+    }
+
+    private void startEntityIconSetup(ToggleButton btn) {
+        SVGPath icon = new SVGPath();
+        icon.setContent("M0,0 H8 V8 H0 Z M1,1 V3 H3 V1 Z M5,1 V3 H7 V1 Z M3,3 H5 V4 H6 V7 H5 V6 H3 V7 H2 V4 H3 V3 Z");
+        icon.setFill(Color.WHITE);
+        icon.setFillRule(javafx.scene.shape.FillRule.EVEN_ODD);
+        icon.setScaleX(2.0);
+        icon.setScaleY(2.0);
+
+        StackPane container = new StackPane(icon);
+        container.setMaxSize(24, 24);
+        container.setPrefSize(24, 24);
+        container.setAlignment(Pos.CENTER);
+
+        btn.setGraphic(container);
+    }
+
+    private void startItemIconSetup(ToggleButton btn) {
+        Node icon = createItemIconNode();
+        StackPane container = new StackPane(icon);
+        container.setMaxSize(24, 24);
+        container.setPrefSize(24, 24);
+        container.setAlignment(Pos.CENTER);
+        btn.setGraphic(container);
+    }
+
+    private Node createItemIconNode() {
+        javafx.scene.shape.Rectangle base = new javafx.scene.shape.Rectangle(3, 7, 18, 10);
+        base.setArcWidth(4);
+        base.setArcHeight(4);
+        base.setFill(Color.WHITE);
+
+        javafx.scene.shape.Rectangle inner = new javafx.scene.shape.Rectangle(5, 9, 14, 6);
+        inner.setArcWidth(3);
+        inner.setArcHeight(3);
+        inner.setFill(Color.WHITE);
+        inner.setOpacity(0.75);
+
+        javafx.scene.shape.Rectangle shine1 = new javafx.scene.shape.Rectangle(6.5, 10, 3, 1.5);
+        shine1.setFill(Color.WHITE);
+        shine1.setOpacity(0.9);
+
+        javafx.scene.shape.Rectangle shine2 = new javafx.scene.shape.Rectangle(10.5, 10, 2, 1.5);
+        shine2.setFill(Color.WHITE);
+        shine2.setOpacity(0.85);
+
+        return new Group(base, inner, shine1, shine2);
+    }
+
+    private void startModelIconSetup(ToggleButton btn) {
+        Node icon = createModelIconNode();
+        StackPane container = new StackPane(icon);
+        container.setMaxSize(24, 24);
+        container.setPrefSize(24, 24);
+        container.setAlignment(Pos.CENTER);
+        btn.setGraphic(container);
+    }
+
+    private Node createModelIconNode() {
+        // Cara superior: 12 3 20 7 12 11 4 7
+        javafx.scene.shape.Polygon top = new javafx.scene.shape.Polygon();
+        top.getPoints().addAll(12.0, 3.0, 20.0, 7.0, 12.0, 11.0, 4.0, 7.0);
+        top.setFill(Color.WHITE);
+
+        // Cara izquierda: 4 7 12 11 12 21 4 17
+        javafx.scene.shape.Polygon left = new javafx.scene.shape.Polygon();
+        left.getPoints().addAll(4.0, 7.0, 12.0, 11.0, 12.0, 21.0, 4.0, 17.0);
+        left.setFill(Color.WHITE);
+        left.setOpacity(0.85);
+
+        // Cara derecha: 20 7 12 11 12 21 20 17
+        javafx.scene.shape.Polygon right = new javafx.scene.shape.Polygon();
+        right.getPoints().addAll(20.0, 7.0, 12.0, 11.0, 12.0, 21.0, 20.0, 17.0);
+        right.setFill(Color.WHITE);
+        right.setOpacity(0.65);
+
+        return new Group(top, left, right);
     }
 
     private void switchEzView(String viewName) {
@@ -995,14 +1090,24 @@ public class EditorController {
 
         for (String entity : currentProject.getEntities()) {
             if (shouldShow(entity)) {
-                Node card = createEzCard("Entity", entity, null);
+                Node card = createEzCard("Entity", entity, createEntityIcon());
                 String key = entity.contains(":") ? entity.split(":")[1] : entity;
                 Path p = entityMap.get(key);
                 if (p != null) {
                     card.setOnMouseClicked(e -> {
-                        toggleMode();
-                        openFileByPath(p);
+                        if (e.getButton() == MouseButton.PRIMARY) {
+                            openEntityCreator(p.toFile());
+                        }
                     });
+
+                    attachEzContextMenu(card,
+                            () -> openEntityCreator(p.toFile()),
+                            () -> {
+                                toggleMode();
+                                openFileByPath(p);
+                            },
+                            () -> deleteFileWithConfirmation(p, entity, this::loadEntitiesView));
+
                     card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 }
                 mainElementsFlowPane.getChildren().add(card);
@@ -1049,13 +1154,19 @@ public class EditorController {
 
                 if (p != null) {
                     card.setOnMouseClicked(e -> {
-                        if (e.getButton() == MouseButton.SECONDARY) {
-                            toggleMode();
-                            openFileByPath(p);
-                        } else {
+                        if (e.getButton() == MouseButton.PRIMARY) {
                             openItemEditor(p);
                         }
                     });
+
+                    attachEzContextMenu(card,
+                            () -> openItemEditor(p),
+                            () -> {
+                                toggleMode();
+                                openFileByPath(p);
+                            },
+                            () -> deleteFileWithConfirmation(p, item, this::populateEzLists));
+
                     card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 }
                 mainElementsFlowPane.getChildren().add(card);
@@ -1068,7 +1179,7 @@ public class EditorController {
                 if (p != null) {
                     mainElementsFlowPane.getChildren().add(createBlockCard(p));
                 } else {
-                    Node card = createEzCard("Block", block, null);
+                    Node card = createEzCard("Block", block, (String) null);
                     mainElementsFlowPane.getChildren().add(card);
                 }
             }
@@ -1095,11 +1206,23 @@ public class EditorController {
             if (java.nio.file.Files.exists(scriptsDir)) {
                 findFiles(scriptsDir, ".js", ".ts").forEach(path -> {
                     if (shouldShow(path.getFileName().toString())) {
-                        Node card = createEzCard("Script", path.getFileName().toString(), null);
+                        Node card = createEzCard("Script", path.getFileName().toString(), (String) null);
                         card.setOnMouseClicked(e -> {
-                            toggleMode();
-                            openFileByPath(path);
+                            if (e.getButton() == MouseButton.PRIMARY) {
+                                toggleMode();
+                                openFileByPath(path);
+                            }
                         });
+
+                        attachEzContextMenu(card,
+                                null,
+                                () -> {
+                                    toggleMode();
+                                    openFileByPath(path);
+                                },
+                                () -> deleteFileWithConfirmation(path, path.getFileName().toString(),
+                                        this::loadWorldGenView));
+
                         card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                         mainElementsFlowPane.getChildren().add(card);
                     }
@@ -1115,6 +1238,8 @@ public class EditorController {
             return;
         entitiesFlowPane.getChildren().clear();
         entitiesFlowPane.getChildren().add(createAddCard(this::handleAddEntity));
+        entitiesFlowPane.getChildren()
+                .add(createDownloadCard("Descargar\nEntidades", this::handleDownloadEntityModels));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.Map<String, Path> entityMap = new java.util.HashMap<>();
@@ -1123,18 +1248,75 @@ public class EditorController {
 
         for (String entity : currentProject.getEntities()) {
             if (shouldShow(entity)) {
-                Node card = createEzCard("Entity", entity, null);
+                Node card = createEzCard("Entity", entity, createEntityIcon());
                 String key = entity.contains(":") ? entity.split(":")[1] : entity;
                 Path p = entityMap.get(key);
                 if (p != null) {
                     card.setOnMouseClicked(e -> {
-                        toggleMode();
-                        openFileByPath(p);
+                        if (e.getButton() == MouseButton.PRIMARY) {
+                            openEntityCreator(p.toFile());
+                        }
                     });
+
+                    attachEzContextMenu(card,
+                            () -> openEntityCreator(p.toFile()),
+                            () -> {
+                                toggleMode();
+                                openFileByPath(p);
+                            },
+                            () -> deleteFileWithConfirmation(p, entity, this::loadEntitiesView));
+
                     card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 }
                 entitiesFlowPane.getChildren().add(card);
             }
+        }
+    }
+
+    private void openEntityCreator(File entityFile) {
+        if (currentProject == null) {
+            showError("Error", "No project loaded.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/EntityCreator.fxml"));
+            Parent root = loader.load();
+
+            EntityCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+
+            String title = "Create Entity";
+            if (entityFile != null) {
+                controller.loadEntityData(entityFile);
+                title = "Edit Entity";
+            }
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle(title);
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+            // Add icon
+            try {
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            } catch (Exception e) {
+            }
+
+            stage.showAndWait();
+
+            if ("entities".equals(currentEzViewName) || "elements".equals(currentEzViewName)) {
+                // Refresh both to be safe or just trigger refresh logic
+                if ("entities".equals(currentEzViewName))
+                    loadEntitiesView();
+                else
+                    loadElementsView();
+            }
+
+            refreshFileTree();
+
+        } catch (IOException ex) {
+            logger.error("Failed to open entity creator", ex);
+            showError("Error", "Could not open Entity Creator: " + ex.getMessage());
         }
     }
 
@@ -1190,13 +1372,19 @@ public class EditorController {
 
                 if (p != null) {
                     card.setOnMouseClicked(e -> {
-                        if (e.getButton() == MouseButton.SECONDARY) {
-                            toggleMode();
-                            openFileByPath(p);
-                        } else {
+                        if (e.getButton() == MouseButton.PRIMARY) {
                             openItemEditor(p);
                         }
                     });
+
+                    attachEzContextMenu(card,
+                            () -> openItemEditor(p),
+                            () -> {
+                                toggleMode();
+                                openFileByPath(p);
+                            },
+                            () -> deleteFileWithConfirmation(p, item, this::loadItemsView));
+
                     card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 }
                 itemsFlowPane.getChildren().add(card);
@@ -1242,7 +1430,7 @@ public class EditorController {
                 if (p != null) {
                     blocksFlowPane.getChildren().add(createBlockCard(p));
                 } else {
-                    Node card = createEzCard("Block", block, null);
+                    Node card = createEzCard("Block", block, (String) null);
                     blocksFlowPane.getChildren().add(card);
                 }
             }
@@ -1346,11 +1534,22 @@ public class EditorController {
         java.util.List<Path> soundFiles = findFiles(root, ".ogg", ".wav", ".fsb");
         for (Path path : soundFiles) {
             if (shouldShow(path.getFileName().toString())) {
-                Node card = createEzCard("Sound", path.getFileName().toString(), null);
+                Node card = createEzCard("Sound", path.getFileName().toString(), (String) null);
                 card.setOnMouseClicked(e -> {
-                    toggleMode();
-                    openFileByPath(path);
+                    if (e.getButton() == MouseButton.PRIMARY) {
+                        toggleMode();
+                        openFileByPath(path);
+                    }
                 });
+
+                attachEzContextMenu(card,
+                        null,
+                        () -> {
+                            toggleMode();
+                            openFileByPath(path);
+                        },
+                        () -> deleteFileWithConfirmation(path, path.getFileName().toString(), this::loadSoundsView));
+
                 card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 soundsFlowPane.getChildren().add(card);
             }
@@ -1397,11 +1596,23 @@ public class EditorController {
             if (Files.exists(biomesDir)) {
                 findFiles(biomesDir, ".json").forEach(path -> {
                     if (shouldShow(path.getFileName().toString())) {
-                        Node card = createEzCard("Biome", path.getFileName().toString(), null);
+                        Node card = createEzCard("Biome", path.getFileName().toString(), (String) null);
                         card.setOnMouseClicked(e -> {
-                            toggleMode();
-                            openFileByPath(path);
+                            if (e.getButton() == MouseButton.PRIMARY) {
+                                toggleMode();
+                                openFileByPath(path);
+                            }
                         });
+
+                        attachEzContextMenu(card,
+                                null,
+                                () -> {
+                                    toggleMode();
+                                    openFileByPath(path);
+                                },
+                                () -> deleteFileWithConfirmation(path, path.getFileName().toString(),
+                                        this::loadWorldGenView));
+
                         card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                         worldGenFlowPane.getChildren().add(card);
                     }
@@ -1413,12 +1624,22 @@ public class EditorController {
             if (Files.exists(featuresDir)) {
                 findFiles(featuresDir, ".json").forEach(path -> {
                     if (shouldShow(path.getFileName().toString())) {
-                        Node card = createEzCard("Feature", path.getFileName().toString(), null);
+                        Node card = createEzCard("Feature", path.getFileName().toString(), (String) null);
                         card.setOnMouseClicked(e -> {
-                            toggleMode();
-                            openFileByPath(path);
+                            if (e.getButton() == MouseButton.PRIMARY) {
+                                toggleMode();
+                                openFileByPath(path);
+                            }
                         });
-                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+
+                        attachEzContextMenu(card,
+                                null,
+                                () -> {
+                                    toggleMode();
+                                    openFileByPath(path);
+                                },
+                                () -> deleteFileWithConfirmation(path, path.getFileName().toString(),
+                                        this::loadWorldGenView));
                         worldGenFlowPane.getChildren().add(card);
                     }
                 });
@@ -1429,12 +1650,22 @@ public class EditorController {
             if (Files.exists(rulesDir)) {
                 findFiles(rulesDir, ".json").forEach(path -> {
                     if (shouldShow(path.getFileName().toString())) {
-                        Node card = createEzCard("Feature Rule", path.getFileName().toString(), null);
+                        Node card = createEzCard("Feature Rule", path.getFileName().toString(), (String) null);
                         card.setOnMouseClicked(e -> {
-                            toggleMode();
-                            openFileByPath(path);
+                            if (e.getButton() == MouseButton.PRIMARY) {
+                                toggleMode();
+                                openFileByPath(path);
+                            }
                         });
-                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+
+                        attachEzContextMenu(card,
+                                null,
+                                () -> {
+                                    toggleMode();
+                                    openFileByPath(path);
+                                },
+                                () -> deleteFileWithConfirmation(path, path.getFileName().toString(),
+                                        this::loadWorldGenView));
                         worldGenFlowPane.getChildren().add(card);
                     }
                 });
@@ -1477,11 +1708,23 @@ public class EditorController {
             if (Files.exists(scriptsDir)) {
                 findFiles(scriptsDir, ".js", ".ts").forEach(path -> {
                     if (shouldShow(path.getFileName().toString())) {
-                        Node card = createEzCard("Script", path.getFileName().toString(), null);
+                        Node card = createEzCard("Script", path.getFileName().toString(), (String) null);
                         card.setOnMouseClicked(e -> {
-                            toggleMode();
-                            openFileByPath(path);
+                            if (e.getButton() == MouseButton.PRIMARY) {
+                                toggleMode();
+                                openFileByPath(path);
+                            }
                         });
+
+                        attachEzContextMenu(card,
+                                null,
+                                () -> {
+                                    toggleMode();
+                                    openFileByPath(path);
+                                },
+                                () -> deleteFileWithConfirmation(path, path.getFileName().toString(),
+                                        this::loadScriptsView));
+
                         card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                         scriptsFlowPane.getChildren().add(card);
                     }
@@ -1554,44 +1797,387 @@ public class EditorController {
         }
     }
 
+    private Node createEzCard(String type, String title, Node iconNode) {
+        VBox card = new VBox(5);
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+
+        // Type Icon (Top Right)
+        Node typeIcon = createTypeIcon(type);
+
+        // Icon Container with Overlay
+        StackPane iconContainer = new StackPane();
+        iconContainer.setPrefSize(80, 80);
+        iconContainer.setAlignment(Pos.CENTER);
+        if (iconNode != null) {
+            iconContainer.getChildren().add(iconNode);
+        }
+
+        // Add type icon to top right of the icon area
+        StackPane.setAlignment(typeIcon, Pos.TOP_RIGHT);
+        typeIcon.setTranslateX(10);
+        typeIcon.setTranslateY(-10);
+        iconContainer.getChildren().add(typeIcon);
+
+        // 3D Model Indicator for Entities
+        if (type.equalsIgnoreCase("Entity") && hasModel(title)) {
+            Label modelBadge = new Label("3D");
+            modelBadge.setStyle(
+                    "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2 4; -fx-background-radius: 3;");
+            StackPane.setAlignment(modelBadge, Pos.BOTTOM_RIGHT);
+            iconContainer.getChildren().add(modelBadge);
+        }
+
+        Label typeLabel = new Label(type);
+        typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
+
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setWrapText(true);
+        titleLabel.setTextAlignment(TextAlignment.CENTER);
+
+        card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
+        return card;
+    }
+
+    private Node createEzCard(String type, String title, Image iconImage) {
+        if (iconImage == null)
+            return createEzCard(type, title, (String) null);
+
+        ImageView iv = new ImageView(iconImage);
+        iv.setFitWidth(64);
+        iv.setFitHeight(64);
+        iv.setPreserveRatio(true);
+        iv.setSmooth(false);
+
+        return createEzCard(type, title, iv);
+    }
+
+    private Node createBlockPreview(String blockId) {
+        return createBlockPreview(blockId, null);
+    }
+
+    private Node createBlockPreview(String blockId, Path blockPath) {
+        // User requested to revert 3D previews and show only textures because 3D models
+        // "don't look good"
+
+        // 1. Try to find the texture using the configuration logic (blocks.json ->
+        // terrain_texture.json)
+        File texFile = resolveTextureFromConfig(blockId, null);
+
+        // 2. Fallback: try finding by name if config lookup fails
+        if (texFile == null) {
+            String cleanName = blockId.contains(":") ? blockId.split(":")[1] : blockId;
+            String texPath = findBlockTexturePath(cleanName);
+            if (texPath != null)
+                texFile = new File(texPath);
+        }
+
+        // 3. If we found a texture file, display it
+        if (texFile != null && texFile.exists()) {
+            Image img = loadTextureFile(texFile);
+            if (img != null) {
+                javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+                iv.setFitWidth(64);
+                iv.setFitHeight(64);
+                iv.setPreserveRatio(true);
+                iv.setSmooth(false); // Pixel art look
+                return iv;
+            }
+        }
+
+        // 4. Final fallback to existing helper
+        javafx.scene.image.Image img = findElementImage(blockId, "Block");
+        if (img != null) {
+            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+            iv.setFitWidth(64);
+            iv.setFitHeight(64);
+            iv.setPreserveRatio(true);
+            iv.setSmooth(false);
+            return iv;
+        }
+
+        Rectangle rect = new Rectangle(50, 50, Color.DARKGRAY);
+        rect.setArcWidth(10);
+        rect.setArcHeight(10);
+        return rect;
+    }
+
+    private Image loadTextureFile(File file) {
+        if (file == null)
+            return null;
+
+        try {
+            java.awt.image.BufferedImage bImg;
+            if (file.getName().toLowerCase().endsWith(".tga")) {
+                // Load TGA
+                javafx.scene.image.WritableImage tgaImg = com.agustinbenitez.addoncreator.utils.TgaImageLoader
+                        .loadTga(file);
+                bImg = javafx.embed.swing.SwingFXUtils.fromFXImage(tgaImg, null);
+            } else {
+                bImg = javax.imageio.ImageIO.read(file);
+            }
+
+            if (bImg != null) {
+                // Check if small (e.g. <= 64px) and upscale to ensure sharpness
+                int w = bImg.getWidth();
+                int h = bImg.getHeight();
+
+                if (w <= 128 || h <= 128) {
+                    int scale = 16; // Upscale significantly
+                    int newW = w * scale;
+                    int newH = h * scale;
+
+                    java.awt.image.BufferedImage scaledImg = new java.awt.image.BufferedImage(newW, newH,
+                            java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                    java.awt.Graphics2D g2 = scaledImg.createGraphics();
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                            java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    g2.drawImage(bImg, 0, 0, newW, newH, null);
+                    g2.dispose();
+                    bImg = scaledImg;
+                }
+
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                javax.imageio.ImageIO.write(bImg, "png", out);
+                return new Image(new java.io.ByteArrayInputStream(out.toByteArray()), 0, 0, true, false);
+            }
+
+        } catch (Exception e) {
+            logger.error("Failed to load texture: " + file.getName(), e);
+        }
+
+        // Fallback
+        return new Image(file.toURI().toString(), 0, 0, true, false);
+    }
+
+    private Node create3DSnapshot(Group model) {
+        Group root3D = new Group(model);
+        model.getTransforms().addAll(new Rotate(30, Rotate.X_AXIS), new Rotate(45, Rotate.Y_AXIS));
+
+        SnapshotParameters params = new SnapshotParameters();
+        params.setFill(Color.TRANSPARENT);
+        PerspectiveCamera cam = new PerspectiveCamera(true);
+        cam.setTranslateZ(-50);
+        params.setCamera(cam);
+
+        WritableImage snapshot = root3D.snapshot(params, null);
+
+        javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(snapshot);
+        iv.setFitWidth(64);
+        iv.setFitHeight(64);
+        iv.setPreserveRatio(true);
+        return iv;
+    }
+
+    private File findGeometryFile(String geometryId) {
+        if (currentProject == null)
+            return null;
+        File root = new File(currentProject.getRootPath());
+        return com.agustinbenitez.addoncreator.utils.BedrockModelLoader.scanForGeometry(root, geometryId);
+    }
+
+    private File resolveTextureFromConfig(String blockId, String suffix) {
+        if (currentProject == null)
+            return null;
+        try {
+            File blocksJson = new File(currentProject.getRootPath(), "RP/blocks.json");
+            if (!blocksJson.exists())
+                return null;
+
+            JsonObject blocksRoot = JsonParser.parseReader(new FileReader(blocksJson)).getAsJsonObject();
+            // Handle namespace
+            String key = blockId;
+            if (!blocksRoot.has(key)) {
+                // Try to find by matching part if needed
+            }
+            if (!blocksRoot.has(key))
+                return null;
+
+            JsonObject def = blocksRoot.getAsJsonObject(key);
+            if (!def.has("textures"))
+                return null;
+
+            JsonElement textures = def.get("textures");
+            String textureKey = null;
+
+            if (textures.isJsonPrimitive()) {
+                textureKey = textures.getAsString();
+            } else if (textures.isJsonObject()) {
+                JsonObject tObj = textures.getAsJsonObject();
+                if (suffix != null && tObj.has(suffix)) {
+                    textureKey = tObj.get(suffix).getAsString();
+                } else if (suffix == null) {
+                    if (tObj.has("up"))
+                        textureKey = tObj.get("up").getAsString();
+                    else if (tObj.has("down"))
+                        textureKey = tObj.get("down").getAsString();
+                    else if (tObj.has("side"))
+                        textureKey = tObj.get("side").getAsString();
+                    else if (tObj.keySet().size() > 0)
+                        textureKey = tObj.get(tObj.keySet().iterator().next()).getAsString();
+                }
+            }
+
+            if (textureKey == null)
+                return null;
+
+            File terrainFile = new File(currentProject.getRootPath(), "RP/textures/terrain_texture.json");
+            if (!terrainFile.exists())
+                return null;
+
+            JsonObject terrainRoot = JsonParser.parseReader(new FileReader(terrainFile)).getAsJsonObject();
+            JsonObject data = null;
+            if (terrainRoot.has("texture_data")) {
+                data = terrainRoot.getAsJsonObject("texture_data");
+            } else {
+                return null;
+            }
+
+            if (!data.has(textureKey))
+                return null;
+
+            JsonObject texEntry = data.getAsJsonObject(textureKey);
+            if (!texEntry.has("textures"))
+                return null;
+
+            JsonElement pathElem = texEntry.get("textures");
+            String path = null;
+            if (pathElem.isJsonPrimitive()) {
+                path = pathElem.getAsString();
+            } else if (pathElem.isJsonArray()) {
+                path = pathElem.getAsJsonArray().get(0).getAsString();
+            } else if (pathElem.isJsonObject()) {
+                if (pathElem.getAsJsonObject().has("path"))
+                    path = pathElem.getAsJsonObject().get("path").getAsString();
+            }
+
+            if (path == null)
+                return null;
+
+            File rpDir = new File(currentProject.getRootPath(), "RP");
+            File texFile = new File(rpDir, path + ".png");
+            if (texFile.exists())
+                return texFile;
+
+            texFile = new File(rpDir, path + ".tga");
+            if (texFile.exists())
+                return texFile;
+
+            texFile = new File(rpDir, path + ".jpg");
+            if (texFile.exists())
+                return texFile;
+
+            texFile = new File(rpDir, path + ".jpeg");
+            if (texFile.exists())
+                return texFile;
+
+        } catch (Exception e) {
+            logger.error("Error resolving texture", e);
+        }
+        return null;
+    }
+
+    private javafx.scene.image.Image loadTexture(File file) {
+        if (file == null || !file.exists()) {
+            return new WritableImage(16, 16);
+        }
+        try {
+            java.awt.image.BufferedImage bImg = null;
+            if (file.getName().toLowerCase().endsWith(".tga")) {
+                javafx.scene.image.Image fxImg = TgaImageLoader.loadTga(file);
+                if (fxImg != null) {
+                    bImg = SwingFXUtils.fromFXImage(fxImg, null);
+                }
+            } else {
+                bImg = ImageIO.read(file);
+            }
+
+            if (bImg != null) {
+                int w = bImg.getWidth();
+                int h = bImg.getHeight();
+
+                if (w <= 128 || h <= 128) {
+                    int scale = 16;
+                    int newW = w * scale;
+                    int newH = h * scale;
+
+                    java.awt.image.BufferedImage scaledImg = new java.awt.image.BufferedImage(newW, newH,
+                            java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                    java.awt.Graphics2D g2 = scaledImg.createGraphics();
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                            java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    g2.drawImage(bImg, 0, 0, newW, newH, null);
+                    g2.dispose();
+                    bImg = scaledImg;
+                }
+
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                ImageIO.write(bImg, "png", out);
+                return new javafx.scene.image.Image(new java.io.ByteArrayInputStream(out.toByteArray()));
+            }
+        } catch (Exception e) {
+            logger.error("Error loading texture", e);
+        }
+        return new javafx.scene.image.Image(file.toURI().toString());
+    }
+
     private Node createBlockCard(Path blockPath) {
         String name = blockPath.getFileName().toString().replace(".json", "");
-        
-        // Try to find texture
-        String texturePath = findBlockTexturePath(name);
-        
-        Node card = createEzCard("Block", name, texturePath);
-        
+
+        String blockId = name;
+        try {
+            JsonObject root = JsonParser.parseReader(new FileReader(blockPath.toFile())).getAsJsonObject();
+            JsonObject block = root.getAsJsonObject("minecraft:block");
+            JsonObject desc = block.getAsJsonObject("description");
+            blockId = desc.get("identifier").getAsString();
+        } catch (Exception e) {
+        }
+
+        Node preview = createBlockPreview(blockId, blockPath);
+        Node card = createEzCard("Block", name, preview);
+
         // Add edit handler
         card.setOnMouseClicked(e -> {
-            if (e.getButton() == MouseButton.SECONDARY) {
-                 toggleMode();
-                 openFileByPath(blockPath);
-            } else {
-                 handleEditBlock(blockPath);
+            if (e.getButton() == MouseButton.PRIMARY) {
+                handleEditBlock(blockPath);
             }
         });
+
+        attachEzContextMenu(card,
+                () -> handleEditBlock(blockPath),
+                () -> {
+                    toggleMode();
+                    openFileByPath(blockPath, true);
+                },
+                null,
+                () -> deleteFileWithConfirmation(blockPath, name, this::loadBlocksView));
+
         card.setStyle(card.getStyle() + "-fx-cursor: hand;");
         return card;
     }
 
     private String findBlockTexturePath(String blockName) {
-        if (currentProject == null) return null;
+        if (currentProject == null)
+            return null;
         try {
             Path root = java.nio.file.Paths.get(currentProject.getRootPath());
             Path texturesDir = root.resolve("RP/textures/blocks");
-            if (!Files.exists(texturesDir)) return null;
+            if (!Files.exists(texturesDir))
+                return null;
 
             // Normalize block name (remove namespace if present)
             String cleanName = blockName.contains(":") ? blockName.split(":")[1] : blockName;
-            
+
             // Priority list for texture lookup
             String[] candidates = {
-                cleanName + ".png",
-                cleanName + "_side.png",
-                cleanName + "_top.png",
-                cleanName + "_front.png",
-                cleanName + "_all.png"
+                    cleanName + ".png",
+                    cleanName + "_side.png",
+                    cleanName + "_top.png",
+                    cleanName + "_front.png",
+                    cleanName + "_all.png"
             };
 
             for (String cand : candidates) {
@@ -1607,7 +2193,7 @@ public class EditorController {
     }
 
     private void handleEditBlock(Path blockPath) {
-         try {
+        try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/BlockCreator.fxml"));
             Parent root = loader.load();
             BlockCreatorController controller = loader.getController();
@@ -1618,12 +2204,12 @@ public class EditorController {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.setTitle("Edit Block - " + blockPath.getFileName().toString());
             stage.setScene(new Scene(root));
-            
+
             // Apply theme
             root.getStylesheets().add(getClass().getResource("/css/block-creator.css").toExternalForm());
-            
+
             stage.showAndWait();
-            
+
             // Refresh views after edit
             populateEzLists();
         } catch (IOException ex) {
@@ -1681,11 +2267,7 @@ public class EditorController {
                 for (String ext : extensions) {
                     Path imgPath = specificDir.resolve(cleanName + ext);
                     if (Files.exists(imgPath)) {
-                        if (ext.equals(".tga")) {
-                            return TgaImageLoader.loadTga(imgPath.toFile());
-                        } else {
-                            return new javafx.scene.image.Image(imgPath.toUri().toString(), 50, 50, true, true);
-                        }
+                        return loadTextureFile(imgPath.toFile());
                     }
                 }
             }
@@ -1782,7 +2364,12 @@ public class EditorController {
 
     private void handleDownloadModels() {
         fetchAndShowDownloadDialog("Modelos 3D", "modelos",
-                BedrockSamplesDownloader::fetchModelList, "models", this::loadModelsView);
+                BedrockSamplesDownloader::fetchModelList, "models3d", this::loadModelsView);
+    }
+
+    private void handleDownloadEntityModels() {
+        fetchAndShowDownloadDialog("Entidades", "entidades",
+                BedrockSamplesDownloader::fetchEntityList, "entities", this::loadEntitiesView);
     }
 
     private void handleDownloadSounds() {
@@ -1887,10 +2474,12 @@ public class EditorController {
             filters.add(new FilterCategory("UI", s -> s.contains("/ui/")));
             filters.add(new FilterCategory("Modelos", s -> s.contains("/models/")));
             filters.add(new FilterCategory("Partículas", s -> s.contains("/particles/")));
-        } else if ("models".equals(type)) {
+        } else if ("models3d".equals(type)) {
             filters.add(new FilterCategory("Entidades", s -> s.contains("/entity/")));
             filters.add(new FilterCategory("Bloques", s -> s.contains("/blocks/")));
             filters.add(new FilterCategory("Items", s -> s.contains("/items/")));
+        } else if ("entities".equals(type)) {
+            filters.add(new FilterCategory("Entidades", s -> true));
         } else if ("sounds".equals(type)) {
             filters.add(new FilterCategory("Mobs", s -> s.contains("/mob/")));
             filters.add(new FilterCategory("Bloques", s -> s.contains("/block/")));
@@ -2162,7 +2751,8 @@ public class EditorController {
     }
 
     private Node createTypeIcon(String type) {
-        SVGPath icon = new SVGPath();
+        Node iconNode = null;
+        SVGPath icon = new SVGPath(); // Default used for most cases
         icon.setFill(Color.WHITE);
         icon.setScaleX(0.7);
         icon.setScaleY(0.7);
@@ -2171,8 +2761,11 @@ public class EditorController {
 
         switch (type.toLowerCase()) {
             case "item":
-                // Sword/Item icon
-                icon.setContent("M12 2L2 22h20L12 2zm0 4l6 14H6l6-14z");
+                // Ingot icon (Custom JavaFX Shapes)
+                iconNode = createItemIconNode();
+                // Scale it down slightly if needed to match other icons sizing
+                iconNode.setScaleX(0.7);
+                iconNode.setScaleY(0.7);
                 color = "#FF5722"; // Orange
                 break;
             case "block":
@@ -2182,9 +2775,12 @@ public class EditorController {
                 color = "#4CAF50"; // Green
                 break;
             case "entity":
-                // Face/Mob icon
+                // Face/Mob icon - Creeper Face
                 icon.setContent(
-                        "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-4.41-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-4-8c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm8 0c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm-4 4c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z");
+                        "M0,0 H8 V8 H0 Z M1,1 V3 H3 V1 Z M5,1 V3 H7 V1 Z M3,3 H5 V4 H6 V7 H5 V6 H3 V7 H2 V4 H3 V3 Z");
+                icon.setFillRule(javafx.scene.shape.FillRule.EVEN_ODD);
+                icon.setScaleX(2.0); // 8px -> 16px (fits in 24px container)
+                icon.setScaleY(2.0);
                 color = "#9C27B0"; // Purple
                 break;
             case "recipe":
@@ -2194,6 +2790,15 @@ public class EditorController {
                         "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z");
                 color = "#FFC107"; // Amber
                 break;
+            case "model":
+            case "modelo":
+                // 3D Model icon (Custom JavaFX Shapes)
+                iconNode = createModelIconNode();
+                // Match scaling
+                iconNode.setScaleX(0.7);
+                iconNode.setScaleY(0.7);
+                color = "#E91E63"; // Pink
+                break;
             case "script":
                 // Terminal/Script icon
                 icon.setContent(
@@ -2202,12 +2807,89 @@ public class EditorController {
                 break;
         }
 
-        StackPane container = new StackPane(icon);
+        if (iconNode == null) {
+            iconNode = icon;
+        }
+
+        StackPane container = new StackPane(iconNode);
         container.setPrefSize(24, 24);
         container.setMaxSize(24, 24);
         container.setStyle("-fx-background-color: " + color
                 + "; -fx-background-radius: 50%; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 2, 0, 0, 1);");
         return container;
+    }
+
+    private void attachEzContextMenu(Node card, Runnable onEdit, Runnable onOpenCode, Runnable onDelete) {
+        attachEzContextMenu(card, onEdit, onOpenCode, null, onDelete);
+    }
+
+    private void attachEzContextMenu(Node card, Runnable onEdit, Runnable onOpenCode, Runnable onOpenPreview,
+            Runnable onDelete) {
+        ContextMenu menu = new ContextMenu();
+
+        if (onEdit != null) {
+            MenuItem editItem = new MenuItem("Editar");
+            editItem.setOnAction(e -> onEdit.run());
+            menu.getItems().add(editItem);
+        }
+
+        if (onOpenCode != null) {
+            MenuItem codeItem = new MenuItem("Abrir Código JSON");
+            codeItem.setOnAction(e -> onOpenCode.run());
+            menu.getItems().add(codeItem);
+        }
+
+        if (onOpenPreview != null) {
+            MenuItem previewItem = new MenuItem("Abrir Preview");
+            previewItem.setOnAction(e -> onOpenPreview.run());
+            menu.getItems().add(previewItem);
+        }
+
+        if (onDelete != null) {
+            MenuItem deleteItem = new MenuItem("Eliminar");
+            deleteItem.setStyle("-fx-text-fill: red;");
+            deleteItem.setOnAction(e -> onDelete.run());
+            if (!menu.getItems().isEmpty()) {
+                menu.getItems().add(new SeparatorMenuItem());
+            }
+            menu.getItems().add(deleteItem);
+        }
+
+        card.setOnContextMenuRequested(e -> {
+            menu.show(card, e.getScreenX(), e.getScreenY());
+            e.consume();
+        });
+    }
+
+    private void deleteFileWithConfirmation(Path file, String itemName, Runnable onRefresh) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirmar Eliminación");
+        alert.setHeaderText("Eliminar " + itemName);
+        alert.setContentText("¿Estás seguro de que quieres eliminar este archivo? Esta acción no se puede deshacer.");
+
+        // Add icon
+        try {
+            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+        } catch (Exception e) {
+        }
+
+        // Apply dark theme if possible (assuming global css or dialog pane styling)
+        alert.getDialogPane().setStyle("-fx-background-color: #2D2D30; -fx-text-fill: white;");
+        alert.getDialogPane().lookup(".content.label").setStyle("-fx-text-fill: white;");
+        alert.getDialogPane().lookup(".header-panel").setStyle("-fx-background-color: #2D2D30; -fx-text-fill: white;");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                Files.delete(file);
+                if (onRefresh != null)
+                    onRefresh.run();
+            } catch (IOException e) {
+                logger.error("Error deleting file: " + file, e);
+                showError("Error", "No se pudo eliminar el archivo: " + e.getMessage());
+            }
+        }
     }
 
     private Node createRecipeCard(Path recipePath) {
@@ -2340,7 +3022,18 @@ public class EditorController {
 
         card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
 
-        card.setOnMouseClicked(e -> handleEditRecipe(recipePath));
+        card.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.PRIMARY)
+                handleEditRecipe(recipePath);
+        });
+
+        attachEzContextMenu(card,
+                () -> handleEditRecipe(recipePath),
+                () -> {
+                    toggleMode();
+                    openFileByPath(recipePath);
+                },
+                () -> deleteFileWithConfirmation(recipePath, name, this::loadRecipesView));
 
         return card;
     }
@@ -2438,20 +3131,16 @@ public class EditorController {
     }
 
     private Node createEzCard(String type, String title, String iconName) {
-        VBox card = new VBox(5);
-        card.setStyle(
-                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
-        card.setPrefSize(120, 150);
-        card.setAlignment(Pos.CENTER);
-
         Node iconNode;
         if ("Script".equalsIgnoreCase(type)) {
             iconNode = createScriptPreview();
+        } else if ("Block".equalsIgnoreCase(type)) {
+            iconNode = createBlockPreview(title);
         } else {
             javafx.scene.image.Image img = null;
             if (iconName != null) {
                 try {
-                    img = new javafx.scene.image.Image(java.nio.file.Paths.get(iconName).toUri().toString());
+                    img = loadTextureFile(java.nio.file.Paths.get(iconName).toFile());
                 } catch (Exception e) {
                 }
             }
@@ -2475,41 +3164,7 @@ public class EditorController {
             }
         }
 
-        // Type Icon (Top Right)
-        Node typeIcon = createTypeIcon(type);
-
-        // Icon Container with Overlay
-        StackPane iconContainer = new StackPane();
-        iconContainer.setPrefSize(80, 80);
-        iconContainer.setAlignment(Pos.CENTER);
-        iconContainer.getChildren().add(iconNode);
-
-        // Add type icon to top right of the icon area
-        StackPane.setAlignment(typeIcon, Pos.TOP_RIGHT);
-        // Translate slightly to overlap nicely
-        typeIcon.setTranslateX(10);
-        typeIcon.setTranslateY(-10);
-        iconContainer.getChildren().add(typeIcon);
-
-        // 3D Model Indicator for Entities
-        if (type.equalsIgnoreCase("Entity") && hasModel(title)) {
-            Label modelBadge = new Label("3D");
-            modelBadge.setStyle(
-                    "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2 4; -fx-background-radius: 3;");
-            StackPane.setAlignment(modelBadge, Pos.BOTTOM_RIGHT);
-            iconContainer.getChildren().add(modelBadge);
-        }
-
-        Label typeLabel = new Label(type);
-        typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
-
-        Label titleLabel = new Label(title);
-        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
-        titleLabel.setWrapText(true);
-        titleLabel.setTextAlignment(TextAlignment.CENTER);
-
-        card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
-        return card;
+        return createEzCard(type, title, iconNode);
     }
 
     private Node createModelCard(Path path) {
@@ -2532,19 +3187,23 @@ public class EditorController {
 
         card.getChildren().addAll(iconGroup, titleLabel, typeLabel);
 
-        // Context Menu
-        ContextMenu cm = new ContextMenu();
-        MenuItem openItem = new MenuItem("Abrir en Blockbench");
-        openItem.setOnAction(e -> openInBlockbench(path.toFile()));
-        cm.getItems().add(openItem);
-
         card.setOnMouseClicked(e -> {
-            if (e.getButton() == MouseButton.SECONDARY) {
-                cm.show(card, e.getScreenX(), e.getScreenY());
-            } else if (e.getClickCount() == 2) {
+            if (e.getButton() == MouseButton.PRIMARY) {
                 openInBlockbench(path.toFile());
             }
         });
+
+        attachEzContextMenu(card,
+                () -> openInBlockbench(path.toFile()),
+                () -> {
+                    toggleMode();
+                    openFileByPath(path, true);
+                },
+                () -> {
+                    toggleMode();
+                    openFileByPath(path, false);
+                },
+                () -> deleteFileWithConfirmation(path, path.getFileName().toString(), this::loadModelsView));
 
         // Hover effects
         card.setOnMouseEntered(e -> {
@@ -4976,6 +5635,29 @@ public class EditorController {
         // Check if file is already open
         for (Tab tab : editorTabs.getTabs()) {
             if (tabFileMap.get(tab).equals(filePath)) {
+                // If forceCodeView is requesting code view, check if this tab is NOT a code
+                // view
+                if (forceCodeView) {
+                    boolean isCodeView = false;
+                    Node content = tab.getContent();
+                    if (content instanceof TextArea) {
+                        isCodeView = true;
+                    } else if (content instanceof StackPane) {
+                        for (Node child : ((StackPane) content).getChildren()) {
+                            if (child instanceof WebView) {
+                                isCodeView = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isCodeView) {
+                        // This is likely a 3D view or other preview.
+                        // Skip it so we can open a fresh Code View tab.
+                        continue;
+                    }
+                }
+
                 editorTabs.getSelectionModel().select(tab);
                 return;
             }
@@ -5010,7 +5692,7 @@ public class EditorController {
         }
 
         // Check if it's a 3D model
-        if (fileName.endsWith(".bbmodel") || fileName.endsWith(".geo.json")) {
+        if (!forceCodeView && (fileName.endsWith(".bbmodel") || fileName.endsWith(".geo.json"))) {
             openModelInEditor(filePath);
             return;
         }
@@ -6201,8 +6883,8 @@ public class EditorController {
             }
 
             // Mouse Control (Rotate)
-            final Rotate rotateX = new Rotate(0, Rotate.X_AXIS);
-            final Rotate rotateY = new Rotate(0, Rotate.Y_AXIS);
+            final Rotate rotateX = new Rotate(30, Rotate.X_AXIS);
+            final Rotate rotateY = new Rotate(45, Rotate.Y_AXIS);
             root3D.getTransforms().addAll(rotateX, rotateY);
 
             // Wrapper to handle events
@@ -6240,6 +6922,54 @@ public class EditorController {
                 double newZ = z + delta * 0.1;
                 camera.setTranslateZ(newZ);
             });
+
+            // Overlay Buttons (Bottom-Left)
+            HBox buttonBox = new HBox(10);
+            buttonBox.setAlignment(Pos.CENTER_LEFT);
+            buttonBox.setPadding(new Insets(10));
+            buttonBox.setMaxHeight(Region.USE_PREF_SIZE);
+            buttonBox.setMaxWidth(Region.USE_PREF_SIZE);
+            buttonBox.setPickOnBounds(false); // Allow clicks to pass through empty space
+            StackPane.setAlignment(buttonBox, Pos.BOTTOM_LEFT);
+
+            // Button Open JSON
+            Button btnJson = new Button();
+            SVGPath jsonIcon = new SVGPath();
+            jsonIcon.setContent(
+                    "M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z");
+            jsonIcon.setFill(Color.WHITE);
+            jsonIcon.setScaleX(0.8);
+            jsonIcon.setScaleY(0.8);
+            btnJson.setGraphic(jsonIcon);
+            btnJson.setTooltip(new Tooltip("Abrir código JSON"));
+            btnJson.setStyle(
+                    "-fx-background-color: #3e3e42; -fx-text-fill: white; -fx-background-radius: 3; -fx-cursor: hand;");
+            btnJson.setOnMouseEntered(e -> btnJson.setStyle(
+                    "-fx-background-color: #007ACC; -fx-text-fill: white; -fx-background-radius: 3; -fx-cursor: hand;"));
+            btnJson.setOnMouseExited(e -> btnJson.setStyle(
+                    "-fx-background-color: #3e3e42; -fx-text-fill: white; -fx-background-radius: 3; -fx-cursor: hand;"));
+            btnJson.setOnAction(e -> openFileByPath(modelPath, true));
+
+            // Button Blockbench
+            Button btnBlockbench = new Button();
+            SVGPath bbIcon = new SVGPath();
+            bbIcon.setContent(
+                    "M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44A.99.99 0 0 1 12 2.18c.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zm14 0v-6.7l-6 3.37v6.71l6-3.38z");
+            bbIcon.setFill(Color.WHITE);
+            bbIcon.setScaleX(0.8);
+            bbIcon.setScaleY(0.8);
+            btnBlockbench.setGraphic(bbIcon);
+            btnBlockbench.setTooltip(new Tooltip("Abrir en Blockbench"));
+            btnBlockbench.setStyle(
+                    "-fx-background-color: #3e3e42; -fx-text-fill: white; -fx-background-radius: 3; -fx-cursor: hand;");
+            btnBlockbench.setOnMouseEntered(e -> btnBlockbench.setStyle(
+                    "-fx-background-color: #007ACC; -fx-text-fill: white; -fx-background-radius: 3; -fx-cursor: hand;"));
+            btnBlockbench.setOnMouseExited(e -> btnBlockbench.setStyle(
+                    "-fx-background-color: #3e3e42; -fx-text-fill: white; -fx-background-radius: 3; -fx-cursor: hand;"));
+            btnBlockbench.setOnAction(e -> openInBlockbench(modelPath.toFile()));
+
+            buttonBox.getChildren().addAll(btnJson, btnBlockbench);
+            container.getChildren().add(buttonBox);
 
             // Tab Setup
             Tab tab = new Tab(modelPath.getFileName().toString());
@@ -6454,40 +7184,7 @@ public class EditorController {
     }
 
     private void handleAddEntity() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Añadir Entidad");
-        dialog.setHeaderText("Crear nueva entidad");
-        dialog.setContentText("Nombre de la entidad:");
-
-        // Add icon
-        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
-        try {
-            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
-        } catch (Exception e) {
-        }
-
-        dialog.showAndWait().ifPresent(entityName -> {
-            if (entityName.trim().isEmpty()) {
-                showError("Error", "El nombre no puede estar vacío");
-                return;
-            }
-
-            try {
-                ensureBaseStructure();
-                ProjectGenerator.createEntityFolder(Paths.get(currentProject.getRootPath()));
-
-                currentProject.addEntity(entityName);
-                projectManager.updateProject(currentProject);
-
-                refreshFileTree();
-                loadEntitiesView();
-                log("✓ Entidad añadida: " + entityName);
-
-            } catch (Exception e) {
-                logger.error("Failed to add entity", e);
-                log("✗ Error: " + e.getMessage());
-            }
-        });
+        openEntityCreator(null);
     }
 
     private void handleAddItem() {
@@ -6527,8 +7224,8 @@ public class EditorController {
 
     private void handleAddBlock() {
         if (currentProject == null) {
-             showError("Error", "No project loaded.");
-             return;
+            showError("Error", "No project loaded.");
+            return;
         }
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/BlockCreator.fxml"));
@@ -7796,5 +8493,46 @@ public class EditorController {
             }
             return "";
         }
+    }
+
+    private Node createEntityIcon() {
+        Group g = new Group();
+
+        // Head: <rect x="16" y="0" width="32" height="32"/>
+        Rectangle head = new Rectangle(16, 0, 32, 32);
+
+        // Body: <rect x="16" y="32" width="32" height="40"/>
+        Rectangle body = new Rectangle(16, 32, 32, 40);
+
+        // Left Arm: <rect x="0" y="32" width="16" height="48"/>
+        Rectangle leftArm = new Rectangle(0, 32, 16, 48);
+
+        // Right Arm: <rect x="48" y="32" width="16" height="48"/>
+        Rectangle rightArm = new Rectangle(48, 32, 16, 48);
+
+        // Left Leg: <rect x="16" y="72" width="16" height="48"/>
+        Rectangle leftLeg = new Rectangle(16, 72, 16, 48);
+
+        // Right Leg: <rect x="32" y="72" width="16" height="48"/>
+        Rectangle rightLeg = new Rectangle(32, 72, 16, 48);
+
+        g.getChildren().addAll(head, body, leftArm, rightArm, leftLeg, rightLeg);
+
+        g.getChildren().forEach(n -> {
+            ((javafx.scene.shape.Shape) n).setFill(Color.TRANSPARENT);
+            ((javafx.scene.shape.Shape) n).setStroke(Color.WHITE);
+            ((javafx.scene.shape.Shape) n).setStrokeWidth(3);
+            ((javafx.scene.shape.Shape) n).setStrokeLineJoin(StrokeLineJoin.ROUND);
+            ((javafx.scene.shape.Shape) n).setStrokeLineCap(StrokeLineCap.ROUND);
+        });
+
+        // Original 64x120 (approx).
+        // We want it slightly bigger but fit in 80x80.
+        // Height 120 -> 60 means 0.5 scale.
+        // Let's use 0.55 scale to make it ~66px high.
+        g.setScaleX(0.55);
+        g.setScaleY(0.55);
+
+        return g;
     }
 }
