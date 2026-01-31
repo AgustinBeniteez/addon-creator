@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.agustinbenitez.addoncreator.ui.WorldGenCreatorController"
+            styleClass="ide-root" style="-fx-background-color: #1e1e1e; -fx-text-fill: white;">
+    
+    <top>
+        <VBox spacing="10" style="-fx-padding: 20;">
+            <Label text="Create New World Gen Script" textFill="WHITE">
+                <font>
+                    <Font name="System Bold" size="20"/>
+                </font>
+            </Label>
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="Category:" textFill="#cccccc"/>
+                <ComboBox fx:id="categorySelector" prefWidth="200" styleClass="combo-box-dark"/>
+            </HBox>
+        </VBox>
+    </top>
+    
+    <center>
+        <StackPane style="-fx-padding: 0 20 20 20;">
+            <!-- Biome Editor -->
+            <VBox fx:id="biomeEditor" spacing="15" visible="false">
+                <Label text="Biome Exitor (The Environment)" textFill="#aaaaaa" style="-fx-font-weight: bold;"/>
+                
+                <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="100" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    
+                    <Label text="Biome Name:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="biomeNameField" promptText="e.g. mystic_forest" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Sky Color:" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <ColorPicker fx:id="skyColorPicker" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Water Color:" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <ColorPicker fx:id="waterColorPicker" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Fog Color:" textFill="#cccccc" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <ColorPicker fx:id="fogColorPicker" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Surface Gen:" textFill="#cccccc" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="surfaceSelector" promptText="Select Surface Material" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Precipitation:" textFill="#cccccc" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="precipitationToggle" text="Enable Rain/Snow" textFill="#cccccc" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+            
+            <!-- Feature Editor -->
+            <VBox fx:id="featureEditor" spacing="15" visible="false">
+                <Label text="Feature Editor (The 'What')" textFill="#aaaaaa" style="-fx-font-weight: bold;"/>
+                
+                 <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="100" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    
+                    <Label text="Feature Name:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="featureNameField" promptText="e.g. my_ore_feature" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                    <Label text="Feature Type:" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="featureTypeSelector" promptText="Select Type" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Block:" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="blockField" promptText="minecraft:stone" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Cluster Size:" textFill="#cccccc" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Slider fx:id="clusterSizeSlider" min="1" max="32" value="8" showTickLabels="true" showTickMarks="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+            
+            <!-- Feature Rule Editor -->
+            <VBox fx:id="featureRuleEditor" spacing="15" visible="false">
+                 <Label text="Feature Rules Editor (The 'Where')" textFill="#aaaaaa" style="-fx-font-weight: bold;"/>
+                 
+                 <HBox spacing="20" VBox.vgrow="ALWAYS">
+                     <!-- Left Column: Configuration -->
+                     <VBox spacing="10" HBox.hgrow="ALWAYS">
+                         <GridPane hgap="10" vgap="10">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="100" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+                            
+                            <Label text="Rule Name:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <TextField fx:id="ruleNameField" promptText="e.g. my_ore_rule" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            
+                            <Label text="Feature (ID):" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <TextField fx:id="targetFeatureField" promptText="my_addon:my_ore_feature" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Allowed Biomes:" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.valignment="TOP"/>
+                            <ScrollPane fitToWidth="true" prefHeight="100" GridPane.rowIndex="2" GridPane.columnIndex="1" style="-fx-background-color: #2D2D30;">
+                                <VBox fx:id="biomesContainer" spacing="5" style="-fx-padding: 5;">
+                                    <CheckBox text="plain" textFill="#cccccc"/>
+                                    <CheckBox text="forest" textFill="#cccccc"/>
+                                    <CheckBox text="desert" textFill="#cccccc"/>
+                                     <CheckBox text="mountains" textFill="#cccccc"/>
+                                </VBox>
+                            </ScrollPane>
+                            
+                            <Label text="Height Range (Y):" textFill="#cccccc" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                            <VBox spacing="5" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                                <HBox spacing="10">
+                                    <Label text="Min:" textFill="#888888"/>
+                                    <Label fx:id="minHeightLabel" text="-64" textFill="#cccccc"/>
+                                </HBox>
+                                <Slider fx:id="minHeightSlider" min="-64" max="320" value="-64"/>
+                                <HBox spacing="10">
+                                    <Label text="Max:" textFill="#888888"/>
+                                    <Label fx:id="maxHeightLabel" text="320" textFill="#cccccc"/>
+                                </HBox>
+                                <Slider fx:id="maxHeightSlider" min="-64" max="320" value="320"/>
+                            </VBox>
+                            
+                            <Label text="Density:" textFill="#cccccc" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                            <TextField fx:id="densityField" promptText="e.g. 10" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                        </GridPane>
+                     </VBox>
+                     
+                     <Separator orientation="VERTICAL"/>
+                     
+                     <!-- Right Column: Visual / Info -->
+                     <VBox spacing="10" minWidth="200" maxWidth="250" style="-fx-background-color: #252526; -fx-padding: 15; -fx-background-radius: 5; -fx-border-color: #3e3e3e; -fx-border-radius: 5;">
+                        <Label text="Preview / Info" textFill="#aaaaaa" style="-fx-font-weight: bold; -fx-font-size: 14;"/>
+                        
+                        <VBox spacing="5">
+                            <Label text="Biome Filter:" textFill="#888888" style="-fx-font-size: 10px;"/>
+                            <Label text="[ Forest ▾ ]" textFill="#cccccc" style="-fx-background-color: #333; -fx-padding: 2 5; -fx-background-radius: 3;"/>
+                        </VBox>
+                        
+                        <Separator/>
+                        
+                        <VBox spacing="5">
+                            <Label text="Preview Rule:" textFill="#888888" style="-fx-font-size: 10px;"/>
+                            <HBox spacing="5"><Label text="Start Layer:" textFill="#888888"/><Label fx:id="previewStartLayer" text="-64" textFill="#4CAF50" style="-fx-font-weight: bold;"/></HBox>
+                            <HBox spacing="5"><Label text="End Layer:" textFill="#888888"/><Label fx:id="previewEndLayer" text="320" textFill="#4CAF50" style="-fx-font-weight: bold;"/></HBox>
+                            <HBox spacing="5"><Label text="Placement:" textFill="#888888"/><Label text="Subsuelo" textFill="#cccccc"/></HBox>
+                            <HBox spacing="5"><Label text="Frequency:" textFill="#888888"/><Label fx:id="previewFrequency" text="10" textFill="#cccccc"/></HBox>
+                        </VBox>
+                        
+                        <Separator/>
+                        
+                        <Label text="Block:" textFill="#888888" style="-fx-font-size: 10px;"/>
+                        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: #333; -fx-padding: 5; -fx-background-radius: 3;">
+                            <Rectangle width="24" height="24" fill="CYAN" stroke="#555"/>
+                            <Label text="Diamond Ore" textFill="#cccccc"/>
+                        </HBox>
+                     </VBox>
+                 </HBox>
+            </VBox>
+        </StackPane>
+    </center>
+    
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 20;">
+            <Button fx:id="btnCancel" text="Cancel" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-border-color: #555; -fx-border-radius: 3;"/>
+            <Button fx:id="btnSave" text="Save Script" style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        </HBox>
+    </bottom>
+    
+</BorderPane>

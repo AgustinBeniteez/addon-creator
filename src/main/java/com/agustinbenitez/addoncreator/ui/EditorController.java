@@ -112,6 +112,11 @@ import com.agustinbenitez.addoncreator.core.SettingsManager;
 import org.eclipse.jgit.revwalk.RevCommit;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import javafx.stage.Stage;
+import javafx.stage.Modality;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 
 public class EditorController {
 
@@ -245,6 +250,8 @@ public class EditorController {
     @FXML
     private ToggleButton btnEzRecipes; // New Recipes Button
     @FXML
+    private ToggleButton btnEzWorldGen; // New World Gen Button
+    @FXML
     private ToggleButton btnEzMain;
     @FXML
     private TextField txtEzFilter;
@@ -263,6 +270,8 @@ public class EditorController {
     private VBox ezSoundsContainer;
     @FXML
     private VBox ezRecipesContainer; // New Recipes Container
+    @FXML
+    private VBox ezWorldGenContainer; // New World Gen Container
     @FXML
     private VBox ezMainContainer;
     @FXML
@@ -283,6 +292,8 @@ public class EditorController {
     private FlowPane soundsFlowPane;
     @FXML
     private FlowPane recipesFlowPane; // New Recipes FlowPane
+    @FXML
+    private FlowPane worldGenFlowPane; // New World Gen FlowPane
     @FXML
     private FlowPane mainElementsFlowPane;
     @FXML
@@ -622,6 +633,14 @@ public class EditorController {
             });
         }
 
+        if (btnEzWorldGen != null) {
+            btnEzWorldGen.setToggleGroup(ezGroup);
+            btnEzWorldGen.setOnAction(e -> {
+                if (btnEzWorldGen.isSelected())
+                    switchEzView("worldgen");
+            });
+        }
+
         if (txtEzFilter != null) {
             txtEzFilter.textProperty().addListener((obs, oldVal, newVal) -> {
                 switchEzView(currentEzViewName);
@@ -649,6 +668,8 @@ public class EditorController {
             ezRecipesContainer.setVisible(false);
         if (ezPixelArtContainer != null)
             ezPixelArtContainer.setVisible(false);
+        if (ezWorldGenContainer != null)
+            ezWorldGenContainer.setVisible(false);
 
         // Ensure Top Bar is visible for main views (navigation buttons are here)
         if (ezTopBar != null) {
@@ -696,6 +717,11 @@ public class EditorController {
                 if (ezRecipesContainer != null)
                     ezRecipesContainer.setVisible(true);
                 loadRecipesView();
+                break;
+            case "worldgen":
+                if (ezWorldGenContainer != null)
+                    ezWorldGenContainer.setVisible(true);
+                loadWorldGenView();
                 break;
         }
     }
@@ -1023,16 +1049,88 @@ public class EditorController {
         if (recipesFlowPane == null || currentProject == null)
             return;
         recipesFlowPane.getChildren().clear();
-        recipesFlowPane.getChildren().add(createAddCard(this::handleAddRecipe));
-
-        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
-        Path recipesDir = root.resolve("BP/recipes");
-
-        java.util.List<Path> recipeFiles = findFiles(recipesDir, ".json");
-        for (Path path : recipeFiles) {
-            if (shouldShow(path.getFileName().toString())) {
-                recipesFlowPane.getChildren().add(createRecipeCard(path));
+        recipesFlowPane.getChildren().add(createAddCard(() -> {
+            // New recipe logic
+            // handleAddRecipe(); // Already present in context menu
+            if (menuAddRecipe != null)
+                menuAddRecipe.fire();
+        }));
+        try {
+            Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+            Path recipesDir = root.resolve("BP/recipes");
+            if (Files.exists(recipesDir)) {
+                List<Path> recipeFiles = findFiles(recipesDir, ".json");
+                for (Path path : recipeFiles) {
+                    if (shouldShow(path.getFileName().toString())) {
+                        recipesFlowPane.getChildren().add(createRecipeCard(path));
+                    }
+                }
             }
+        } catch (Exception e) {
+            logger.error("Error loading recipes", e);
+        }
+    }
+
+    private void loadWorldGenView() {
+        if (worldGenFlowPane == null || currentProject == null)
+            return;
+        worldGenFlowPane.getChildren().clear();
+        worldGenFlowPane.getChildren().add(createAddCard(this::handleAddWorldGen));
+
+        try {
+            Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+
+            // Load Biomes
+            Path biomesDir = root.resolve("BP/biomes");
+            if (Files.exists(biomesDir)) {
+                findFiles(biomesDir, ".json").forEach(path -> {
+                    if (shouldShow(path.getFileName().toString()))
+                        worldGenFlowPane.getChildren().add(createEzCard("Biome", path.getFileName().toString(), null));
+                });
+            }
+
+            // Load Features
+            Path featuresDir = root.resolve("BP/features");
+            if (Files.exists(featuresDir)) {
+                findFiles(featuresDir, ".json").forEach(path -> {
+                    if (shouldShow(path.getFileName().toString()))
+                        worldGenFlowPane.getChildren()
+                                .add(createEzCard("Feature", path.getFileName().toString(), null));
+                });
+            }
+
+            // Load Feature Rules
+            Path rulesDir = root.resolve("BP/feature_rules");
+            if (Files.exists(rulesDir)) {
+                findFiles(rulesDir, ".json").forEach(path -> {
+                    if (shouldShow(path.getFileName().toString()))
+                        worldGenFlowPane.getChildren()
+                                .add(createEzCard("Feature Rule", path.getFileName().toString(), null));
+                });
+            }
+        } catch (Exception e) {
+            logger.error("Error loading World Gen items", e);
+        }
+    }
+
+    private void handleAddWorldGen() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/WorldGenCreator.fxml"));
+            Parent root = loader.load();
+            WorldGenCreatorController controller = loader.getController();
+
+            controller.setProject(currentProject);
+
+            Stage stage = new Stage();
+            stage.setTitle("Create World Gen Script");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+
+            loadWorldGenView(); // Refresh after close
+        } catch (Exception e) {
+            logger.error("Failed to open World Gen Creator", e);
+            showError("Error", "Could not open World Gen Creator.");
         }
     }
 
@@ -1244,14 +1342,15 @@ public class EditorController {
         grid.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 2; -fx-background-radius: 3;");
 
         try {
-            JsonObject root = com.google.gson.JsonParser.parseReader(new java.io.FileReader(recipePath.toFile())).getAsJsonObject();
+            JsonObject root = com.google.gson.JsonParser.parseReader(new java.io.FileReader(recipePath.toFile()))
+                    .getAsJsonObject();
             if (root.has("minecraft:recipe_shaped")) {
                 JsonObject recipe = root.getAsJsonObject("minecraft:recipe_shaped");
-                
+
                 if (recipe.has("pattern") && recipe.has("key")) {
                     JsonArray pattern = recipe.getAsJsonArray("pattern");
                     JsonObject key = recipe.getAsJsonObject("key");
-                    
+
                     Map<Character, String> charToItem = new HashMap<>();
                     for (String k : key.keySet()) {
                         JsonObject itemObj = key.getAsJsonObject(k);
@@ -1266,15 +1365,17 @@ public class EditorController {
                             char ch = rowStr.charAt(c);
                             if (ch != ' ' && charToItem.containsKey(ch)) {
                                 String item = charToItem.get(ch);
-                                
+
                                 // Try to find image
                                 javafx.scene.image.Image img = findElementImage(item, "Item");
-                                if (img == null) img = findElementImage(item, "Block");
-                                
+                                if (img == null)
+                                    img = findElementImage(item, "Block");
+
                                 StackPane slot = new StackPane();
                                 slot.setPrefSize(20, 20);
-                                slot.setStyle("-fx-background-color: #3c3f41; -fx-border-color: #555; -fx-border-width: 1;");
-                                
+                                slot.setStyle(
+                                        "-fx-background-color: #3c3f41; -fx-border-color: #555; -fx-border-width: 1;");
+
                                 if (img != null) {
                                     javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
                                     iv.setFitWidth(16);
@@ -1292,12 +1393,13 @@ public class EditorController {
                                 // Empty slot
                                 Region slot = new Region();
                                 slot.setPrefSize(20, 20);
-                                slot.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 1;");
+                                slot.setStyle(
+                                        "-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 1;");
                                 grid.add(slot, c, r);
                             }
                         }
                     }
-                    
+
                     // Fill remaining slots if pattern is smaller than 3x3
                     for (int r = 0; r < 3; r++) {
                         for (int c = 0; c < 3; c++) {
@@ -1311,17 +1413,18 @@ public class EditorController {
                             if (!filled) {
                                 Region slot = new Region();
                                 slot.setPrefSize(20, 20);
-                                slot.setStyle("-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 1;");
+                                slot.setStyle(
+                                        "-fx-background-color: #2b2b2b; -fx-border-color: #444; -fx-border-width: 1;");
                                 grid.add(slot, c, r);
                             }
                         }
                     }
                 }
             } else {
-                 // Fallback for shapeless or other types
-                 Label l = new Label("?");
-                 l.setStyle("-fx-text-fill: #aaa;");
-                 grid.add(l, 1, 1);
+                // Fallback for shapeless or other types
+                Label l = new Label("?");
+                l.setStyle("-fx-text-fill: #aaa;");
+                grid.add(l, 1, 1);
             }
         } catch (Exception e) {
             // Error parsing
@@ -1352,9 +1455,9 @@ public class EditorController {
         titleLabel.setTextAlignment(TextAlignment.CENTER);
 
         card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
-        
+
         card.setOnMouseClicked(e -> handleEditRecipe(recipePath));
-        
+
         return card;
     }
 

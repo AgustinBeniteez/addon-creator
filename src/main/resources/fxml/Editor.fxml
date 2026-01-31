@@ -416,10 +416,15 @@
                                     </graphic>
                                 </ToggleButton>
                                 <ToggleButton fx:id="btnEzRecipes" text="Crafteos" styleClass="button-primary">
-                                    <graphic>
-                                        <SVGPath content="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
-                                    </graphic>
-                                </ToggleButton>
+    <graphic>
+        <SVGPath content="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+    </graphic>
+</ToggleButton>
+<ToggleButton fx:id="btnEzWorldGen" text="World Gen" styleClass="button-primary">
+    <graphic>
+        <SVGPath content="M14 6l-3.75 5 2.85 3.8-1.6 1.2C9.81 13.75 7 10 7 10l-6 8h22L14 6z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+    </graphic>
+</ToggleButton>
                                  
                                  <Region HBox.hgrow="ALWAYS" />
                                  
@@ -495,6 +500,14 @@
                                    <Label text="Crafteos" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
                                    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
                                        <FlowPane fx:id="recipesFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
+                                   </ScrollPane>
+                              </VBox>
+
+                              <!-- World Gen View -->
+                              <VBox fx:id="ezWorldGenContainer" visible="false" spacing="10">
+                                   <Label text="World Gen and Structures" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+                                   <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
+                                       <FlowPane fx:id="worldGenFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
                                    </ScrollPane>
                               </VBox>
 
