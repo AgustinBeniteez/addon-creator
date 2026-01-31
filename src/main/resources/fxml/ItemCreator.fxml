@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Font?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.agustinbenitez.addoncreator.ui.ItemCreatorController"
+      spacing="20" styleClass="ide-root" style="-fx-padding: 20; -fx-background-color: #1e1e1e; -fx-min-width: 950; -fx-min-height: 600;">
+
+    <!-- Header -->
+    <Label text="ITEM CREATOR" textFill="WHITE" style="-fx-font-family: 'Segoe UI';">
+        <font>
+            <Font name="System Bold" size="28"/>
+        </font>
+    </Label>
+
+    <!-- Main Content Area (Split) -->
+    <HBox spacing="20" VBox.vgrow="ALWAYS">
+        
+        <!-- LEFT: Form Area -->
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" HBox.hgrow="ALWAYS">
+            <content>
+                <VBox spacing="20" style="-fx-background-color: transparent;">
+                    
+                    <!-- General Info -->
+                    <TitledPane text="General Information" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="150" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+
+                            <Label text="Identifier:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <TextField fx:id="identifierField" promptText="namespace:item_name" styleClass="text-field" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            <Label text="e.g., myaddon:ruby_sword" style="-fx-text-fill: #888888; -fx-font-size: 10;" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Display Name:" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <TextField fx:id="nameField" promptText="Ruby Sword" styleClass="text-field" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+                    </TitledPane>
+
+                    <!-- Visuals -->
+                    <TitledPane text="Visuals" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="150" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+
+                            <Label text="Texture / Icon:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                                <Button fx:id="textureButton" text="Select Texture" onAction="#handleSelectTexture"/>
+                                <StackPane fx:id="texturePreviewPane" prefWidth="32" prefHeight="32" style="-fx-border-color: #555; -fx-border-width: 1;">
+                                    <ImageView fx:id="texturePreview" fitWidth="32" fitHeight="32" preserveRatio="true"/>
+                                </StackPane>
+                                <Label fx:id="textureNameLabel" text="None selected" textFill="#888888"/>
+                            </HBox>
+
+                            <Label text="Glint (Enchanted):" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <CheckBox fx:id="glintCheck" text="Has Glint Effect" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                        </GridPane>
+                    </TitledPane>
+
+                    <!-- Properties -->
+                    <TitledPane text="Properties" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="150" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+
+                            <Label text="Max Stack Size:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="stackSizeSpinner" editable="true" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Hand Equipped:" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <CheckBox fx:id="handEquippedCheck" text="Held like a tool" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                            
+                            <Label text="Damage (Attack):" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="damageSpinner" editable="true" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+                    </TitledPane>
+
+                    <!-- Food -->
+                    <TitledPane text="Food Properties" collapsible="false" expanded="true">
+                        <VBox spacing="10">
+                            <CheckBox fx:id="isFoodCheck" text="Is Food Item?" textFill="#cccccc"/>
+                            
+                            <GridPane fx:id="foodGrid" hgap="15" vgap="15" disable="true">
+                                <columnConstraints>
+                                    <ColumnConstraints minWidth="150" />
+                                    <ColumnConstraints hgrow="ALWAYS" />
+                                </columnConstraints>
+
+                                <Label text="Nutrition:" textFill="#cccccc" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <Spinner fx:id="nutritionSpinner" editable="true" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                <Label text="Saturation:" textFill="#cccccc" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <ComboBox fx:id="saturationCombo" promptText="Select Saturation" maxWidth="Infinity" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                                <Label text="Can Always Eat:" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <CheckBox fx:id="canAlwaysEatCheck" text="Allow eating when full" textFill="#cccccc" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                            </GridPane>
+                        </VBox>
+                    </TitledPane>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <!-- RIGHT: Preview Panel -->
+        <VBox spacing="15" minWidth="250" prefWidth="300" style="-fx-background-color: #252526; -fx-padding: 20; -fx-border-color: #3e3e3e; -fx-border-width: 0 0 0 1;">
+            
+            <!-- Texture Preview Box -->
+            <VBox alignment="CENTER" spacing="5">
+                <StackPane prefWidth="128" prefHeight="128" style="-fx-border-color: #cccccc; -fx-border-width: 1; -fx-padding: 10;">
+                    <ImageView fx:id="largeTexturePreview" fitWidth="100" fitHeight="100" preserveRatio="true"/>
+                </StackPane>
+                <Label text="Item texture" textFill="WHITE" style="-fx-font-size: 16px;">
+                    <font>
+                        <Font size="16"/>
+                    </font>
+                </Label>
+            </VBox>
+
+            <Separator/>
+            
+            <Label text="info preview" textFill="#cccccc" style="-fx-font-family: 'Segoe Print', 'Comic Sans MS', cursive; -fx-font-size: 18px;"/>
+            
+            <VBox spacing="8" style="-fx-padding: 10 0 0 10;">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="name" textFill="#888888" minWidth="50"/>
+                    <Label fx:id="previewNameLabel" text="..." textFill="WHITE" wrapText="true"/>
+                </HBox>
+                
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="stack" textFill="#888888" minWidth="50"/>
+                    <Label fx:id="previewStackLabel" text="64" textFill="WHITE"/>
+                </HBox>
+                
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="ID" textFill="#888888" minWidth="50"/>
+                    <Label fx:id="previewIdLabel" text="..." textFill="WHITE" wrapText="true" style="-fx-font-family: 'Consolas', monospace;"/>
+                </HBox>
+
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="..." textFill="#888888" minWidth="50"/>
+                </HBox>
+            </VBox>
+
+        </VBox>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Action Buttons -->
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Cancel" onAction="#handleCancel" styleClass="button-secondary"/>
+        <Button text="Create Item" onAction="#handleCreate" styleClass="button-primary"/>
+    </HBox>
+
+</VBox>

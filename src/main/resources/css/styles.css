@@ -586,11 +586,12 @@
 /* ===== SEPARATOR ===== */
 
 .separator {
-    -fx-background-color: #2d2d2d;
+    -fx-background-color: transparent;
 }
 
 .separator .line {
-    -fx-border-color: #3c3c3c;
+    -fx-border-color: #505050;
+    -fx-border-width: 1 0 0 0;
 }
 
 /* ===== HOME SCREEN (Keep existing styles) ===== */
@@ -709,14 +710,18 @@
     -fx-border-radius: 3;
     -fx-background-radius: 3;
     -fx-cursor: hand;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 3, 0, 0, 1);
 }
 
 .button:hover {
     -fx-background-color: #1177bb;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 5, 0, 0, 1);
 }
 
 .button:pressed {
     -fx-background-color: #005a9e;
+    -fx-effect: none;
 }
 
 /* ===== BACK BUTTON ===== */
@@ -956,14 +961,18 @@
 }
 
 .button-primary {
-    -fx-background-color: #0e639c;
+    -fx-background-color: #007acc;
     -fx-text-fill: white;
     -fx-cursor: hand;
     -fx-background-radius: 3;
+    -fx-font-weight: bold;
+    -fx-padding: 8 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 122, 204, 0.4), 8, 0, 0, 2);
 }
 
 .button-primary:hover {
-    -fx-background-color: #1177bb;
+    -fx-background-color: #0098ff;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 122, 204, 0.6), 12, 0, 0, 3);
 }
 
 .button-secondary {
@@ -973,11 +982,13 @@
     -fx-background-radius: 3;
     -fx-border-color: #555555;
     -fx-border-radius: 3;
+    -fx-padding: 8 20;
 }
 
 .button-secondary:hover {
     -fx-background-color: #4c4c4c;
     -fx-text-fill: white;
+    -fx-border-color: #666666;
 }
 
 .label-header {
@@ -994,27 +1005,36 @@
     -fx-text-fill: #888888;
 }
 
-/* TitledPane for Log */
+/* TitledPane for Items/Logs */
 .titled-pane {
     -fx-text-fill: #cccccc;
 }
 
 .titled-pane>.title {
-    -fx-background-color: #2d2d2d;
+    -fx-background-color: #252526;
     -fx-border-color: #3e3e3e;
-    -fx-border-radius: 3 3 0 0;
-    -fx-background-radius: 3 3 0 0;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10;
+}
+
+.titled-pane:expanded>.title {
+    -fx-border-color: #007acc;
+    -fx-border-width: 0 0 1 0;
+    -fx-text-fill: white;
 }
 
 .titled-pane>.title .arrow-button .arrow {
     -fx-background-color: #cccccc;
 }
 
+.titled-pane:expanded>.title .arrow-button .arrow {
+    -fx-background-color: #007acc;
+}
+
 .titled-pane>.content {
     -fx-background-color: #1e1e1e;
-    -fx-border-color: #3e3e3e;
-    -fx-border-radius: 0 0 3 3;
-    -fx-background-radius: 0 0 3 3;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
 }
 
 .log-area {

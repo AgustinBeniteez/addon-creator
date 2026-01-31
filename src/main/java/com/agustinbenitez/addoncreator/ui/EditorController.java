@@ -7,6 +7,10 @@ import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.core.TodoManager;
 import com.agustinbenitez.addoncreator.models.Project;
 import com.agustinbenitez.addoncreator.utils.BedrockSamplesDownloader;
+import com.agustinbenitez.addoncreator.utils.TgaImageLoader;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -1006,13 +1010,51 @@ public class EditorController {
         }
         for (String item : currentProject.getItems()) {
             if (shouldShow(item)) {
-                Node card = createEzCard("Item", item, null);
                 String key = item.contains(":") ? item.split(":")[1] : item;
                 Path p = itemMap.get(key);
+                String texturePath = null;
+
+                if (p != null) {
+                    try {
+                        String content = Files.readString(p);
+                        JsonObject json = JsonParser.parseString(content).getAsJsonObject();
+                        JsonObject itemObj = json.getAsJsonObject("minecraft:item");
+                        if (itemObj != null && itemObj.has("components")) {
+                            JsonObject comp = itemObj.getAsJsonObject("components");
+                            if (comp.has("minecraft:icon")) {
+                                String texName = null;
+                                if (comp.get("minecraft:icon").isJsonPrimitive()) {
+                                    texName = comp.get("minecraft:icon").getAsString();
+                                } else {
+                                    texName = comp.getAsJsonObject("minecraft:icon").get("texture").getAsString();
+                                }
+
+                                if (texName != null) {
+                                    String[] extensions = { ".png", ".tga", ".jpg", ".jpeg" };
+                                    for (String ext : extensions) {
+                                        Path texFile = root.resolve("RP/textures/items/" + texName + ext);
+                                        if (Files.exists(texFile)) {
+                                            texturePath = texFile.toAbsolutePath().toString();
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                    }
+                }
+
+                Node card = createEzCard("Item", item, texturePath);
+
                 if (p != null) {
                     card.setOnMouseClicked(e -> {
-                        toggleMode();
-                        openFileByPath(p);
+                        if (e.getButton() == MouseButton.SECONDARY) {
+                            toggleMode();
+                            openFileByPath(p);
+                        } else {
+                            openItemEditor(p);
+                        }
                     });
                     card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 }
@@ -1112,18 +1154,76 @@ public class EditorController {
 
         for (String item : currentProject.getItems()) {
             if (shouldShow(item)) {
-                Node card = createEzCard("Item", item, null);
                 String key = item.contains(":") ? item.split(":")[1] : item;
                 Path p = itemMap.get(key);
+                String texturePath = null;
+
+                if (p != null) {
+                    try {
+                        String content = Files.readString(p);
+                        JsonObject json = JsonParser.parseString(content).getAsJsonObject();
+                        JsonObject itemObj = json.getAsJsonObject("minecraft:item");
+                        if (itemObj != null && itemObj.has("components")) {
+                            JsonObject comp = itemObj.getAsJsonObject("components");
+                            if (comp.has("minecraft:icon")) {
+                                String texName = null;
+                                if (comp.get("minecraft:icon").isJsonPrimitive()) {
+                                    texName = comp.get("minecraft:icon").getAsString();
+                                } else {
+                                    texName = comp.getAsJsonObject("minecraft:icon").get("texture").getAsString();
+                                }
+
+                                if (texName != null) {
+                                    String[] extensions = { ".png", ".tga", ".jpg", ".jpeg" };
+                                    for (String ext : extensions) {
+                                        Path texFile = root.resolve("RP/textures/items/" + texName + ext);
+                                        if (Files.exists(texFile)) {
+                                            texturePath = texFile.toAbsolutePath().toString();
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                    }
+                }
+
+                Node card = createEzCard("Item", item, texturePath);
+
                 if (p != null) {
                     card.setOnMouseClicked(e -> {
-                        toggleMode();
-                        openFileByPath(p);
+                        if (e.getButton() == MouseButton.SECONDARY) {
+                            toggleMode();
+                            openFileByPath(p);
+                        } else {
+                            openItemEditor(p);
+                        }
                     });
                     card.setStyle(card.getStyle() + "-fx-cursor: hand;");
                 }
                 itemsFlowPane.getChildren().add(card);
             }
+        }
+    }
+
+    private void openItemEditor(Path itemPath) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ItemCreator.fxml"));
+            Parent root = loader.load();
+            ItemCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            controller.loadItem(itemPath.toFile());
+
+            Stage stage = new Stage();
+            stage.setTitle("Edit Item");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+
+            loadItemsView();
+        } catch (Exception e) {
+            logger.error("Failed to open item editor", e);
         }
     }
 
@@ -1185,7 +1285,8 @@ public class EditorController {
         // Add static cards on first page
         if (currentEzTexturePage == 0) {
             texturesFlowPane.getChildren().add(createAddCard(this::handleCreateTexture));
-            texturesFlowPane.getChildren().add(createDownloadCard(this::handleDownloadTemplateTextures));
+            texturesFlowPane.getChildren()
+                    .add(createDownloadCard("Descargar\nTexturas", this::handleDownloadTemplateTextures));
         }
 
         int start = currentEzTexturePage * EZ_TEXTURE_PAGE_SIZE;
@@ -1228,7 +1329,7 @@ public class EditorController {
             return;
         modelsFlowPane.getChildren().clear();
         modelsFlowPane.getChildren().add(createAddCard(this::handleAddModel));
-        modelsFlowPane.getChildren().add(createDownloadCard(this::handleDownloadModels));
+        modelsFlowPane.getChildren().add(createDownloadCard("Descargar\nModelos 3D", this::handleDownloadModels));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> modelFiles = findFiles(root, ".json", ".obj", ".geo.json");
@@ -1245,7 +1346,7 @@ public class EditorController {
             return;
         soundsFlowPane.getChildren().clear();
         soundsFlowPane.getChildren().add(createAddCard(this::handleAddSound));
-        soundsFlowPane.getChildren().add(createDownloadCard(this::handleDownloadSounds));
+        soundsFlowPane.getChildren().add(createDownloadCard("Descargar\nSonidos", this::handleDownloadSounds));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> soundFiles = findFiles(root, ".ogg", ".wav", ".fsb");
@@ -1555,7 +1656,7 @@ public class EditorController {
         return card;
     }
 
-    private Node createDownloadCard(Runnable action) {
+    private Node createDownloadCard(String text, Runnable action) {
         VBox card = new VBox(5);
         card.setStyle(
                 "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
@@ -1568,7 +1669,7 @@ public class EditorController {
         downloadIcon.setScaleX(2);
         downloadIcon.setScaleY(2);
 
-        Label titleLabel = new Label("Descargar\nTexturas");
+        Label titleLabel = new Label(text);
         titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
         titleLabel.setWrapText(true);
         titleLabel.setTextAlignment(TextAlignment.CENTER);
@@ -2084,6 +2185,7 @@ public class EditorController {
                                     iv.setFitWidth(16);
                                     iv.setFitHeight(16);
                                     iv.setPreserveRatio(true);
+                                    iv.setSmooth(false); // Pixel art optimization
                                     slot.getChildren().add(iv);
                                 } else {
                                     // Fallback text/color
@@ -2267,12 +2369,24 @@ public class EditorController {
         if ("Script".equalsIgnoreCase(type)) {
             iconNode = createScriptPreview();
         } else {
-            javafx.scene.image.Image img = findElementImage(title, type);
+            javafx.scene.image.Image img = null;
+            if (iconName != null) {
+                try {
+                    img = new javafx.scene.image.Image(java.nio.file.Paths.get(iconName).toUri().toString());
+                } catch (Exception e) {
+                }
+            }
+
+            if (img == null) {
+                img = findElementImage(title, type);
+            }
+
             if (img != null) {
                 javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
                 iv.setFitWidth(64);
                 iv.setFitHeight(64);
                 iv.setPreserveRatio(true);
+                iv.setSmooth(false); // Pixel art optimization
                 iconNode = iv;
             } else {
                 Rectangle rect = new Rectangle(50, 50, Color.DARKGRAY);
@@ -2462,6 +2576,7 @@ public class EditorController {
         try {
             javafx.scene.image.Image img = new javafx.scene.image.Image(path.toUri().toString(), 80, 80, true, true);
             imageView.setImage(img);
+            imageView.setSmooth(false); // Pixel art optimization
         } catch (Exception e) {
             // ignore
         }
@@ -4797,7 +4912,8 @@ public class EditorController {
         }
 
         // Check for Audio
-        if (fileName.endsWith(".mp3") || fileName.endsWith(".ogg") || fileName.endsWith(".wav")) {
+        if (fileName.endsWith(".mp3") || fileName.endsWith(".ogg") || fileName.endsWith(".wav")
+                || fileName.endsWith(".fsb")) {
             openAudioPreview(filePath);
             return;
         }
@@ -5662,7 +5778,7 @@ public class EditorController {
             mainLayout.getChildren().add(imageLoadingOverlay);
 
             if (image.getProgress() >= 1.0) {
-                 mainLayout.getChildren().remove(imageLoadingOverlay);
+                mainLayout.getChildren().remove(imageLoadingOverlay);
             } else {
                 image.progressProperty().addListener((obs, oldVal, newVal) -> {
                     if (newVal.doubleValue() >= 1.0) {
@@ -5756,8 +5872,17 @@ public class EditorController {
 
     private void openAudioPreview(Path audioPath) {
         try {
-            Media media = new Media(audioPath.toUri().toString());
-            MediaPlayer mediaPlayer = new MediaPlayer(media);
+            Media media = null;
+            MediaPlayer mediaPlayer = null;
+            String errorMsg = null;
+
+            try {
+                media = new Media(audioPath.toUri().toString());
+                mediaPlayer = new MediaPlayer(media);
+            } catch (Exception e) {
+                // Expected for unsupported formats like FSB
+                errorMsg = "Formato no soportado nativamente.";
+            }
 
             // Root Container (Full Tab Background)
             VBox rootContainer = new VBox();
@@ -5793,7 +5918,7 @@ public class EditorController {
             nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
             nameLabel.setWrapText(true);
 
-            Label timeLabel = new Label("00:00 / 00:00");
+            Label timeLabel = new Label(errorMsg != null ? errorMsg : "00:00 / 00:00");
             timeLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px; -fx-font-family: 'Consolas', monospace;");
 
             textInfo.getChildren().addAll(nameLabel, timeLabel);
@@ -5801,95 +5926,104 @@ public class EditorController {
 
             infoSection.getChildren().addAll(iconPane, textInfo);
 
-            // Controls Section
-            VBox controlsSection = new VBox(15);
-            controlsSection.setAlignment(Pos.CENTER);
+            if (mediaPlayer != null) {
+                // Controls Section
+                VBox controlsSection = new VBox(15);
+                controlsSection.setAlignment(Pos.CENTER);
 
-            // Progress Slider
-            Slider progressSlider = new Slider();
-            progressSlider.setMaxWidth(Double.MAX_VALUE);
-            progressSlider.setStyle("-fx-cursor: hand;");
+                // Progress Slider
+                Slider progressSlider = new Slider();
+                progressSlider.setMaxWidth(Double.MAX_VALUE);
+                progressSlider.setStyle("-fx-cursor: hand;");
 
-            // Buttons Row
-            HBox buttonsRow = new HBox(20);
-            buttonsRow.setAlignment(Pos.CENTER);
+                // Buttons Row
+                HBox buttonsRow = new HBox(20);
+                buttonsRow.setAlignment(Pos.CENTER);
 
-            Button playBtn = new Button("▶");
-            playBtn.setStyle(
-                    "-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 32px; -fx-cursor: hand; -fx-padding: 0;");
+                Button playBtn = new Button("▶");
+                playBtn.setStyle(
+                        "-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 32px; -fx-cursor: hand; -fx-padding: 0;");
 
-            // Volume Control
-            HBox volBox = new HBox(10);
-            volBox.setAlignment(Pos.CENTER);
-            Label volIcon = new Label("🔊");
-            volIcon.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
-            Slider volSlider = new Slider(0, 1, 1);
-            volSlider.setPrefWidth(100);
-            volBox.getChildren().addAll(volIcon, volSlider);
+                // Volume Control
+                HBox volBox = new HBox(10);
+                volBox.setAlignment(Pos.CENTER);
+                Label volIcon = new Label("🔊");
+                volIcon.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
+                Slider volSlider = new Slider(0, 1, 1);
+                volSlider.setPrefWidth(100);
+                volBox.getChildren().addAll(volIcon, volSlider);
 
-            buttonsRow.getChildren().addAll(playBtn, volBox);
+                buttonsRow.getChildren().addAll(playBtn, volBox);
 
-            controlsSection.getChildren().addAll(progressSlider, buttonsRow);
+                controlsSection.getChildren().addAll(progressSlider, buttonsRow);
 
-            // Add all to Card
-            card.getChildren().addAll(infoSection, new Separator(), controlsSection);
+                // Add all to Card
+                card.getChildren().addAll(infoSection, new Separator(), controlsSection);
 
-            // Add Card to Root
-            rootContainer.getChildren().add(card);
+                // Add Card to Root
+                rootContainer.getChildren().add(card);
 
-            // Logic
-            playBtn.setOnAction(e -> {
-                MediaPlayer.Status status = mediaPlayer.getStatus();
-                if (status == MediaPlayer.Status.UNKNOWN || status == MediaPlayer.Status.HALTED) {
-                    return;
-                }
-                if (status == MediaPlayer.Status.PAUSED || status == MediaPlayer.Status.READY
-                        || status == MediaPlayer.Status.STOPPED) {
-                    mediaPlayer.play();
-                    playBtn.setText("⏸");
-                } else {
-                    mediaPlayer.pause();
+                // Logic
+                MediaPlayer finalMediaPlayer = mediaPlayer;
+                Media finalMedia = media;
+
+                playBtn.setOnAction(e -> {
+                    MediaPlayer.Status status = finalMediaPlayer.getStatus();
+                    if (status == MediaPlayer.Status.UNKNOWN || status == MediaPlayer.Status.HALTED) {
+                        return;
+                    }
+                    if (status == MediaPlayer.Status.PAUSED || status == MediaPlayer.Status.READY
+                            || status == MediaPlayer.Status.STOPPED) {
+                        finalMediaPlayer.play();
+                        playBtn.setText("⏸");
+                    } else {
+                        finalMediaPlayer.pause();
+                        playBtn.setText("▶");
+                    }
+                });
+
+                finalMediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
+                    if (!progressSlider.isValueChanging()) {
+                        progressSlider.setValue(newTime.toMillis() / finalMedia.getDuration().toMillis() * 100.0);
+                    }
+                    updateTimeLabel(timeLabel, newTime, finalMedia.getDuration());
+                });
+
+                progressSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                    if (progressSlider.isValueChanging()) {
+                        finalMediaPlayer.seek(finalMedia.getDuration().multiply(newVal.doubleValue() / 100.0));
+                    }
+                });
+
+                progressSlider.setOnMouseReleased(e -> {
+                    finalMediaPlayer.seek(finalMedia.getDuration().multiply(progressSlider.getValue() / 100.0));
+                });
+
+                volSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                    finalMediaPlayer.setVolume(newVal.doubleValue());
+                    if (newVal.doubleValue() == 0) {
+                        volIcon.setText("🔇");
+                    } else if (newVal.doubleValue() < 0.5) {
+                        volIcon.setText("🔉");
+                    } else {
+                        volIcon.setText("🔊");
+                    }
+                });
+
+                finalMediaPlayer.setOnEndOfMedia(() -> {
+                    finalMediaPlayer.stop();
                     playBtn.setText("▶");
-                }
-            });
+                    progressSlider.setValue(0);
+                });
 
-            mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
-                if (!progressSlider.isValueChanging()) {
-                    progressSlider.setValue(newTime.toMillis() / media.getDuration().toMillis() * 100.0);
-                }
-                updateTimeLabel(timeLabel, newTime, media.getDuration());
-            });
-
-            progressSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                if (progressSlider.isValueChanging()) {
-                    mediaPlayer.seek(media.getDuration().multiply(newVal.doubleValue() / 100.0));
-                }
-            });
-
-            progressSlider.setOnMouseReleased(e -> {
-                mediaPlayer.seek(media.getDuration().multiply(progressSlider.getValue() / 100.0));
-            });
-
-            volSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                mediaPlayer.setVolume(newVal.doubleValue());
-                if (newVal.doubleValue() == 0) {
-                    volIcon.setText("🔇");
-                } else if (newVal.doubleValue() < 0.5) {
-                    volIcon.setText("🔉");
-                } else {
-                    volIcon.setText("🔊");
-                }
-            });
-
-            mediaPlayer.setOnEndOfMedia(() -> {
-                mediaPlayer.stop();
-                playBtn.setText("▶");
-                progressSlider.setValue(0);
-            });
-
-            mediaPlayer.setOnReady(() -> {
-                updateTimeLabel(timeLabel, mediaPlayer.getCurrentTime(), media.getDuration());
-            });
+                finalMediaPlayer.setOnReady(() -> {
+                    updateTimeLabel(timeLabel, finalMediaPlayer.getCurrentTime(), finalMedia.getDuration());
+                });
+            } else {
+                // Error case: Just info section
+                card.getChildren().addAll(infoSection);
+                rootContainer.getChildren().add(card);
+            }
 
             // Tab Setup
             Tab tab = new Tab(audioPath.getFileName().toString());
@@ -5897,12 +6031,20 @@ public class EditorController {
             tab.setContent(rootContainer);
 
             // Cleanup on close
-            tab.setOnClosed(e -> {
-                mediaPlayer.stop();
-                mediaPlayer.dispose();
-                tabFileMap.remove(tab);
-                tabDirtyMap.remove(tab);
-            });
+            if (mediaPlayer != null) {
+                MediaPlayer finalMediaPlayer = mediaPlayer;
+                tab.setOnClosed(e -> {
+                    finalMediaPlayer.stop();
+                    finalMediaPlayer.dispose();
+                    tabFileMap.remove(tab);
+                    tabDirtyMap.remove(tab);
+                });
+            } else {
+                tab.setOnClosed(e -> {
+                    tabFileMap.remove(tab);
+                    tabDirtyMap.remove(tab);
+                });
+            }
 
             tabFileMap.put(tab, audioPath);
             editorTabs.getTabs().add(tab);
@@ -6260,40 +6402,38 @@ public class EditorController {
     }
 
     private void handleAddItem() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Añadir Item");
-        dialog.setHeaderText("Crear nuevo item");
-        dialog.setContentText("Nombre del item:");
-
-        // Add icon
-        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
         try {
-            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
-        } catch (Exception e) {
-        }
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ItemCreator.fxml"));
+            Parent root = loader.load();
 
-        dialog.showAndWait().ifPresent(itemName -> {
-            if (itemName.trim().isEmpty()) {
-                showError("Error", "El nombre no puede estar vacío");
-                return;
-            }
+            ItemCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
 
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create New Item");
+            stage.initModality(Modality.APPLICATION_MODAL);
+
+            // Add icon
             try {
-                ensureBaseStructure();
-                ProjectGenerator.createItemFolder(Paths.get(currentProject.getRootPath()));
-
-                currentProject.addItem(itemName);
-                projectManager.updateProject(currentProject);
-
-                refreshFileTree();
-                loadItemsView();
-                log("✓ Item añadido: " + itemName);
-
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
             } catch (Exception e) {
-                logger.error("Failed to add item", e);
-                log("✗ Error: " + e.getMessage());
             }
-        });
+
+            stage.showAndWait();
+
+            // Refresh views
+            refreshFileTree();
+            projectManager.updateProject(currentProject);
+
+            if ("items".equals(currentEzViewName)) {
+                loadItemsView();
+            }
+
+        } catch (Exception e) {
+            logger.error("Failed to open Item Creator", e);
+            showError("Error", "Could not open Item Creator: " + e.getMessage());
+        }
     }
 
     private void handleAddBlock() {
@@ -7001,7 +7141,8 @@ public class EditorController {
                 FileChooser fileChooser = new FileChooser();
                 fileChooser.setTitle("Open Image for Pixel Art");
                 fileChooser.getExtensionFilters().addAll(
-                        new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp"));
+                        new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp",
+                                "*.tga"));
                 if (currentProject != null) {
                     fileChooser.setInitialDirectory(new File(currentProject.getRootPath()));
                 }
@@ -7070,7 +7211,12 @@ public class EditorController {
 
             if (file != null) {
                 // Load image
-                javafx.scene.image.Image img = new javafx.scene.image.Image(file.toURI().toString());
+                javafx.scene.image.Image img;
+                if (file.getName().toLowerCase().endsWith(".tga")) {
+                    img = TgaImageLoader.loadTga(file);
+                } else {
+                    img = new javafx.scene.image.Image(file.toURI().toString());
+                }
                 controller.setImage(img);
             }
 
@@ -7285,7 +7431,8 @@ public class EditorController {
             }
 
             // Audio Files
-            if (nameLower.endsWith(".mp3") || nameLower.endsWith(".ogg") || nameLower.endsWith(".wav")) {
+            if (nameLower.endsWith(".mp3") || nameLower.endsWith(".ogg") || nameLower.endsWith(".wav")
+                    || nameLower.endsWith(".fsb")) {
                 SVGPath body = new SVGPath();
                 body.setContent(AUDIO_BODY);
                 body.setFill(Color.web("#4F46E5"));
@@ -7481,6 +7628,7 @@ public class EditorController {
                 case "jpeg":
                 case "webp":
                 case "gif":
+                case "tga":
                     bodyColor = Color.web("#4CAF50");
                     cornerColor = Color.web("#388E3C");
 
