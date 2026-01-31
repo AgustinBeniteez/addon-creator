@@ -41,6 +41,17 @@
                 </Label>
                 
                 <ComboBox fx:id="windowSizeComboBox" prefWidth="200" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                <Label text="Blockbench Path:" GridPane.columnIndex="0" GridPane.rowIndex="2" textFill="white">
+                    <font>
+                        <Font size="14"/>
+                    </font>
+                </Label>
+                
+                <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="2" alignment="CENTER_LEFT">
+                    <TextField fx:id="blockbenchPathField" prefWidth="160" editable="false" promptText="Not configured"/>
+                    <Button fx:id="btnBrowseBlockbench" text="..." />
+                </HBox>
                 
             </GridPane>
             

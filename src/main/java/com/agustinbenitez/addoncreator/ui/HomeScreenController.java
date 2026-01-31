@@ -524,10 +524,58 @@ public class HomeScreenController {
             logger.error("Failed to open Pixel Art Editor", e);
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
-            alert.setHeaderText("No se pudo abrir el editor");
+            alert.setHeaderText("Error al abrir Editor PixelArt");
             alert.setContentText(e.getMessage());
             alert.showAndWait();
         }
+    }
+
+    private void handleBlockbench() {
+        String path = SettingsManager.getInstance().getBlockbenchPath();
+        
+        if (path == null || path.isEmpty() || !new File(path).exists()) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Configurar Blockbench");
+            alert.setHeaderText("Blockbench no está configurado");
+            alert.setContentText("Selecciona el ejecutable de Blockbench para continuar.");
+            
+            alert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    FileChooser fileChooser = new FileChooser();
+                    fileChooser.setTitle("Seleccionar Ejecutable de Blockbench");
+                    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "*.sh"));
+                    File file = fileChooser.showOpenDialog(pixelArtButton.getScene().getWindow());
+                    
+                    if (file != null) {
+                        SettingsManager.getInstance().setBlockbenchPath(file.getAbsolutePath());
+                        // Try again recursively
+                        handleBlockbench();
+                    }
+                }
+            });
+            return;
+        }
+        
+        // Launch Blockbench
+        new Thread(() -> {
+            try {
+                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
+                    java.awt.Desktop.getDesktop().open(new File(path));
+                } else {
+                    // Fallback using ProcessBuilder
+                    new ProcessBuilder(path).start();
+                }
+            } catch (java.io.IOException ex) {
+                javafx.application.Platform.runLater(() -> {
+                    logger.error("Error al abrir Blockbench", ex);
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Error al iniciar Blockbench");
+                    alert.setContentText(ex.getMessage());
+                    alert.showAndWait();
+                });
+            }
+        }).start();
     }
 
     private void handleDownloadProject(Project project) {

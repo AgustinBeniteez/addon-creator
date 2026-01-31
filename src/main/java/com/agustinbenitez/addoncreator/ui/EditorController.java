@@ -175,6 +175,10 @@ public class EditorController {
     @FXML
     private Button btnPixelArt; // New Pixel Art Button
     @FXML
+    private Button btnBlockbench;
+    @FXML
+    private SVGPath iconBlockbench;
+    @FXML
     private Label projectNameToolbar;
 
     // Sidebar
@@ -396,6 +400,7 @@ public class EditorController {
         setupErrorStatus();
         setupUserProfile();
         setupPixelArt();
+        setupBlockbench();
         
         // Tab selection listener to update save button state
         editorTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -680,26 +685,44 @@ public class EditorController {
 
     private void handleAddModel() {
         if (currentProject == null) return;
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Importar Modelo");
-        fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Model Files", "*.json", "*.bbmodel", "*.obj")
-        );
-        List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
-        
-        if (files != null) {
-            try {
-                Path root = Paths.get(currentProject.getRootPath());
-                Path modelsDir = root.resolve("models"); // Or geo, depending on structure
-                if (!Files.exists(modelsDir)) Files.createDirectories(modelsDir);
-                
-                for (File f : files) {
-                    Files.copy(f.toPath(), modelsDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Agregar Modelo");
+        alert.setHeaderText("¿Cómo deseas agregar el modelo?");
+        alert.setContentText("Puedes crear un nuevo modelo en Blockbench o importar uno existente.");
+
+        ButtonType btnCreate = new ButtonType("Crear en Blockbench");
+        ButtonType btnImport = new ButtonType("Importar Archivo");
+        ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        alert.getButtonTypes().setAll(btnCreate, btnImport, btnCancel);
+
+        ButtonType result = alert.showAndWait().orElse(btnCancel);
+
+        if (result == btnCreate) {
+            openInBlockbench(null);
+        } else if (result == btnImport) {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Importar Modelo");
+            fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Model Files", "*.json", "*.bbmodel", "*.obj", "*.geo.json")
+            );
+            List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
+            
+            if (files != null) {
+                try {
+                    Path root = Paths.get(currentProject.getRootPath());
+                    Path modelsDir = root.resolve("models"); // Or geo, depending on structure
+                    if (!Files.exists(modelsDir)) Files.createDirectories(modelsDir);
+                    
+                    for (File f : files) {
+                        Files.copy(f.toPath(), modelsDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    loadModelsView();
+                } catch (Exception ex) {
+                    logger.error("Failed to import models", ex);
+                    showError("Error", "Failed to import models: " + ex.getMessage());
                 }
-                loadModelsView();
-            } catch (Exception ex) {
-                logger.error("Failed to import models", ex);
-                showError("Error", "Failed to import models: " + ex.getMessage());
             }
         }
     }
@@ -797,10 +820,10 @@ public class EditorController {
         modelsFlowPane.getChildren().add(createAddCard(this::handleAddModel));
         
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
-        java.util.List<Path> modelFiles = findFiles(root, ".json", ".obj");
+        java.util.List<Path> modelFiles = findFiles(root, ".json", ".obj", ".geo.json");
         for (Path path : modelFiles) {
              if ((path.toString().contains("models") || path.toString().contains("geo")) && shouldShow(path.getFileName().toString())) {
-                 modelsFlowPane.getChildren().add(createEzCard("Model", path.getFileName().toString(), null));
+                 modelsFlowPane.getChildren().add(createModelCard(path));
              }
         }
     }
@@ -931,6 +954,58 @@ public class EditorController {
         titleLabel.setTextAlignment(TextAlignment.CENTER);
         
         card.getChildren().addAll(iconNode, titleLabel, typeLabel);
+        return card;
+    }
+
+    private Node createModelCard(Path path) {
+        VBox card = new VBox(5);
+        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+        
+        // Icon (Cube)
+        SVGPath cubeIcon = new SVGPath();
+        cubeIcon.setContent("M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5"); 
+        cubeIcon.setFill(Color.TRANSPARENT);
+        cubeIcon.setStroke(Color.WHITE);
+        cubeIcon.setStrokeWidth(1.5);
+        cubeIcon.setScaleX(1.5);
+        cubeIcon.setScaleY(1.5);
+        
+        Group iconGroup = new Group(cubeIcon);
+        
+        Label typeLabel = new Label("Model");
+        typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
+        
+        Label titleLabel = new Label(path.getFileName().toString());
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setWrapText(true);
+        titleLabel.setTextAlignment(TextAlignment.CENTER);
+        
+        card.getChildren().addAll(iconGroup, titleLabel, typeLabel);
+
+        // Context Menu
+        ContextMenu cm = new ContextMenu();
+        MenuItem openItem = new MenuItem("Abrir en Blockbench");
+        openItem.setOnAction(e -> openInBlockbench(path.toFile()));
+        cm.getItems().add(openItem);
+        
+        card.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.SECONDARY) {
+                cm.show(card, e.getScreenX(), e.getScreenY());
+            } else if (e.getClickCount() == 2) {
+                openInBlockbench(path.toFile());
+            }
+        });
+        
+        // Hover effects
+        card.setOnMouseEntered(e -> {
+             card.setStyle("-fx-background-color: #3E3E42; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0);");
+        });
+        card.setOnMouseExited(e -> {
+             card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        });
+
         return card;
     }
     
@@ -3119,6 +3194,15 @@ public class EditorController {
             }
         });
 
+        // Blockbench Option
+        Path path = FileTreeManager.getPathFromTreeItem(item, Paths.get(currentProject.getRootPath()));
+        String name = path.getFileName().toString().toLowerCase();
+        if (Files.isRegularFile(path) && (name.endsWith(".json") || name.endsWith(".geo.json") || name.endsWith(".jem") || name.endsWith(".obj"))) {
+             MenuItem openBb = new MenuItem("Abrir en Blockbench");
+             openBb.setOnAction(e -> openInBlockbench(path.toFile()));
+             menu.getItems().add(openBb);
+        }
+
         MenuItem renameItem = new MenuItem("✏ Renombrar");
         renameItem.setOnAction(e -> handleRenameFile(item));
 
@@ -4993,6 +5077,67 @@ public class EditorController {
         
         // Scale to fit if needed, but 24x24 is standard
         return group;
+    }
+
+    // =================================================================================
+    // BLOCKBENCH INTEGRATION
+    // =================================================================================
+
+    private void setupBlockbench() {
+        if (iconBlockbench != null) {
+            // Set SVG content provided by user
+            iconBlockbench.setContent("m 145.06822,40.428534 c -3.01561,0.02572 -12.18472,0.6913 -41.90597,2.737818 -36.807655,2.531284 -73.710665,5.076129 -110.0666748,7.565429 -36.7671502,2.517098 -33.1316902,2.176272 -34.8800402,3.268536 -1.96474,1.227444 -3.07408,3.30931 -3.72638,6.993887 -5.4411,26.301837 -9.80331,45.175926 -13.32426,60.473836 -0.18562,0.48507 -0.56305,2.15194 -0.8387,3.70416 -0.46694,2.62926 -0.45741,2.88253 0.13952,3.70417 1.26003,1.73434 2.78125,2.12738 13.75369,3.55275 41.5927202,5.4354 85.03644,11.17517 123.36662,16.2016 15.09035,1.97836 28.646945,3.77145 38.629175,5.10873 11.24149,1.50598 11.44852,1.51071 11.94345,0.27234 0.39233,-0.98157 1.11078,-4.34345 2.50579,-11.73004 5.75577,-29.80759 12.43761,-64.810606 17.30748,-89.605384 1.52339,-7.755877 1.5947,-8.6047 0.83508,-9.905339 -0.37978,-0.650287 -1.21063,-1.485953 -1.8464,-1.85725 -0.48873,-0.285451 -0.083,-0.500669 -1.89238,-0.485243 z M -68.112565,137.14667 c -1.44679,-0.0153 -2.82363,0.0896 -4.23231,0.30799 -1.94027,0.30081 -17.10055,2.46944 -33.689925,4.81934 -16.58937,2.3499 -30.85056,4.52186 -31.6916,4.82658 -2.53065,0.91687 -3.5546,3.43793 -2.3456,5.77587 0.74574,1.4421 2.60325,2.30177 8.46047,3.91501 0.77611,0.21376 1.80833,0.51912 2.2934,0.67851 54.829435,15.38457 112.774935,32.35174 164.041655,46.94959 2.87828,0.86432 6.8059,2.37672 9.30848,2.38435 1.89216,-0.51009 12.70579,-5.84538 37.21788,-18.18028 19.909935,-10.01902 36.494155,-18.47188 36.853575,-18.78439 1.36459,-1.18662 2.08816,-3.74768 1.36942,-4.84725 -0.14255,-0.21808 -2.08469,-0.66565 -4.31601,-0.99477 -5.30049,-0.78184 -21.811045,-3.19512 -27.869625,-4.07365 -2.61938,-0.37983 -6.35017,-0.93463 -8.29045,-1.233 -1.94028,-0.29837 -7.89341,-1.17442 -13.22917,-1.94665 -5.33576,-0.77224 -14.06667,-2.04277 -19.40243,-2.8236 -5.33576,-0.78082 -12.95576,-1.89003 -16.93333,-2.46497 -9.18097,-1.32707 -28.71164976,-4.19037 -39.6875,-5.81825 -4.65666,-0.69065 -11.72122,-1.72507 -15.69879,-2.29857 -24.31816,-3.50619 -31.82475,-4.63294 -33.86666,-5.08392 -3.27407,-0.72313 -5.88018,-1.0824 -8.29148,-1.10794 z m -20.29541,39.41878 c -0.0876,-0.007 -0.15118,-0.007 -0.18758,5.3e-4 -0.6509,0.1375 -13.558855,27.81692 -13.558855,29.07522 0,1.28756 0.92654,2.86871 2.03295,3.46904 1.225105,0.66472 2.000835,0.67553 3.775985,0.0532 5.3657,-1.66964 11.08586,-3.53236 16.41606,-5.13354 15.89405,-4.76687 16.15683,-4.86434 17.84128,-6.62233 1.39528,-1.45619 3.95908,-6.78895 4.71238,-9.80199 0.14667,-0.58664 0.45558,-1.42008 0.68678,-1.85208 0.23119,-0.432 0.36115,-0.78548 0.28835,-0.78548 -9.27449,-2.40047 -18.9032,-5.01484 -27.68513,-7.4228 -1.91546,-0.52529 -3.70876,-0.92841 -4.32222,-0.97979 z m 164.78064,21.60953 c -0.27094,-0.0111 -0.69713,0.18978 -1.4826,0.64854 -0.84555,0.49386 -3.28396,1.87763 -5.41827,3.07475 -5.80886,3.5129 -11.32035,7.16469 -17.4625,10.06347 -4.98392,3.11929 -7.18033,3.79919 -9.6759,2.99619 -2.43519,-0.78356 -8.9187,-2.47323 -9.48934,-2.47323 -0.33679,0 -0.70145,0.27747 -0.8108,0.61702 -0.19123,0.59383 -0.79709,2.29576 -2.29185,6.43836 -2.40719,6.19663 -4.4796,12.4538 -6.65128,18.34462 -1.03601,2.80799 -2.84621,9.26604 -2.81791,10.05313 0.0278,0.7759 1.71343,2.36598 3.01635,2.84531 0.799,0.29393 1.97486,0.43012 2.79156,0.32349 15.17811,-6.14222 26.74997,-13.89026 39.66012,-20.65145 3.95125,-2.06247 5.40144,-3.50576 5.97017,-5.94227 0.47659,-2.04182 1.37007,-6.01442 1.9513,-8.67699 0.29649,-1.3582 0.8781,-3.97757 1.29295,-5.82084 2.20478,-9.79651 2.34535,-10.71102 1.7818,-11.60084 -0.0948,-0.14971 -0.20123,-0.23262 -0.3638,-0.23926 z");
+        }
+        
+        if (btnBlockbench != null) {
+            btnBlockbench.setOnAction(e -> handleBlockbench());
+            // Add hover effect
+            btnBlockbench.setOnMouseEntered(e -> btnBlockbench.setStyle("-fx-background-color: #3e3e42;"));
+            btnBlockbench.setOnMouseExited(e -> btnBlockbench.setStyle("-fx-background-color: transparent;"));
+        }
+    }
+
+    private void handleBlockbench() {
+        openInBlockbench(null);
+    }
+
+    private void openInBlockbench(File file) {
+        String path = SettingsManager.getInstance().getBlockbenchPath();
+        
+        if (path == null || path.isEmpty() || !new File(path).exists()) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Configurar Blockbench");
+            alert.setHeaderText("Blockbench no está configurado");
+            alert.setContentText("Selecciona el ejecutable de Blockbench para continuar.");
+            
+            ButtonType btnSelect = new ButtonType("Seleccionar");
+            ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+            alert.getButtonTypes().setAll(btnSelect, btnCancel);
+            
+            if (alert.showAndWait().orElse(btnCancel) == btnSelect) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Seleccionar Ejecutable de Blockbench");
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "blockbench"));
+                File exe = fileChooser.showOpenDialog(mainLayout.getScene().getWindow());
+                
+                if (exe != null) {
+                    SettingsManager.getInstance().setBlockbenchPath(exe.getAbsolutePath());
+                    openInBlockbench(file); // Retry
+                }
+            }
+            return;
+        }
+        
+        try {
+            if (file != null) {
+                new ProcessBuilder(path, file.getAbsolutePath()).start();
+            } else {
+                 new ProcessBuilder(path).start();
+            }
+        } catch (Exception ex) {
+            logger.error("Error al abrir Blockbench", ex);
+            showError("Error", "No se pudo iniciar Blockbench: " + ex.getMessage());
+        }
     }
 
     private static class FileIconFactory {

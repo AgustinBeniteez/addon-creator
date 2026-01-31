@@ -23,6 +23,7 @@ public class SettingsManager {
     public static final String KEY_WINDOW_WIDTH = "window_width";
     public static final String KEY_WINDOW_HEIGHT = "window_height";
     public static final String KEY_WINDOW_MAXIMIZED = "window_maximized";
+    public static final String KEY_BLOCKBENCH_PATH = "blockbench_path";
 
     private SettingsManager() {
         properties = new Properties();
@@ -64,6 +65,15 @@ public class SettingsManager {
 
     public void setWindowMaximized(boolean maximized) {
         properties.setProperty(KEY_WINDOW_MAXIMIZED, String.valueOf(maximized));
+        saveSettings();
+    }
+
+    public String getBlockbenchPath() {
+        return properties.getProperty(KEY_BLOCKBENCH_PATH, null);
+    }
+
+    public void setBlockbenchPath(String path) {
+        properties.setProperty(KEY_BLOCKBENCH_PATH, path);
         saveSettings();
     }
 

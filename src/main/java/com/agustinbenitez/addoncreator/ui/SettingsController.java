@@ -4,6 +4,9 @@ import com.agustinbenitez.addoncreator.core.SettingsManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextField;
+import javafx.stage.FileChooser;
+import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +22,12 @@ public class SettingsController {
 
     @FXML
     private ComboBox<String> windowSizeComboBox;
+
+    @FXML
+    private TextField blockbenchPathField;
+
+    @FXML
+    private Button btnBrowseBlockbench;
 
     @FXML
     private Button btnClose;
@@ -62,6 +71,26 @@ public class SettingsController {
             String selected = windowSizeComboBox.getSelectionModel().getSelectedItem();
             if (selected != null) {
                 handleWindowSizeChange(selected);
+            }
+        });
+
+        // Setup Blockbench Path
+        String bbPath = SettingsManager.getInstance().getBlockbenchPath();
+        if (bbPath != null) {
+            blockbenchPathField.setText(bbPath);
+        }
+        
+        btnBrowseBlockbench.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Seleccionar Ejecutable de Blockbench");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "blockbench"));
+            File exe = fileChooser.showOpenDialog(btnClose.getScene().getWindow());
+            
+            if (exe != null) {
+                String path = exe.getAbsolutePath();
+                SettingsManager.getInstance().setBlockbenchPath(path);
+                blockbenchPathField.setText(path);
+                logger.info("Blockbench path set to: {}", path);
             }
         });
 

@@ -154,6 +154,15 @@
                     <Region prefWidth="24" prefHeight="24"/>
                 </graphic>
             </Button>
+
+            <Button fx:id="btnBlockbench" styleClass="activity-button" contentDisplay="GRAPHIC_ONLY" maxWidth="64">
+                <tooltip><Tooltip text="Blockbench"/></tooltip>
+                <graphic>
+                    <Group>
+                        <SVGPath fx:id="iconBlockbench" content="" styleClass="activity-icon" scaleX="0.065" scaleY="0.065"/>
+                    </Group>
+                </graphic>
+            </Button>
             
             <Region VBox.vgrow="ALWAYS"/>
             
