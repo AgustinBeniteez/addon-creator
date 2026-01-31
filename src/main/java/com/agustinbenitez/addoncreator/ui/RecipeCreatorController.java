@@ -4,6 +4,7 @@ import com.agustinbenitez.addoncreator.models.Project;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -150,7 +151,7 @@ public class RecipeCreatorController {
 
     private void initializeResultSlot() {
         resultSlot.setOnAction(e -> handleResultClick());
-        resultSlot.setText("?");
+        updateButtonVisual(resultSlot, resultItem);
     }
 
     private void handleSlotClick(int row, int col) {
@@ -159,8 +160,7 @@ public class RecipeCreatorController {
         
         if (newItem != null) {
             gridItems[row][col] = newItem;
-            gridButtons[row][col].setText(newItem.isEmpty() ? "" : newItem.substring(0, Math.min(3, newItem.length())));
-            gridButtons[row][col].setTooltip(new Tooltip(newItem));
+            updateButtonVisual(gridButtons[row][col], newItem);
         }
     }
 
@@ -168,24 +168,66 @@ public class RecipeCreatorController {
         String newItem = showItemSelectionDialog(resultItem);
         if (newItem != null) {
             resultItem = newItem;
-            resultSlot.setText(newItem.isEmpty() ? "?" : newItem.substring(0, Math.min(4, newItem.length())));
-            resultSlot.setTooltip(new Tooltip(newItem));
+            updateButtonVisual(resultSlot, newItem);
         }
     }
 
     private String showItemSelectionDialog(String initialValue) {
-        TextInputDialog dialog = new TextInputDialog(initialValue);
-        dialog.setTitle("Select Item");
-        dialog.setHeaderText("Enter Item Identifier (e.g. minecraft:apple)");
-        dialog.setContentText("Identifier:");
-        
-        // Use current stage style
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
-        dialogPane.getStyleClass().add("dialog-pane");
-
+        ItemSelectionDialog dialog = new ItemSelectionDialog(project, initialValue);
         Optional<String> result = dialog.showAndWait();
         return result.orElse(null);
+    }
+
+    private void updateButtonVisual(Button btn, String item) {
+        if (item == null || item.isEmpty() || item.equals("minecraft:air")) {
+            btn.setGraphic(null);
+            btn.setText(btn == resultSlot ? "?" : "");
+            btn.setTooltip(null);
+            return;
+        }
+        
+        // Strip namespace
+        String name = item;
+        if (name.contains(":")) {
+            name = name.split(":")[1];
+        }
+        
+        // Create Icon
+        StackPane icon = new StackPane();
+        icon.setPrefSize(32, 32);
+        icon.setMaxSize(32, 32); // Ensure it doesn't grow too much
+        
+        // Background
+        javafx.scene.shape.Rectangle bg = new javafx.scene.shape.Rectangle(32, 32);
+        bg.setArcWidth(8);
+        bg.setArcHeight(8);
+        
+        // Generate color from hash
+        int hash = item.hashCode();
+        // Ensure positive
+        hash = Math.abs(hash);
+        int r = (hash & 0xFF0000) >> 16;
+        int g = (hash & 0x00FF00) >> 8;
+        int b = hash & 0x0000FF;
+        
+        // Make sure it's not too dark
+        if (r < 50 && g < 50 && b < 50) {
+            r += 100; g += 100; b += 100;
+        }
+        
+        bg.setFill(javafx.scene.paint.Color.rgb(r, g, b));
+        
+        // Text
+        String text = name.length() > 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase();
+        javafx.scene.text.Text label = new javafx.scene.text.Text(text);
+        label.setFill(javafx.scene.paint.Color.WHITE);
+        label.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(one-pass-box, black, 2, 0.5, 0, 0);");
+        
+        icon.getChildren().addAll(bg, label);
+        
+        btn.setGraphic(icon);
+        btn.setText(""); // clear text
+        btn.setTooltip(new Tooltip(item));
     }
 
     @FXML
