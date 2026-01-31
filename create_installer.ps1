@@ -11,10 +11,10 @@ if ($LASTEXITCODE -ne 0) {
 
 # 2. Define variables
 $APP_NAME = "AddonCreator"
-$APP_VERSION = "1.0.1"
+$APP_VERSION = "1.0.2"
 $BUILD_DIR = "target"
 $STAGING_DIR = Join-Path $BUILD_DIR "installer_input"
-$MAIN_JAR = "addon-creator-1.0.1.jar"
+$MAIN_JAR = "addon-creator-1.0.2.jar"
 $MAIN_CLASS = "com.agustinbenitez.addoncreator.Launcher"
 $OUTPUT_DIR = "installer"
 

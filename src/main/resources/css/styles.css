@@ -49,6 +49,31 @@
     -fx-background-insets: 0 0 0 0;
 }
 
+/* ===== GIT COMMIT AREA ===== */
+.git-commit-area .text-area {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-prompt-text-fill: #808080;
+    -fx-highlight-fill: #264f78;
+    -fx-highlight-text-fill: white;
+    -fx-background-radius: 2px;
+}
+
+.git-commit-area .text-area .content {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+}
+
+.git-commit-area .text-area .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.git-commit-area .text-area:focused {
+    -fx-border-color: #007acc;
+    -fx-border-width: 1;
+    -fx-background-insets: 0 0 0 0;
+}
+
 /* ===== MENU BAR ===== */
 
 .ide-menubar {
@@ -342,11 +367,13 @@
 
 .ide-splitpane {
     -fx-background-color: #1e1e1e;
+    -fx-padding: 0;
 }
 
 .ide-splitpane .split-pane-divider {
-    -fx-background-color: #2d2d2d;
-    -fx-padding: 0 1 0 1;
+    -fx-background-color: #1e1e1e;
+    -fx-padding: 0 1 0 1; /* Keep width for grabbing but make it look like background */
+    -fx-border-style: none;
 }
 
 /* ===== DIFF VIEW ===== */

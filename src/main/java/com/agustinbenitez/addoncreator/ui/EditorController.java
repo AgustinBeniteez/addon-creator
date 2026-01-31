@@ -23,6 +23,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.*;
@@ -123,6 +124,8 @@ public class EditorController {
     @FXML
     private MenuItem menuExport;
     @FXML
+    private MenuItem menuOpenProjectFolder;
+    @FXML
     private MenuItem menuClose;
     @FXML
     private MenuItem menuAddEntity;
@@ -181,6 +184,11 @@ public class EditorController {
     private BorderPane mainLayout;
     @FXML
     private VBox activityBar;
+    
+    @FXML
+    private StackPane contentArea;
+    @FXML
+    private BorderPane codeModeView;
 
     @FXML
     private VBox projectExplorerView;
@@ -205,17 +213,56 @@ public class EditorController {
     @FXML
     private ToggleButton btnEzBlocks;
     @FXML
+    private ToggleButton btnEzTextures;
+    @FXML
+    private ToggleButton btnEzModels;
+    @FXML
+    private ToggleButton btnEzSounds;
+    @FXML
+    private ToggleButton btnEzMain;
+    @FXML
+    private TextField txtEzFilter;
+
+    @FXML
     private VBox ezEntitiesContainer;
     @FXML
     private VBox ezItemsContainer;
     @FXML
     private VBox ezBlocksContainer;
     @FXML
-    private ListView<String> ezEntitiesList;
+    private VBox ezTexturesContainer;
     @FXML
-    private ListView<String> ezItemsList;
+    private VBox ezModelsContainer;
     @FXML
-    private ListView<String> ezBlocksList;
+    private VBox ezSoundsContainer;
+    @FXML
+    private VBox ezMainContainer;
+    @FXML
+    private VBox ezPixelArtContainer;
+    @FXML
+    private StackPane ezPixelArtContent;
+    @FXML
+    private VBox ezTopBar;
+
+    @FXML
+    private Button btnEzBackFromPixelArt;
+
+    @FXML
+    private FlowPane texturesFlowPane;
+    @FXML
+    private FlowPane modelsFlowPane;
+    @FXML
+    private FlowPane soundsFlowPane;
+    @FXML
+    private FlowPane mainElementsFlowPane;
+    @FXML
+    private FlowPane entitiesFlowPane;
+    @FXML
+    private FlowPane itemsFlowPane;
+    @FXML
+    private FlowPane blocksFlowPane;
+    
+    private Path selectedTexturePath;
 
     @FXML
     private VBox searchView;
@@ -228,6 +275,8 @@ public class EditorController {
     @FXML
     private ListView<String> searchResultsList;
     
+    private String currentEzViewName = "main";
+
     @FXML
     private VBox todoView;
     @FXML
@@ -414,25 +463,548 @@ public class EditorController {
     }
 
     private void setupEzModeNavigation() {
-        ToggleGroup group = new ToggleGroup();
+        ToggleGroup ezGroup = new ToggleGroup();
+        
+        if (btnEzMain != null) {
+            btnEzMain.setToggleGroup(ezGroup);
+            btnEzMain.setOnAction(e -> {
+                if (btnEzMain.isSelected()) switchEzView("main");
+            });
+        }
+
         if (btnEzEntities != null) {
-            btnEzEntities.setToggleGroup(group);
-            btnEzEntities.setOnAction(e -> showEzSection("entities"));
+            btnEzEntities.setToggleGroup(ezGroup);
+            btnEzEntities.setOnAction(e -> {
+                if (btnEzEntities.isSelected()) switchEzView("entities");
+            });
         }
+
         if (btnEzItems != null) {
-            btnEzItems.setToggleGroup(group);
-            btnEzItems.setOnAction(e -> showEzSection("items"));
+            btnEzItems.setToggleGroup(ezGroup);
+            btnEzItems.setOnAction(e -> {
+                if (btnEzItems.isSelected()) switchEzView("items");
+            });
         }
+
         if (btnEzBlocks != null) {
-            btnEzBlocks.setToggleGroup(group);
-            btnEzBlocks.setOnAction(e -> showEzSection("blocks"));
+            btnEzBlocks.setToggleGroup(ezGroup);
+            btnEzBlocks.setOnAction(e -> {
+                if (btnEzBlocks.isSelected()) switchEzView("blocks");
+            });
+        }
+        
+        if (btnEzTextures != null) {
+            btnEzTextures.setToggleGroup(ezGroup);
+            btnEzTextures.setOnAction(e -> {
+                if (btnEzTextures.isSelected()) switchEzView("textures");
+            });
+        }
+        
+        if (btnEzModels != null) {
+            btnEzModels.setToggleGroup(ezGroup);
+            btnEzModels.setOnAction(e -> {
+                if (btnEzModels.isSelected()) switchEzView("models");
+            });
+        }
+        
+        if (btnEzSounds != null) {
+            btnEzSounds.setToggleGroup(ezGroup);
+            btnEzSounds.setOnAction(e -> {
+                if (btnEzSounds.isSelected()) switchEzView("sounds");
+            });
+        }
+        
+        if (txtEzFilter != null) {
+            txtEzFilter.textProperty().addListener((obs, oldVal, newVal) -> {
+                switchEzView(currentEzViewName);
+            });
         }
     }
 
-    private void showEzSection(String section) {
-        if (ezEntitiesContainer != null) ezEntitiesContainer.setVisible("entities".equals(section));
-        if (ezItemsContainer != null) ezItemsContainer.setVisible("items".equals(section));
-        if (ezBlocksContainer != null) ezBlocksContainer.setVisible("blocks".equals(section));
+    private void switchEzView(String viewName) {
+        this.currentEzViewName = viewName;
+        if (ezMainContainer != null) ezMainContainer.setVisible(false);
+        if (ezEntitiesContainer != null) ezEntitiesContainer.setVisible(false);
+        if (ezItemsContainer != null) ezItemsContainer.setVisible(false);
+        if (ezBlocksContainer != null) ezBlocksContainer.setVisible(false);
+        if (ezTexturesContainer != null) ezTexturesContainer.setVisible(false);
+        if (ezModelsContainer != null) ezModelsContainer.setVisible(false);
+        if (ezSoundsContainer != null) ezSoundsContainer.setVisible(false);
+        if (ezPixelArtContainer != null) ezPixelArtContainer.setVisible(false);
+
+        // Ensure Top Bar is visible for main views (navigation buttons are here)
+        if (ezTopBar != null) {
+            ezTopBar.setVisible(true);
+            ezTopBar.setManaged(true);
+        }
+
+        switch (viewName) {
+            case "main":
+                if (ezMainContainer != null) ezMainContainer.setVisible(true);
+                loadElementsView();
+                break;
+            case "entities":
+                if (ezEntitiesContainer != null) ezEntitiesContainer.setVisible(true);
+                loadEntitiesView();
+                break;
+            case "items":
+                if (ezItemsContainer != null) ezItemsContainer.setVisible(true);
+                loadItemsView();
+                break;
+            case "blocks":
+                if (ezBlocksContainer != null) ezBlocksContainer.setVisible(true);
+                loadBlocksView();
+                break;
+            case "textures":
+                if (ezTexturesContainer != null) ezTexturesContainer.setVisible(true);
+                loadTexturesView();
+                break;
+            case "models":
+                if (ezModelsContainer != null) ezModelsContainer.setVisible(true);
+                loadModelsView();
+                break;
+            case "sounds":
+                if (ezSoundsContainer != null) ezSoundsContainer.setVisible(true);
+                loadSoundsView();
+                break;
+        }
+    }
+
+    private void setupTextureToolbar() {
+        // Removed as per user request to use context menus and + buttons
+    }
+    
+    private void handleCreateTexture() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Añadir Textura");
+        alert.setHeaderText("¿Cómo deseas añadir la textura?");
+        alert.setContentText("Elige una opción:");
+        
+        ButtonType btnCreate = new ButtonType("Crear Nueva");
+        ButtonType btnImport = new ButtonType("Importar");
+        ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        
+        alert.getButtonTypes().setAll(btnCreate, btnImport, btnCancel);
+        
+        alert.showAndWait().ifPresent(type -> {
+            if (type == btnCreate) {
+                createNewTexture();
+            } else if (type == btnImport) {
+                handleImportTexture();
+            }
+        });
+    }
+
+    private void createNewTexture() {
+         TextInputDialog dialog = new TextInputDialog("new_texture");
+         dialog.setTitle("Crear Textura");
+         dialog.setHeaderText("Crear nueva textura");
+         dialog.setContentText("Nombre del archivo (sin extensión):");
+         
+         dialog.showAndWait().ifPresent(name -> {
+             if (currentProject == null) return;
+             try {
+                 Path root = Paths.get(currentProject.getRootPath());
+                 Path texturesDir = root.resolve("textures");
+                 if (!Files.exists(texturesDir)) Files.createDirectories(texturesDir);
+                 
+                 Path file = texturesDir.resolve(name + ".png");
+                java.awt.image.BufferedImage bImg = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                javax.imageio.ImageIO.write(bImg, "png", file.toFile());
+                
+                loadTexturesView();
+                openPixelArtEditor(file.toFile());
+            } catch (Exception ex) {
+                 logger.error("Failed to create texture", ex);
+             }
+         });
+    }
+
+    private void handleImportTexture() {
+        if (currentProject == null) return;
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Importar Texturas");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.tga"));
+        List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
+        
+        if (files != null) {
+            try {
+                Path root = Paths.get(currentProject.getRootPath());
+                Path texturesDir = root.resolve("textures");
+                if (!Files.exists(texturesDir)) Files.createDirectories(texturesDir);
+                
+                for (File f : files) {
+                    Files.copy(f.toPath(), texturesDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                loadTexturesView();
+            } catch (Exception ex) {
+                logger.error("Failed to import textures", ex);
+            }
+        }
+    }
+    
+    private void handleEditTexture() {
+        if (selectedTexturePath == null) return;
+        openPixelArtEditor(selectedTexturePath.toFile());
+    }
+    
+    private void handleDuplicateTexture() {
+        if (selectedTexturePath == null) return;
+        try {
+            String name = selectedTexturePath.getFileName().toString();
+            String nameNoExt = name.contains(".") ? name.substring(0, name.lastIndexOf('.')) : name;
+            String ext = name.contains(".") ? name.substring(name.lastIndexOf('.')) : "";
+            Path newPath = selectedTexturePath.getParent().resolve(nameNoExt + "_copy" + ext);
+            Files.copy(selectedTexturePath, newPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            loadTexturesView();
+        } catch (Exception ex) {
+            logger.error("Failed to duplicate texture", ex);
+        }
+    }
+    
+    private void handleDeleteTexture() {
+        if (selectedTexturePath == null) return;
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Delete " + selectedTexturePath.getFileName() + "?", ButtonType.YES, ButtonType.NO);
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.YES) {
+                try {
+                    Files.delete(selectedTexturePath);
+                    selectedTexturePath = null;
+                    loadTexturesView();
+                } catch (Exception ex) {
+                    logger.error("Failed to delete texture", ex);
+                }
+            }
+        });
+    }
+
+    private void handleAddModel() {
+        if (currentProject == null) return;
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Importar Modelo");
+        fileChooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Model Files", "*.json", "*.bbmodel", "*.obj")
+        );
+        List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
+        
+        if (files != null) {
+            try {
+                Path root = Paths.get(currentProject.getRootPath());
+                Path modelsDir = root.resolve("models"); // Or geo, depending on structure
+                if (!Files.exists(modelsDir)) Files.createDirectories(modelsDir);
+                
+                for (File f : files) {
+                    Files.copy(f.toPath(), modelsDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                loadModelsView();
+            } catch (Exception ex) {
+                logger.error("Failed to import models", ex);
+                showError("Error", "Failed to import models: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void handleAddSound() {
+        if (currentProject == null) return;
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Importar Sonido");
+        fileChooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Audio Files", "*.ogg", "*.wav", "*.fsb")
+        );
+        List<File> files = fileChooser.showOpenMultipleDialog(mainLayout.getScene().getWindow());
+        
+        if (files != null) {
+            try {
+                Path root = Paths.get(currentProject.getRootPath());
+                Path soundsDir = root.resolve("sounds");
+                if (!Files.exists(soundsDir)) Files.createDirectories(soundsDir);
+                
+                for (File f : files) {
+                    Files.copy(f.toPath(), soundsDir.resolve(f.getName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                loadSoundsView();
+            } catch (Exception ex) {
+                logger.error("Failed to import sounds", ex);
+                showError("Error", "Failed to import sounds: " + ex.getMessage());
+            }
+        }
+    }
+
+    private boolean shouldShow(String name) {
+        if (txtEzFilter == null || txtEzFilter.getText() == null || txtEzFilter.getText().trim().isEmpty()) return true;
+        return name.toLowerCase().contains(txtEzFilter.getText().toLowerCase().trim());
+    }
+
+    private void loadElementsView() {
+        if (mainElementsFlowPane == null || currentProject == null) return;
+        mainElementsFlowPane.getChildren().clear();
+        
+        for (String entity : currentProject.getEntities()) {
+            if (shouldShow(entity)) mainElementsFlowPane.getChildren().add(createEzCard("Entity", entity, null));
+        }
+        for (String item : currentProject.getItems()) {
+            if (shouldShow(item)) mainElementsFlowPane.getChildren().add(createEzCard("Item", item, null));
+        }
+        for (String block : currentProject.getBlocks()) {
+            if (shouldShow(block)) mainElementsFlowPane.getChildren().add(createEzCard("Block", block, null));
+        }
+    }
+
+    private void loadEntitiesView() {
+        if (entitiesFlowPane == null || currentProject == null) return;
+        entitiesFlowPane.getChildren().clear();
+        entitiesFlowPane.getChildren().add(createAddCard(this::handleAddEntity));
+        for (String entity : currentProject.getEntities()) {
+            if (shouldShow(entity)) entitiesFlowPane.getChildren().add(createEzCard("Entity", entity, null));
+        }
+    }
+
+    private void loadItemsView() {
+        if (itemsFlowPane == null || currentProject == null) return;
+        itemsFlowPane.getChildren().clear();
+        itemsFlowPane.getChildren().add(createAddCard(this::handleAddItem));
+        for (String item : currentProject.getItems()) {
+            if (shouldShow(item)) itemsFlowPane.getChildren().add(createEzCard("Item", item, null));
+        }
+    }
+
+    private void loadBlocksView() {
+        if (blocksFlowPane == null || currentProject == null) return;
+        blocksFlowPane.getChildren().clear();
+        blocksFlowPane.getChildren().add(createAddCard(this::handleAddBlock));
+        for (String block : currentProject.getBlocks()) {
+            if (shouldShow(block)) blocksFlowPane.getChildren().add(createEzCard("Block", block, null));
+        }
+    }
+
+    private void loadTexturesView() {
+        if (texturesFlowPane == null || currentProject == null) return;
+        texturesFlowPane.getChildren().clear();
+        texturesFlowPane.getChildren().add(createAddCard(this::handleCreateTexture));
+        
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        java.util.List<Path> textureFiles = findFiles(root, ".png", ".tga", ".jpg");
+        for (Path path : textureFiles) {
+            if (shouldShow(path.getFileName().toString())) {
+                texturesFlowPane.getChildren().add(createTextureCard(path));
+            }
+        }
+    }
+    
+    private void loadModelsView() {
+        if (modelsFlowPane == null || currentProject == null) return;
+        modelsFlowPane.getChildren().clear();
+        modelsFlowPane.getChildren().add(createAddCard(this::handleAddModel));
+        
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        java.util.List<Path> modelFiles = findFiles(root, ".json", ".obj");
+        for (Path path : modelFiles) {
+             if ((path.toString().contains("models") || path.toString().contains("geo")) && shouldShow(path.getFileName().toString())) {
+                 modelsFlowPane.getChildren().add(createEzCard("Model", path.getFileName().toString(), null));
+             }
+        }
+    }
+    
+    private void loadSoundsView() {
+        if (soundsFlowPane == null || currentProject == null) return;
+        soundsFlowPane.getChildren().clear();
+        soundsFlowPane.getChildren().add(createAddCard(this::handleAddSound));
+        
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        java.util.List<Path> soundFiles = findFiles(root, ".ogg", ".wav", ".fsb");
+        for (Path path : soundFiles) {
+            if (shouldShow(path.getFileName().toString())) {
+                soundsFlowPane.getChildren().add(createEzCard("Sound", path.getFileName().toString(), null));
+            }
+        }
+    }
+
+    private java.util.List<Path> findFiles(Path root, String... extensions) {
+        java.util.List<Path> result = new java.util.ArrayList<>();
+        if (!java.nio.file.Files.exists(root)) return result;
+        
+        try (java.util.stream.Stream<Path> walk = java.nio.file.Files.walk(root)) {
+            walk.filter(p -> !java.nio.file.Files.isDirectory(p))
+                .filter(p -> {
+                    String name = p.getFileName().toString().toLowerCase();
+                    for (String ext : extensions) {
+                        if (name.endsWith(ext)) return true;
+                    }
+                    return false;
+                })
+                .forEach(result::add);
+        } catch (java.io.IOException e) {
+            logger.error("Failed to scan files", e);
+        }
+        return result;
+    }
+    
+    private javafx.scene.image.Image findElementImage(String name, String type) {
+        if (currentProject == null) return null;
+        try {
+            Path root = Paths.get(currentProject.getRootPath());
+            Path texturesDir = root.resolve("textures");
+            if (!Files.exists(texturesDir)) return null;
+            
+            String cleanName = name;
+            if (name.contains(":")) {
+                cleanName = name.split(":")[1];
+            }
+            
+            Path specificDir = null;
+            if (type.equalsIgnoreCase("Item")) specificDir = texturesDir.resolve("items");
+            else if (type.equalsIgnoreCase("Block")) specificDir = texturesDir.resolve("blocks");
+            else if (type.equalsIgnoreCase("Entity")) specificDir = texturesDir.resolve("entity");
+            
+            if (specificDir != null && Files.exists(specificDir)) {
+                 Path imgPath = specificDir.resolve(cleanName + ".png");
+                 if (Files.exists(imgPath)) {
+                     return new javafx.scene.image.Image(imgPath.toUri().toString(), 50, 50, true, true);
+                 }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Node createAddCard(Runnable action) {
+        VBox card = new VBox(5);
+        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+        
+        SVGPath plusIcon = new SVGPath();
+        plusIcon.setContent("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z");
+        plusIcon.setFill(Color.web("#888888"));
+        plusIcon.setScaleX(2);
+        plusIcon.setScaleY(2);
+        
+        Label titleLabel = new Label("Crear Nuevo");
+        titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
+        titleLabel.setWrapText(true);
+        titleLabel.setTextAlignment(TextAlignment.CENTER);
+        
+        card.getChildren().addAll(plusIcon, titleLabel);
+        
+        card.setOnMouseClicked(e -> action.run());
+        
+        // Hover effect
+        card.setOnMouseEntered(e -> {
+            card.setStyle("-fx-background-color: #383838; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #007ACC; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+            plusIcon.setFill(Color.web("#007ACC"));
+            titleLabel.setStyle("-fx-text-fill: #007ACC; -fx-font-weight: bold; -fx-font-size: 12px;");
+        });
+        
+        card.setOnMouseExited(e -> {
+            card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+            plusIcon.setFill(Color.web("#888888"));
+            titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
+        });
+        
+        return card;
+    }
+
+    private Node createEzCard(String type, String title, String iconName) {
+        VBox card = new VBox(5);
+        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+        
+        Node iconNode;
+        javafx.scene.image.Image img = findElementImage(title, type);
+        if (img != null) {
+            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(img);
+            iv.setFitWidth(50);
+            iv.setFitHeight(50);
+            iconNode = iv;
+        } else {
+            iconNode = new Rectangle(50, 50, Color.DARKGRAY);
+        }
+        
+        Label typeLabel = new Label(type);
+        typeLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px;");
+        
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        titleLabel.setWrapText(true);
+        titleLabel.setTextAlignment(TextAlignment.CENTER);
+        
+        card.getChildren().addAll(iconNode, titleLabel, typeLabel);
+        return card;
+    }
+    
+    private Node createTextureCard(Path path) {
+        VBox card = new VBox(5);
+        card.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+        
+        javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView();
+        imageView.setFitWidth(80);
+        imageView.setFitHeight(80);
+        imageView.setPreserveRatio(true);
+        
+        try {
+            javafx.scene.image.Image img = new javafx.scene.image.Image(path.toUri().toString(), 80, 80, true, true);
+            imageView.setImage(img);
+        } catch (Exception e) {
+            // ignore
+        }
+        
+        Label nameLabel = new Label(path.getFileName().toString());
+        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 11px;");
+        nameLabel.setWrapText(true);
+        nameLabel.setTextAlignment(TextAlignment.CENTER);
+        
+        card.getChildren().addAll(imageView, nameLabel);
+        
+        // Context Menu
+        ContextMenu cm = new ContextMenu();
+        MenuItem editItem = new MenuItem("Editar");
+        editItem.setOnAction(e -> {
+            selectedTexturePath = path;
+            handleEditTexture();
+        });
+        
+        MenuItem duplicateItem = new MenuItem("Duplicar");
+        duplicateItem.setOnAction(e -> {
+            selectedTexturePath = path;
+            handleDuplicateTexture();
+        });
+        
+        MenuItem deleteItem = new MenuItem("Eliminar");
+        deleteItem.setStyle("-fx-text-fill: red;");
+        deleteItem.setOnAction(e -> {
+            selectedTexturePath = path;
+            handleDeleteTexture();
+        });
+        
+        cm.getItems().addAll(editItem, duplicateItem, new SeparatorMenuItem(), deleteItem);
+        
+        card.setOnMouseClicked(e -> {
+             if (e.getButton() == MouseButton.SECONDARY) {
+                 cm.show(card, e.getScreenX(), e.getScreenY());
+             } else {
+                 if (e.getClickCount() == 1) {
+                     selectedTexturePath = path;
+                     if (card.getParent() instanceof FlowPane) {
+                         for (Node child : ((FlowPane)card.getParent()).getChildren()) {
+                             // Reset style for others (simplified for now, ideally check if it's not the current card)
+                             if (child != card && !(child.getStyle().contains("-fx-border-style: dashed"))) {
+                                child.setStyle("-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
+                             }
+                         }
+                     }
+                     card.setStyle("-fx-background-color: #444444; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0); -fx-border-color: #007ACC; -fx-border-width: 2; -fx-border-radius: 5;");
+                 }
+                 if (e.getClickCount() == 2) {
+                     openSearchResult(path.toAbsolutePath().toString());
+                 }
+             }
+        });
+        
+        return card;
     }
 
     private void setupVisualEditor() {
@@ -504,10 +1076,11 @@ public class EditorController {
 
     private void toggleMode() {
         boolean isEzMode = uiEzModeView.isVisible();
+        
         if (isEzMode) {
             // Switch to Code Mode
             uiEzModeView.setVisible(false);
-            ideSplitPane.setVisible(true);
+            if (codeModeView != null) codeModeView.setVisible(true);
             
             // Sidebar buttons management
             if (btnExplorer != null) {
@@ -522,20 +1095,33 @@ public class EditorController {
                 btnFormat.setVisible(true);
                 btnFormat.setManaged(true);
             }
+            if (btnGit != null) {
+                btnGit.setVisible(true);
+                btnGit.setManaged(true);
+            }
             if (btnAddEz != null) {
                 btnAddEz.setVisible(false);
                 btnAddEz.setManaged(false);
             }
             
-            // Set Icon to "UI Ez" - indicating click to go to Ez Mode
+            // Restore sidebar state (Show Explorer by default in Code Mode if nothing else is open, or restore previous state)
+            // For simplicity, let's open Explorer
+            hideAllSidebarViews();
+            if (projectExplorerView != null) {
+                projectExplorerView.setVisible(true);
+                projectExplorerView.setManaged(true);
+            }
+            updateSidebarVisibility();
+            
+            // Set Icon to "UI Ez"
             btnModeSwitch.setGraphic(createEasyModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Easy Mode");
         } else {
             // Switch to Ez Mode
+            if (codeModeView != null) codeModeView.setVisible(false);
             uiEzModeView.setVisible(true);
-            ideSplitPane.setVisible(false);
 
-            // Sidebar buttons management
+            // Sidebar buttons management - Hide most, keep Todo
             if (btnExplorer != null) {
                 btnExplorer.setVisible(false);
                 btnExplorer.setManaged(false);
@@ -548,17 +1134,53 @@ public class EditorController {
                 btnFormat.setVisible(false);
                 btnFormat.setManaged(false);
             }
+            if (btnGit != null) {
+                btnGit.setVisible(false);
+                btnGit.setManaged(false);
+            }
             if (btnAddEz != null) {
                 btnAddEz.setVisible(true);
                 btnAddEz.setManaged(true);
             }
             
-            // Set Icon to "Code" - indicating click to go to Code Mode
+            // Hide sidebar content initially in Ez Mode
+            hideAllSidebarViews();
+            updateSidebarVisibility();
+            
+            // Set Icon to "Code"
             btnModeSwitch.setGraphic(createCodeModeIcon());
             btnModeSwitch.getTooltip().setText("Switch to Code Mode");
 
             // Populate Lists
             populateEzLists();
+        }
+    }
+    
+    private void hideAllSidebarViews() {
+        if (projectExplorerView != null) { projectExplorerView.setVisible(false); projectExplorerView.setManaged(false); }
+        if (searchView != null) { searchView.setVisible(false); searchView.setManaged(false); }
+        if (gitView != null) { gitView.setVisible(false); gitView.setManaged(false); }
+        if (todoView != null) { todoView.setVisible(false); todoView.setManaged(false); }
+        if (pixelArtView != null) { pixelArtView.setVisible(false); pixelArtView.setManaged(false); }
+    }
+    
+    private void updateSidebarVisibility() {
+        if (sidebarContainer == null || ideSplitPane == null) return;
+        
+        boolean anyVisible = false;
+        if (projectExplorerView != null && projectExplorerView.isVisible()) anyVisible = true;
+        if (searchView != null && searchView.isVisible()) anyVisible = true;
+        if (gitView != null && gitView.isVisible()) anyVisible = true;
+        if (todoView != null && todoView.isVisible()) anyVisible = true;
+        if (pixelArtView != null && pixelArtView.isVisible()) anyVisible = true;
+        
+        if (anyVisible) {
+            if (!ideSplitPane.getItems().contains(sidebarContainer)) {
+                ideSplitPane.getItems().add(0, sidebarContainer);
+                ideSplitPane.setDividerPositions(0.2);
+            }
+        } else {
+            ideSplitPane.getItems().remove(sidebarContainer);
         }
     }
 
@@ -697,15 +1319,7 @@ public class EditorController {
     private void populateEzLists() {
         if (currentProject == null) return;
         
-        if (ezEntitiesList != null) {
-            ezEntitiesList.getItems().setAll(currentProject.getEntities());
-        }
-        if (ezItemsList != null) {
-            ezItemsList.getItems().setAll(currentProject.getItems());
-        }
-        if (ezBlocksList != null) {
-            ezBlocksList.getItems().setAll(currentProject.getBlocks());
-        }
+        switchEzView("main");
     }
 
     private void setupTodo() {
@@ -719,22 +1333,7 @@ public class EditorController {
         
         boolean isVisible = todoView.isVisible();
         
-        // Hide all views first
-        projectExplorerView.setVisible(false);
-        projectExplorerView.setManaged(false);
-        searchView.setVisible(false);
-        searchView.setManaged(false);
-        if (gitView != null) {
-            gitView.setVisible(false);
-            gitView.setManaged(false);
-        }
-        todoView.setVisible(false);
-        todoView.setManaged(false);
-        
-        if (pixelArtView != null) {
-            pixelArtView.setVisible(false);
-            pixelArtView.setManaged(false);
-        }
+        hideAllSidebarViews();
 
         // Toggle requested view
         if (!isVisible) {
@@ -742,10 +1341,16 @@ public class EditorController {
             todoView.setManaged(true);
             updateTodoView();
         } else {
-            // Default back to explorer if closing
-            projectExplorerView.setVisible(true);
-            projectExplorerView.setManaged(true);
+            // If we are closing Todo, check if we should default to Explorer (Code Mode only)
+            boolean isEzMode = uiEzModeView.isVisible();
+            if (!isEzMode) {
+                 if (projectExplorerView != null) {
+                     projectExplorerView.setVisible(true);
+                     projectExplorerView.setManaged(true);
+                 }
+            }
         }
+        updateSidebarVisibility();
     }
 
     private void updateTodoView() {
@@ -1228,6 +1833,27 @@ public class EditorController {
         startTerminalProcess();
     }
 
+    private void handleOpenProjectFolder() {
+        if (currentProject == null) return;
+        
+        try {
+            File projectDir = new File(currentProject.getRootPath());
+            if (projectDir.exists() && projectDir.isDirectory()) {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                    Desktop.getDesktop().open(projectDir);
+                    log("Carpeta del proyecto abierta: " + projectDir.getAbsolutePath());
+                } else {
+                    showError("Error", "La operación de abrir carpeta no es soportada en este sistema.");
+                }
+            } else {
+                showError("Error", "La carpeta del proyecto no existe: " + projectDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            logger.error("Error al abrir la carpeta del proyecto", e);
+            showError("Error", "No se pudo abrir la carpeta del proyecto: " + e.getMessage());
+        }
+    }
+
     private void setupMenuActions() {
         menuNewFile.setOnAction(e -> showNewFileMenu(btnNewFile, false)); // Reuse btnNewFile as anchor but exclude folders
         menuSave.setOnAction(e -> handleSave());
@@ -1242,6 +1868,7 @@ public class EditorController {
             }
         });
         menuExport.setOnAction(e -> handleExport());
+        menuOpenProjectFolder.setOnAction(e -> handleOpenProjectFolder());
         menuClose.setOnAction(e -> handleClose());
 
         menuAddEntity.setOnAction(e -> handleAddEntity());
@@ -1317,61 +1944,31 @@ public class EditorController {
     }
 
     private void handleExplorer() {
-        projectExplorerView.setVisible(true);
-        projectExplorerView.setManaged(true);
-        searchView.setVisible(false);
-        searchView.setManaged(false);
-        if (gitView != null) {
-            gitView.setVisible(false);
-            gitView.setManaged(false);
+        hideAllSidebarViews();
+        if (projectExplorerView != null) {
+            projectExplorerView.setVisible(true);
+            projectExplorerView.setManaged(true);
         }
-        if (todoView != null) {
-            todoView.setVisible(false);
-            todoView.setManaged(false);
-        }
-        if (pixelArtView != null) {
-            pixelArtView.setVisible(false);
-            pixelArtView.setManaged(false);
-        }
+        updateSidebarVisibility();
     }
 
     private void handleSearch() {
-        projectExplorerView.setVisible(false);
-        projectExplorerView.setManaged(false);
-        if (gitView != null) {
-            gitView.setVisible(false);
-            gitView.setManaged(false);
+        hideAllSidebarViews();
+        if (searchView != null) {
+            searchView.setVisible(true);
+            searchView.setManaged(true);
+            searchField.requestFocus();
         }
-        if (todoView != null) {
-            todoView.setVisible(false);
-            todoView.setManaged(false);
-        }
-        if (pixelArtView != null) {
-            pixelArtView.setVisible(false);
-            pixelArtView.setManaged(false);
-        }
-        searchView.setVisible(true);
-        searchView.setManaged(true);
-        searchField.requestFocus();
+        updateSidebarVisibility();
     }
     
     private void handleGit() {
-        projectExplorerView.setVisible(false);
-        projectExplorerView.setManaged(false);
-        searchView.setVisible(false);
-        searchView.setManaged(false);
-        if (todoView != null) {
-            todoView.setVisible(false);
-            todoView.setManaged(false);
-        }
-        if (pixelArtView != null) {
-            pixelArtView.setVisible(false);
-            pixelArtView.setManaged(false);
-        }
+        hideAllSidebarViews();
         if (gitView != null) {
             gitView.setVisible(true);
             gitView.setManaged(true);
         }
+        updateSidebarVisibility();
         refreshGitStatus();
     }
     
@@ -3571,6 +4168,7 @@ public class EditorController {
                 projectManager.updateProject(currentProject);
 
                 refreshFileTree();
+                loadEntitiesView();
                 log("✓ Entidad añadida: " + entityName);
 
             } catch (Exception e) {
@@ -3600,6 +4198,7 @@ public class EditorController {
                 projectManager.updateProject(currentProject);
 
                 refreshFileTree();
+                loadItemsView();
                 log("✓ Item añadido: " + itemName);
 
             } catch (Exception e) {
@@ -3629,6 +4228,7 @@ public class EditorController {
                 projectManager.updateProject(currentProject);
 
                 refreshFileTree();
+                loadBlocksView();
                 log("✓ Bloque añadido: " + blockName);
 
             } catch (Exception e) {
@@ -4266,6 +4866,23 @@ public class EditorController {
                 }
             });
         }
+
+        // Setup Back Button for Ez Mode
+        if (btnEzBackFromPixelArt != null) {
+            btnEzBackFromPixelArt.setOnAction(e -> {
+                if (ezPixelArtContainer != null) ezPixelArtContainer.setVisible(false);
+                
+                // Restore Top Bar
+                if (ezTopBar != null) {
+                    ezTopBar.setVisible(true);
+                    ezTopBar.setManaged(true);
+                }
+
+                // Return to Textures view by default
+                switchEzView("textures");
+                if (btnEzTextures != null) btnEzTextures.setSelected(true);
+            });
+        }
     }
 
     private void togglePixelArtView() {
@@ -4273,30 +4890,23 @@ public class EditorController {
 
         boolean isVisible = pixelArtView.isVisible();
 
-        // Hide all views
-        projectExplorerView.setVisible(false);
-        projectExplorerView.setManaged(false);
-        searchView.setVisible(false);
-        searchView.setManaged(false);
-        if (gitView != null) {
-            gitView.setVisible(false);
-            gitView.setManaged(false);
-        }
-        if (todoView != null) {
-            todoView.setVisible(false);
-            todoView.setManaged(false);
-        }
-        pixelArtView.setVisible(false);
-        pixelArtView.setManaged(false);
+        hideAllSidebarViews();
 
         // Toggle
         if (!isVisible) {
             pixelArtView.setVisible(true);
             pixelArtView.setManaged(true);
         } else {
-            projectExplorerView.setVisible(true);
-            projectExplorerView.setManaged(true);
+             // If we are closing, check if we should default to Explorer (Code Mode only)
+             boolean isEzMode = uiEzModeView.isVisible();
+             if (!isEzMode) {
+                  if (projectExplorerView != null) {
+                      projectExplorerView.setVisible(true);
+                      projectExplorerView.setManaged(true);
+                  }
+             }
         }
+        updateSidebarVisibility();
     }
 
     private void openPixelArtEditor(File file) {
@@ -4316,14 +4926,43 @@ public class EditorController {
                 controller.setImage(img);
             }
 
-            Tab tab = new Tab(file != null ? file.getName() : "Untitled.png");
-            tab.setContent(root);
-            tab.setTooltip(new Tooltip(file != null ? file.getAbsolutePath() : "New Pixel Art"));
-            
-            // Add to editor tab pane
-            if (editorTabs != null) {
-                editorTabs.getTabs().add(tab);
-                editorTabs.getSelectionModel().select(tab);
+            // Check if in Easy Mode
+            if (uiEzModeView != null && uiEzModeView.isVisible()) {
+                if (ezPixelArtContent != null) {
+                    ezPixelArtContent.getChildren().clear();
+                    ezPixelArtContent.getChildren().add(root);
+                }
+                
+                // Hide other containers explicitly to ensure clean switch
+                if (ezMainContainer != null) ezMainContainer.setVisible(false);
+                if (ezTexturesContainer != null) ezTexturesContainer.setVisible(false);
+                if (ezModelsContainer != null) ezModelsContainer.setVisible(false);
+                if (ezSoundsContainer != null) ezSoundsContainer.setVisible(false);
+
+                if (ezPixelArtContainer != null) {
+                    ezPixelArtContainer.setVisible(true);
+                }
+                
+                // Hide sidebar to allow full screen editing
+                hideAllSidebarViews();
+                updateSidebarVisibility();
+                
+                // Hide Easy Mode Top Bar
+                if (ezTopBar != null) {
+                    ezTopBar.setVisible(false);
+                    ezTopBar.setManaged(false);
+                }
+            } else {
+                // Code Mode - Add to TabPane
+                Tab tab = new Tab(file != null ? file.getName() : "Untitled.png");
+                tab.setContent(root);
+                tab.setTooltip(new Tooltip(file != null ? file.getAbsolutePath() : "New Pixel Art"));
+                
+                // Add to editor tab pane
+                if (editorTabs != null) {
+                    editorTabs.getTabs().add(tab);
+                    editorTabs.getSelectionModel().select(tab);
+                }
             }
 
         } catch (IOException e) {
