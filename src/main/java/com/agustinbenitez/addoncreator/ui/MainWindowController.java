@@ -30,6 +30,12 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.agustinbenitez.addoncreator.utils.BedrockSamplesDownloader;
+import java.util.HashSet;
+import java.util.Set;
+import javafx.application.Platform;
+import javafx.scene.Node;
+import javafx.scene.layout.StackPane;
 
 /**
  * Controller for the main application window
@@ -39,6 +45,14 @@ import java.util.stream.Collectors;
 public class MainWindowController {
 
     private static final Logger logger = LoggerFactory.getLogger(MainWindowController.class);
+
+    // Texture Selection UI
+    private VBox textureOptionsBox;
+    private CheckBox chkAll;
+    private CheckBox chkItems;
+    private CheckBox chkBlocks;
+    private CheckBox chkEntities;
+    private CheckBox chkHud;
 
     @FXML
     private Button btnBack;
@@ -149,6 +163,8 @@ public class MainWindowController {
         if (templatesContainer != null) {
             renderTemplates("All");
         }
+        
+        createTextureOptionsUI();
 
         log("Addon Creator initialized - Ready to create addons!");
     }
@@ -333,6 +349,16 @@ public class MainWindowController {
         
         // Re-render to show selection state
         renderTemplates("All"); // Or keep current filter
+        
+        // Show texture options if RP related
+        if (textureOptionsBox != null) {
+            boolean isRpTemplate = "Resource Pack".equals(template.getProjectType()) || 
+                                   "texture".equals(template.getId()) || 
+                                   "hud".equals(template.getId());
+            
+            textureOptionsBox.setVisible(isRpTemplate);
+            textureOptionsBox.setManaged(isRpTemplate);
+        }
         
         log("Selected template: " + template.getName());
     }
@@ -560,6 +586,54 @@ public class MainWindowController {
             ProjectManager projectManager = new ProjectManager();
             projectManager.addProject(newProject);
 
+            // Handle Texture Downloads
+            if (textureOptionsBox != null && textureOptionsBox.isVisible()) {
+                Set<BedrockSamplesDownloader.TextureCategory> categories = new HashSet<>();
+                if (chkItems.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.ITEMS);
+                if (chkBlocks.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.BLOCKS);
+                if (chkEntities.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.ENTITIES);
+                if (chkHud.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.HUD);
+                
+                if (!categories.isEmpty()) {
+                    // Create Overlay
+                    Node overlay = LoadingSpinnerHelper.createDownloadOverlay("Descargando texturas de bedrock-samples...");
+                    
+                    // Show Overlay
+                    javafx.scene.Parent root = generateButton.getScene().getRoot();
+                    if (root instanceof StackPane) {
+                        ((StackPane) root).getChildren().add(overlay);
+                    } else if (root instanceof javafx.scene.layout.BorderPane) {
+                        javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) root;
+                        Node originalCenter = borderPane.getCenter();
+                        StackPane stack = new StackPane();
+                        if (originalCenter != null) stack.getChildren().add(originalCenter);
+                        stack.getChildren().add(overlay);
+                        borderPane.setCenter(stack);
+                    }
+                    
+                    // Start Download Thread
+                    new Thread(() -> {
+                        try {
+                            BedrockSamplesDownloader.downloadTextures(rootPath, categories, () -> {});
+                            
+                            Platform.runLater(() -> {
+                                log("✓ Texturas descargadas correctamente");
+                                NavigationManager.getInstance().showEditor(newProject);
+                            });
+                        } catch (Exception e) {
+                            Platform.runLater(() -> {
+                                logger.error("Download failed", e);
+                                log("⚠ Error descargando texturas: " + e.getMessage());
+                                showError("Error de descarga", "No se pudieron descargar las texturas.\nVerifique su conexión a internet.");
+                                NavigationManager.getInstance().showEditor(newProject);
+                            });
+                        }
+                    }).start();
+                    
+                    return; // Wait for download
+                }
+            }
+
             // Auto-Navigate to Editor
             NavigationManager.getInstance().showEditor(newProject);
 
@@ -653,4 +727,62 @@ public class MainWindowController {
     @FXML private void handleFilterArmor() { renderTemplates("Armor"); }
     @FXML private void handleFilterMagic() { renderTemplates("Magic"); }
     @FXML private void handleFilterUtility() { renderTemplates("Utility"); }
+
+    private void createTextureOptionsUI() {
+        textureOptionsBox = new VBox(10);
+        textureOptionsBox.setPadding(new Insets(15, 0, 15, 0));
+        textureOptionsBox.setVisible(false);
+        textureOptionsBox.setManaged(false);
+        
+        Label lblTitle = new Label("Opciones de Texturas (Bedrock Samples)");
+        lblTitle.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        
+        Label lblDesc = new Label("Selecciona las texturas que deseas descargar del repositorio oficial:");
+        lblDesc.setStyle("-fx-text-fill: #aaa; -fx-font-size: 11px;");
+        
+        HBox optionsContainer = new HBox(20);
+        
+        chkAll = new CheckBox("Todas");
+        chkItems = new CheckBox("Items");
+        chkBlocks = new CheckBox("Blocks");
+        chkEntities = new CheckBox("Entities");
+        chkHud = new CheckBox("HUD");
+        
+        // Style checkboxes
+        String chkStyle = "-fx-text-fill: white;";
+        chkAll.setStyle(chkStyle);
+        chkItems.setStyle(chkStyle);
+        chkBlocks.setStyle(chkStyle);
+        chkEntities.setStyle(chkStyle);
+        chkHud.setStyle(chkStyle);
+        
+        optionsContainer.getChildren().addAll(chkAll, chkItems, chkBlocks, chkEntities, chkHud);
+        
+        // Logic for "All" checkbox
+        chkAll.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal) {
+                chkItems.setSelected(true);
+                chkBlocks.setSelected(true);
+                chkEntities.setSelected(true);
+                chkHud.setSelected(true);
+                
+                chkItems.setDisable(true);
+                chkBlocks.setDisable(true);
+                chkEntities.setDisable(true);
+                chkHud.setDisable(true);
+            } else {
+                chkItems.setDisable(false);
+                chkBlocks.setDisable(false);
+                chkEntities.setDisable(false);
+                chkHud.setDisable(false);
+            }
+        });
+        
+        textureOptionsBox.getChildren().addAll(lblTitle, lblDesc, optionsContainer);
+        
+        // Add to main layout (assuming templatesSection is the parent container)
+        if (templatesSection != null) {
+            templatesSection.getChildren().add(textureOptionsBox);
+        }
+    }
 }

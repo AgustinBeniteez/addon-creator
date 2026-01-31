@@ -6,10 +6,13 @@ import com.agustinbenitez.addoncreator.core.ProjectGenerator;
 import com.agustinbenitez.addoncreator.core.ProjectManager;
 import com.agustinbenitez.addoncreator.core.TodoManager;
 import com.agustinbenitez.addoncreator.models.Project;
+import com.agustinbenitez.addoncreator.utils.BedrockSamplesDownloader;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.application.Platform;
 import javafx.scene.Parent;
+import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.geometry.Insets;
@@ -44,6 +47,7 @@ import javafx.scene.transform.Translate;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+import javafx.util.Callback;
 import javafx.util.Duration;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -86,6 +90,7 @@ import javafx.scene.Node;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import java.io.UncheckedIOException;
+import java.util.function.Consumer;
 
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -290,6 +295,16 @@ public class EditorController {
 
     @FXML
     private FlowPane texturesFlowPane;
+    @FXML
+    private Button btnPrevEzTexturePage;
+    @FXML
+    private Button btnNextEzTexturePage;
+    @FXML
+    private Label ezTexturePageLabel;
+
+    private int currentEzTexturePage = 0;
+    private static final int EZ_TEXTURE_PAGE_SIZE = 150;
+
     @FXML
     private FlowPane modelsFlowPane;
     @FXML
@@ -657,6 +672,8 @@ public class EditorController {
 
         if (txtEzFilter != null) {
             txtEzFilter.textProperty().addListener((obs, oldVal, newVal) -> {
+                // Reset pagination when searching
+                currentEzTexturePage = 0;
                 switchEzView(currentEzViewName);
             });
         }
@@ -958,19 +975,19 @@ public class EditorController {
         mainElementsFlowPane.getChildren().clear();
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
-        
+
         // Prepare Maps for efficient lookup
         java.util.Map<String, Path> entityMap = new java.util.HashMap<>();
-        findFiles(root.resolve("BP/entities"), ".json").forEach(p -> 
-            entityMap.put(p.getFileName().toString().replace(".json", ""), p));
-            
+        findFiles(root.resolve("BP/entities"), ".json")
+                .forEach(p -> entityMap.put(p.getFileName().toString().replace(".json", ""), p));
+
         java.util.Map<String, Path> itemMap = new java.util.HashMap<>();
-        findFiles(root.resolve("BP/items"), ".json").forEach(p -> 
-            itemMap.put(p.getFileName().toString().replace(".json", ""), p));
-            
+        findFiles(root.resolve("BP/items"), ".json")
+                .forEach(p -> itemMap.put(p.getFileName().toString().replace(".json", ""), p));
+
         java.util.Map<String, Path> blockMap = new java.util.HashMap<>();
-        findFiles(root.resolve("BP/blocks"), ".json").forEach(p -> 
-            blockMap.put(p.getFileName().toString().replace(".json", ""), p));
+        findFiles(root.resolve("BP/blocks"), ".json")
+                .forEach(p -> blockMap.put(p.getFileName().toString().replace(".json", ""), p));
 
         for (String entity : currentProject.getEntities()) {
             if (shouldShow(entity)) {
@@ -1062,8 +1079,8 @@ public class EditorController {
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.Map<String, Path> entityMap = new java.util.HashMap<>();
-        findFiles(root.resolve("BP/entities"), ".json").forEach(p -> 
-            entityMap.put(p.getFileName().toString().replace(".json", ""), p));
+        findFiles(root.resolve("BP/entities"), ".json")
+                .forEach(p -> entityMap.put(p.getFileName().toString().replace(".json", ""), p));
 
         for (String entity : currentProject.getEntities()) {
             if (shouldShow(entity)) {
@@ -1090,8 +1107,8 @@ public class EditorController {
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.Map<String, Path> itemMap = new java.util.HashMap<>();
-        findFiles(root.resolve("BP/items"), ".json").forEach(p -> 
-            itemMap.put(p.getFileName().toString().replace(".json", ""), p));
+        findFiles(root.resolve("BP/items"), ".json")
+                .forEach(p -> itemMap.put(p.getFileName().toString().replace(".json", ""), p));
 
         for (String item : currentProject.getItems()) {
             if (shouldShow(item)) {
@@ -1118,8 +1135,8 @@ public class EditorController {
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.Map<String, Path> blockMap = new java.util.HashMap<>();
-        findFiles(root.resolve("BP/blocks"), ".json").forEach(p -> 
-            blockMap.put(p.getFileName().toString().replace(".json", ""), p));
+        findFiles(root.resolve("BP/blocks"), ".json")
+                .forEach(p -> blockMap.put(p.getFileName().toString().replace(".json", ""), p));
 
         for (String block : currentProject.getBlocks()) {
             if (shouldShow(block)) {
@@ -1142,15 +1159,68 @@ public class EditorController {
         if (texturesFlowPane == null || currentProject == null)
             return;
         texturesFlowPane.getChildren().clear();
-        texturesFlowPane.getChildren().add(createAddCard(this::handleCreateTexture));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> textureFiles = findFiles(root, ".png", ".tga", ".jpg");
+
+        // Filter files
+        java.util.List<Path> filteredFiles = new java.util.ArrayList<>();
         for (Path path : textureFiles) {
             if (shouldShow(path.getFileName().toString())) {
-                texturesFlowPane.getChildren().add(createTextureCard(path));
+                filteredFiles.add(path);
             }
         }
+
+        // Calculate pagination
+        int totalItems = filteredFiles.size();
+        int totalPages = (int) Math.ceil((double) totalItems / EZ_TEXTURE_PAGE_SIZE);
+        if (totalPages == 0)
+            totalPages = 1;
+
+        if (currentEzTexturePage < 0)
+            currentEzTexturePage = 0;
+        if (currentEzTexturePage >= totalPages)
+            currentEzTexturePage = totalPages - 1;
+
+        // Add static cards on first page
+        if (currentEzTexturePage == 0) {
+            texturesFlowPane.getChildren().add(createAddCard(this::handleCreateTexture));
+            texturesFlowPane.getChildren().add(createDownloadCard(this::handleDownloadTemplateTextures));
+        }
+
+        int start = currentEzTexturePage * EZ_TEXTURE_PAGE_SIZE;
+        int end = Math.min(start + EZ_TEXTURE_PAGE_SIZE, totalItems);
+
+        for (int i = start; i < end; i++) {
+            texturesFlowPane.getChildren().add(createTextureCard(filteredFiles.get(i)));
+        }
+
+        // Update pagination controls
+        if (ezTexturePageLabel != null) {
+            ezTexturePageLabel.setText("Página " + (currentEzTexturePage + 1) + " de " + totalPages);
+        }
+
+        if (btnPrevEzTexturePage != null) {
+            btnPrevEzTexturePage.setDisable(currentEzTexturePage == 0);
+        }
+
+        if (btnNextEzTexturePage != null) {
+            btnNextEzTexturePage.setDisable(currentEzTexturePage >= totalPages - 1);
+        }
+    }
+
+    @FXML
+    private void handlePrevEzTexturePage(javafx.event.ActionEvent event) {
+        if (currentEzTexturePage > 0) {
+            currentEzTexturePage--;
+            loadTexturesView();
+        }
+    }
+
+    @FXML
+    private void handleNextEzTexturePage(javafx.event.ActionEvent event) {
+        currentEzTexturePage++;
+        loadTexturesView();
     }
 
     private void loadModelsView() {
@@ -1158,6 +1228,7 @@ public class EditorController {
             return;
         modelsFlowPane.getChildren().clear();
         modelsFlowPane.getChildren().add(createAddCard(this::handleAddModel));
+        modelsFlowPane.getChildren().add(createDownloadCard(this::handleDownloadModels));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> modelFiles = findFiles(root, ".json", ".obj", ".geo.json");
@@ -1174,6 +1245,7 @@ public class EditorController {
             return;
         soundsFlowPane.getChildren().clear();
         soundsFlowPane.getChildren().add(createAddCard(this::handleAddSound));
+        soundsFlowPane.getChildren().add(createDownloadCard(this::handleDownloadSounds));
 
         Path root = java.nio.file.Paths.get(currentProject.getRootPath());
         java.util.List<Path> soundFiles = findFiles(root, ".ogg", ".wav", ".fsb");
@@ -1483,6 +1555,412 @@ public class EditorController {
         return card;
     }
 
+    private Node createDownloadCard(Runnable action) {
+        VBox card = new VBox(5);
+        card.setStyle(
+                "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+        card.setPrefSize(120, 150);
+        card.setAlignment(Pos.CENTER);
+
+        SVGPath downloadIcon = new SVGPath();
+        downloadIcon.setContent("M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z");
+        downloadIcon.setFill(Color.web("#888888"));
+        downloadIcon.setScaleX(2);
+        downloadIcon.setScaleY(2);
+
+        Label titleLabel = new Label("Descargar\nTexturas");
+        titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
+        titleLabel.setWrapText(true);
+        titleLabel.setTextAlignment(TextAlignment.CENTER);
+
+        card.getChildren().addAll(downloadIcon, titleLabel);
+
+        card.setOnMouseClicked(e -> action.run());
+
+        // Hover effect
+        card.setOnMouseEntered(e -> {
+            card.setStyle(
+                    "-fx-background-color: #383838; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #007ACC; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+            downloadIcon.setFill(Color.web("#007ACC"));
+            titleLabel.setStyle("-fx-text-fill: #007ACC; -fx-font-weight: bold; -fx-font-size: 12px;");
+        });
+
+        card.setOnMouseExited(e -> {
+            card.setStyle(
+                    "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-border-color: #555; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 5; -fx-cursor: hand;");
+            downloadIcon.setFill(Color.web("#888888"));
+            titleLabel.setStyle("-fx-text-fill: #888888; -fx-font-weight: bold; -fx-font-size: 12px;");
+        });
+
+        return card;
+    }
+
+    private void handleDownloadTemplateTextures() {
+        fetchAndShowDownloadDialog("Texturas", "texturas",
+                BedrockSamplesDownloader::fetchTextureList, "textures", this::loadTexturesView);
+    }
+
+    private void handleDownloadModels() {
+        fetchAndShowDownloadDialog("Modelos 3D", "modelos",
+                BedrockSamplesDownloader::fetchModelList, "models", this::loadModelsView);
+    }
+
+    private void handleDownloadSounds() {
+        fetchAndShowDownloadDialog("Sonidos", "sonidos",
+                BedrockSamplesDownloader::fetchSoundList, "sounds", this::loadSoundsView);
+    }
+
+    @FunctionalInterface
+    private interface FileFetcher {
+        List<String> fetch() throws Exception;
+    }
+
+    private void fetchAndShowDownloadDialog(String title, String itemName, FileFetcher fetcher, String type,
+            Runnable onRefresh) {
+        Node overlay = LoadingSpinnerHelper.createLoadingOverlay("Obteniendo lista de " + itemName + "...", type);
+        Parent sceneRoot = btnBack.getScene().getRoot();
+        StackPane overlayContainer = null;
+        if (sceneRoot instanceof StackPane) {
+            overlayContainer = (StackPane) sceneRoot;
+        } else if (contentArea != null) {
+            overlayContainer = contentArea;
+        }
+
+        final StackPane finalOverlayContainer = overlayContainer;
+        if (finalOverlayContainer != null) {
+            finalOverlayContainer.getChildren().add(overlay);
+        }
+
+        new Thread(() -> {
+            try {
+                List<String> items = fetcher.fetch();
+                Platform.runLater(() -> {
+                    if (finalOverlayContainer != null)
+                        finalOverlayContainer.getChildren().remove(overlay);
+                    showDownloadSelectionDialog(title, "Selecciona los " + itemName + " que deseas descargar", items,
+                            type,
+                            selected -> downloadSelectedFiles(selected, itemName, onRefresh));
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    if (finalOverlayContainer != null)
+                        finalOverlayContainer.getChildren().remove(overlay);
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("No se pudo obtener la lista de " + itemName);
+                    alert.setContentText(e.getMessage());
+                    alert.showAndWait();
+                });
+            }
+        }).start();
+    }
+
+    private void showDownloadSelectionDialog(String title, String headerText, List<String> items, String type,
+            Consumer<List<String>> onDownload) {
+        Dialog<List<String>> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText(headerText);
+
+        // Icon
+        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+        try {
+            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+        } catch (Exception e) {
+            // ignore
+        }
+
+        // CSS Styling
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+        dialogPane.setStyle("-fx-background-color: #2D2D30; -fx-text-fill: white;");
+
+        // Apply styles to header
+        Node headerPanel = dialogPane.lookup(".header-panel");
+        if (headerPanel != null) {
+            headerPanel.setStyle("-fx-background-color: #2D2D30;");
+        }
+
+        // Custom Dialog Pane
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(10));
+        content.setPrefSize(600, 650); // Slightly taller for pagination
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Buscar...");
+        searchField.setStyle("-fx-background-color: #3c3c3c; -fx-text-fill: white;");
+
+        // Filter Buttons
+        HBox filterBox = new HBox(5);
+        filterBox.setAlignment(Pos.CENTER_LEFT);
+        filterBox.setPadding(new Insets(0, 0, 5, 0));
+
+        ToggleGroup filterGroup = new ToggleGroup();
+
+        // Define filters based on type
+        List<FilterCategory> filters = new ArrayList<>();
+        filters.add(new FilterCategory("Todos", s -> true));
+
+        if ("textures".equals(type)) {
+            filters.add(new FilterCategory("Items", s -> s.contains("/items/")));
+            filters.add(new FilterCategory("Bloques", s -> s.contains("/blocks/")));
+            filters.add(new FilterCategory("Entidades", s -> s.contains("/entity/") || s.contains("/entities/")));
+            filters.add(new FilterCategory("UI", s -> s.contains("/ui/")));
+            filters.add(new FilterCategory("Modelos", s -> s.contains("/models/")));
+            filters.add(new FilterCategory("Partículas", s -> s.contains("/particles/")));
+        } else if ("models".equals(type)) {
+            filters.add(new FilterCategory("Entidades", s -> s.contains("/entity/")));
+            filters.add(new FilterCategory("Bloques", s -> s.contains("/blocks/")));
+            filters.add(new FilterCategory("Items", s -> s.contains("/items/")));
+        } else if ("sounds".equals(type)) {
+            filters.add(new FilterCategory("Mobs", s -> s.contains("/mob/")));
+            filters.add(new FilterCategory("Bloques", s -> s.contains("/block/")));
+            filters.add(new FilterCategory("Items", s -> s.contains("/item/")));
+            filters.add(new FilterCategory("Ambient", s -> s.contains("/ambient/")));
+            filters.add(new FilterCategory("Random", s -> s.contains("/random/")));
+        }
+
+        for (int i = 0; i < filters.size(); i++) {
+            FilterCategory cat = filters.get(i);
+            ToggleButton btn = createFilterButton(cat.name, filterGroup, i == 0);
+            btn.setUserData(cat);
+            filterBox.getChildren().add(btn);
+        }
+
+        ListView<DownloadableItem> listView = new ListView<>();
+        listView.setStyle(
+                "-fx-background-color: #2D2D30; -fx-control-inner-background: #2D2D30; -fx-text-fill: white;");
+        VBox.setVgrow(listView, Priority.ALWAYS);
+
+        List<DownloadableItem> allItems = new ArrayList<>();
+        for (String t : items)
+            allItems.add(new DownloadableItem(t));
+
+        // --- Pagination State ---
+        final int PAGE_SIZE = 150;
+        AtomicInteger currentPage = new AtomicInteger(0);
+        List<DownloadableItem> currentFilteredItems = new ArrayList<>();
+
+        // --- Pagination Controls ---
+        HBox paginationBox = new HBox(10);
+        paginationBox.setAlignment(Pos.CENTER);
+        paginationBox.setPadding(new Insets(5, 0, 0, 0));
+
+        Button btnPrev = new Button("< Anterior");
+        btnPrev.setStyle("-fx-background-color: #3c3c3c; -fx-text-fill: white; -fx-cursor: hand;");
+
+        Label lblPage = new Label("Página 1 de 1");
+        lblPage.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+
+        Button btnNext = new Button("Siguiente >");
+        btnNext.setStyle("-fx-background-color: #3c3c3c; -fx-text-fill: white; -fx-cursor: hand;");
+
+        paginationBox.getChildren().addAll(btnPrev, lblPage, btnNext);
+
+        // Cell Factory with Checkbox
+        listView.setCellFactory(javafx.scene.control.cell.CheckBoxListCell.forListView(item -> item.selected));
+
+        // --- Update View Function ---
+        Runnable updateView = () -> {
+            int page = currentPage.get();
+            int totalItems = currentFilteredItems.size();
+            int totalPages = (int) Math.ceil((double) totalItems / PAGE_SIZE);
+            if (totalPages == 0)
+                totalPages = 1;
+
+            // Boundary checks
+            if (page >= totalPages) {
+                page = totalPages - 1;
+                currentPage.set(page);
+            }
+            if (page < 0) {
+                page = 0;
+                currentPage.set(0);
+            }
+
+            int start = page * PAGE_SIZE;
+            int end = Math.min(start + PAGE_SIZE, totalItems);
+
+            if (start < totalItems) {
+                listView.getItems().setAll(currentFilteredItems.subList(start, end));
+            } else {
+                listView.getItems().clear();
+            }
+
+            lblPage.setText("Página " + (page + 1) + " de " + totalPages + " (" + totalItems + " items)");
+            btnPrev.setDisable(page == 0);
+            btnNext.setDisable(page >= totalPages - 1);
+        };
+
+        // --- Button Actions ---
+        btnPrev.setOnAction(e -> {
+            if (currentPage.get() > 0) {
+                currentPage.decrementAndGet();
+                updateView.run();
+            }
+        });
+
+        btnNext.setOnAction(e -> {
+            int totalItems = currentFilteredItems.size();
+            int totalPages = (int) Math.ceil((double) totalItems / PAGE_SIZE);
+            if (currentPage.get() < totalPages - 1) {
+                currentPage.incrementAndGet();
+                updateView.run();
+            }
+        });
+
+        // --- Update List Logic (Filtering) ---
+        Runnable updateList = () -> {
+            String searchText = searchField.getText().toLowerCase();
+            ToggleButton selected = (ToggleButton) filterGroup.getSelectedToggle();
+            FilterCategory category = selected != null ? (FilterCategory) selected.getUserData() : filters.get(0);
+
+            currentFilteredItems.clear();
+
+            for (DownloadableItem item : allItems) {
+                boolean matchesSearch = searchText.isEmpty() || item.path.toLowerCase().contains(searchText);
+                boolean matchesCategory = category.predicate.test(item.path.toLowerCase());
+
+                if (matchesSearch && matchesCategory) {
+                    currentFilteredItems.add(item);
+                }
+            }
+
+            currentPage.set(0); // Reset to first page on filter change
+            updateView.run();
+        };
+
+        // Listeners
+        searchField.textProperty().addListener((obs, old, val) -> updateList.run());
+        filterGroup.selectedToggleProperty().addListener((obs, old, val) -> {
+            if (val == null) {
+                filterGroup.selectToggle(old); // Don't allow deselecting all
+            } else {
+                updateList.run();
+            }
+        });
+
+        // Initial population
+        updateList.run();
+
+        content.getChildren().addAll(searchField, filterBox, listView, paginationBox);
+        dialog.getDialogPane().setContent(content);
+
+        ButtonType downloadBtn = new ButtonType("Descargar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(downloadBtn, ButtonType.CANCEL);
+
+        // Style Buttons
+        Node btnDownloadNode = dialogPane.lookupButton(downloadBtn);
+        if (btnDownloadNode != null)
+            btnDownloadNode.setStyle("-fx-background-color: #007ACC; -fx-text-fill: white;");
+
+        Node btnCancel = dialogPane.lookupButton(ButtonType.CANCEL);
+        if (btnCancel != null)
+            btnCancel.setStyle("-fx-background-color: #3c3c3c; -fx-text-fill: white;");
+
+        dialog.setResultConverter(btn -> {
+            if (btn == downloadBtn) {
+                List<String> selected = new ArrayList<>();
+                for (DownloadableItem item : allItems) {
+                    if (item.selected.get())
+                        selected.add(item.path);
+                }
+                return selected;
+            }
+            return null;
+        });
+
+        Optional<List<String>> result = dialog.showAndWait();
+        result.ifPresent(selectedFiles -> {
+            if (!selectedFiles.isEmpty()) {
+                onDownload.accept(selectedFiles);
+            }
+        });
+    }
+
+    private ToggleButton createFilterButton(String text, ToggleGroup group, boolean selected) {
+        ToggleButton btn = new ToggleButton(text);
+        btn.setToggleGroup(group);
+        btn.setSelected(selected);
+        // Style to look like pills/tabs
+        btn.setStyle(
+                "-fx-background-color: #3c3c3c; -fx-text-fill: white; -fx-background-radius: 15; -fx-cursor: hand;");
+
+        btn.selectedProperty().addListener((obs, old, isSelected) -> {
+            if (isSelected) {
+                btn.setStyle(
+                        "-fx-background-color: #007ACC; -fx-text-fill: white; -fx-background-radius: 15; -fx-cursor: hand;");
+            } else {
+                btn.setStyle(
+                        "-fx-background-color: #3c3c3c; -fx-text-fill: white; -fx-background-radius: 15; -fx-cursor: hand;");
+            }
+        });
+
+        if (selected) {
+            btn.setStyle(
+                    "-fx-background-color: #007ACC; -fx-text-fill: white; -fx-background-radius: 15; -fx-cursor: hand;");
+        }
+
+        return btn;
+    }
+
+    private void downloadSelectedFiles(List<String> files, String itemName, Runnable onRefresh) {
+        Node overlay = LoadingSpinnerHelper
+                .createDownloadOverlay("Descargando " + files.size() + " " + itemName + "...");
+
+        Parent sceneRoot = btnBack.getScene().getRoot();
+        StackPane overlayContainer = null;
+        if (sceneRoot instanceof StackPane) {
+            overlayContainer = (StackPane) sceneRoot;
+        } else if (contentArea != null) {
+            overlayContainer = contentArea;
+        }
+
+        final StackPane finalOverlayContainer = overlayContainer;
+        if (finalOverlayContainer != null)
+            finalOverlayContainer.getChildren().add(overlay);
+
+        new Thread(() -> {
+            BedrockSamplesDownloader.downloadSpecificFiles(files, Paths.get(currentProject.getRootPath()), () -> {
+            });
+            Platform.runLater(() -> {
+                if (finalOverlayContainer != null)
+                    finalOverlayContainer.getChildren().remove(overlay);
+                if (onRefresh != null)
+                    onRefresh.run();
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Descarga Completa");
+                alert.setHeaderText(null);
+                alert.setContentText("Se han descargado " + files.size() + " " + itemName + ".");
+                alert.show();
+            });
+        }).start();
+    }
+
+    private static class DownloadableItem {
+        String path;
+        javafx.beans.property.BooleanProperty selected = new javafx.beans.property.SimpleBooleanProperty(false);
+
+        DownloadableItem(String p) {
+            path = p;
+        }
+
+        @Override
+        public String toString() {
+            return path;
+        }
+    }
+
+    private static class FilterCategory {
+        String name;
+        java.util.function.Predicate<String> predicate;
+
+        FilterCategory(String n, java.util.function.Predicate<String> p) {
+            name = n;
+            predicate = p;
+        }
+    }
+
     private boolean hasModel(String entityName) {
         if (currentProject == null)
             return false;
@@ -1762,18 +2240,19 @@ public class EditorController {
         blueBot2.setStroke(Color.web("#6bb7ff"));
         blueBot2.setStrokeWidth(2);
 
-        svgRoot.getChildren().addAll(bg, frame, jsText, blueTop, orange1, orange2, blueCenter, blueBot1, orangeBot, blueBot2);
+        svgRoot.getChildren().addAll(bg, frame, jsText, blueTop, orange1, orange2, blueCenter, blueBot1, orangeBot,
+                blueBot2);
 
         Group scaler = new Group(svgRoot);
         double scale = 64.0 / 400.0;
         scaler.setScaleX(scale);
         scaler.setScaleY(scale);
-        
+
         StackPane container = new StackPane(scaler);
         container.setPrefSize(64, 64);
         container.setMinSize(64, 64);
         container.setMaxSize(64, 64);
-        
+
         return container;
     }
 
@@ -1840,8 +2319,6 @@ public class EditorController {
         return card;
     }
 
-
-
     private Node createModelCard(Path path) {
         VBox card = new VBox(5);
         card.setStyle(
@@ -1891,82 +2368,82 @@ public class EditorController {
 
     private Node create3DModelIcon() {
         Group root = new Group();
-        
+
         // Main Group with translation (translate(0, 10))
         Group mainGroup = new Group();
         mainGroup.setTranslateY(10);
-        
+
         // Cube Wireframe
         // Front Face: 150,90 250,90 250,190 150,190
         Polygon frontFace = new Polygon(150, 90, 250, 90, 250, 190, 150, 190);
         frontFace.setFill(Color.TRANSPARENT);
         frontFace.setStroke(Color.WHITE);
         frontFace.setStrokeWidth(2);
-        
+
         // Back Face: 190,50 290,50 290,150 190,150
         Polygon backFace = new Polygon(190, 50, 290, 50, 290, 150, 190, 150);
         backFace.setFill(Color.TRANSPARENT);
         backFace.setStroke(Color.WHITE);
         backFace.setStrokeWidth(2);
-        
+
         // Connections
         Line c1 = new Line(150, 90, 190, 50);
         Line c2 = new Line(250, 90, 290, 50);
         Line c3 = new Line(250, 190, 290, 150);
         Line c4 = new Line(150, 190, 190, 150);
-        
+
         Stream.of(c1, c2, c3, c4).forEach(l -> {
             l.setStroke(Color.WHITE);
             l.setStrokeWidth(2);
         });
-        
+
         // 3D Mesh Group (Opacity 0.6)
         Group meshGroup = new Group();
         meshGroup.setOpacity(0.6);
-        
+
         // Parallel lines
         Line[] parallelLines = new Line[] {
-            new Line(120, 210, 260, 210),
-            new Line(140, 230, 280, 230),
-            new Line(160, 250, 300, 250),
-            new Line(180, 270, 320, 270)
+                new Line(120, 210, 260, 210),
+                new Line(140, 230, 280, 230),
+                new Line(160, 250, 300, 250),
+                new Line(180, 270, 320, 270)
         };
-        
+
         // Depth lines
         Line[] depthLines = new Line[] {
-            new Line(120, 210, 180, 270),
-            new Line(150, 210, 210, 270),
-            new Line(180, 210, 240, 270),
-            new Line(210, 210, 270, 270),
-            new Line(240, 210, 300, 270),
-            new Line(260, 210, 320, 270)
+                new Line(120, 210, 180, 270),
+                new Line(150, 210, 210, 270),
+                new Line(180, 210, 240, 270),
+                new Line(210, 210, 270, 270),
+                new Line(240, 210, 300, 270),
+                new Line(260, 210, 320, 270)
         };
-        
+
         Stream.of(parallelLines).forEach(l -> {
             l.setStroke(Color.WHITE);
             l.setStrokeWidth(1);
             meshGroup.getChildren().add(l);
         });
-        
+
         Stream.of(depthLines).forEach(l -> {
             l.setStroke(Color.WHITE);
             l.setStrokeWidth(1);
             meshGroup.getChildren().add(l);
         });
-        
+
         mainGroup.getChildren().addAll(frontFace, backFace, c1, c2, c3, c4, meshGroup);
         root.getChildren().add(mainGroup);
-        
+
         // Scale to fit card (approx 80x80)
         // Original size ~400x350
         root.setScaleX(0.4);
         root.setScaleY(0.4);
-        
+
         StackPane container = new StackPane(root);
         container.setPrefSize(80, 80);
         container.setMaxSize(80, 80);
         container.setAlignment(Pos.CENTER);
-        
+
         return container;
     }
 
@@ -4077,12 +4554,55 @@ public class EditorController {
         Parser parser = Parser.builder().extensions(Arrays.asList(TablesExtension.create())).build();
         HtmlRenderer renderer = HtmlRenderer.builder().extensions(Arrays.asList(TablesExtension.create())).build();
 
-        // Update Preview Logic
-        java.util.function.Consumer<String> updatePreview = (md) -> {
+        // Update Preview Logic with Debounce
+        javafx.animation.PauseTransition debouncePreview = new javafx.animation.PauseTransition(
+                javafx.util.Duration.millis(300));
+        java.util.concurrent.atomic.AtomicReference<String> pendingMarkdown = new java.util.concurrent.atomic.AtomicReference<>(
+                "");
+
+        debouncePreview.setOnFinished(event -> {
+            String md = pendingMarkdown.get();
             String html = renderer.render(parser.parse(md));
-            String fullHtml = "<html><head><style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; color: #d4d4d4; background-color: #1e1e1e; line-height: 1.6; } a { color: #3794ff; text-decoration: none; } a:hover { text-decoration: underline; } code { background-color: #2d2d2d; padding: 2px 5px; border-radius: 4px; font-family: 'Consolas', monospace; color: #ce9178; } pre { background-color: #1e1e1e; border: 1px solid #444; padding: 15px; border-radius: 5px; overflow: auto; } pre code { background-color: transparent; padding: 0; color: #d4d4d4; } table { border-collapse: collapse; width: 100%; margin: 15px 0; } th, td { border: 1px solid #444; padding: 10px; text-align: left; } th { background-color: #252526; } tr:nth-child(even) { background-color: #252526; } blockquote { border-left: 4px solid #4caf50; padding-left: 15px; color: #858585; margin: 15px 0; } h1, h2, h3, h4, h5, h6 { color: #569cd6; margin-top: 20px; } hr { border: 0; height: 1px; background: #444; margin: 20px 0; } img { max-width: 100%; border-radius: 5px; }</style></head><body>"
+            String fullHtml = "<html><head><style>" +
+                    "body { font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px; color: #d4d4d4; background-color: #1e1e1e; line-height: 1.6; max-width: 900px; margin: 0 auto; }"
+                    +
+                    "::-webkit-scrollbar { width: 10px; height: 10px; }" +
+                    "::-webkit-scrollbar-track { background: #1e1e1e; }" +
+                    "::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }" +
+                    "::-webkit-scrollbar-thumb:hover { background: #555; }" +
+                    "a { color: #3794ff; text-decoration: none; transition: color 0.2s; }" +
+                    "a:hover { color: #6fb2ff; text-decoration: underline; }" +
+                    "code { background-color: #2d2d2d; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; color: #ce9178; font-size: 0.9em; }"
+                    +
+                    "pre { background-color: #1e1e1e; border: 1px solid #333; padding: 15px; border-radius: 8px; overflow: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }"
+                    +
+                    "pre code { background-color: transparent; padding: 0; color: #d4d4d4; }" +
+                    "table { border-collapse: collapse; width: 100%; margin: 20px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.2); }"
+                    +
+                    "th, td { border: 1px solid #333; padding: 12px 15px; text-align: left; }" +
+                    "th { background-color: #252526; color: #569cd6; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }"
+                    +
+                    "tr:nth-child(even) { background-color: #2a2a2d; }" +
+                    "tr:hover { background-color: #333; transition: background-color 0.1s; }" +
+                    "blockquote { border-left: 4px solid #4caf50; padding: 10px 20px; color: #a0a0a0; background: #252526; border-radius: 0 4px 4px 0; margin: 20px 0; font-style: italic; }"
+                    +
+                    "h1, h2, h3, h4, h5, h6 { color: #569cd6; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }"
+                    +
+                    "h1 { font-size: 2.2em; border-bottom: 1px solid #333; padding-bottom: 10px; }" +
+                    "h2 { font-size: 1.8em; border-bottom: 1px solid #333; padding-bottom: 6px; }" +
+                    "hr { border: 0; height: 1px; background: linear-gradient(to right, #333, #555, #333); margin: 30px 0; }"
+                    +
+                    "img { max-width: 100%; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }" +
+                    "ul, ol { padding-left: 20px; }" +
+                    "li { margin-bottom: 6px; }" +
+                    "</style></head><body>"
                     + html + "</body></html>";
-            javafx.application.Platform.runLater(() -> previewEngine.loadContent(fullHtml));
+            previewEngine.loadContent(fullHtml);
+        });
+
+        java.util.function.Consumer<String> updatePreview = (md) -> {
+            pendingMarkdown.set(md);
+            debouncePreview.playFromStart();
         };
 
         // Load Initial Preview
@@ -4102,10 +4622,15 @@ public class EditorController {
 
                     String initScript = "setTimeout(function() { " +
                             "if(typeof initEditor === 'function') { " +
-                            "var editor = initEditor(javaApp.getContent(), 'markdown'); " +
-                            "editor.onDidChangeModelContent(function() { " +
-                            "javaApp.onMarkdownChange(editor.getValue()); " +
-                            "}); " +
+                            "initEditor(javaApp.getContent(), 'markdown'); " +
+                            "var checkEditor = setInterval(function() { " +
+                            "   if(typeof editor !== 'undefined' && editor) { " +
+                            "       clearInterval(checkEditor); " +
+                            "       editor.onDidChangeModelContent(function() { " +
+                            "           javaApp.onMarkdownChange(editor.getValue()); " +
+                            "       }); " +
+                            "   } " +
+                            "}, 100); " +
                             "} " +
                             "}, 200);";
                     editorEngine.executeScript(initScript);
@@ -4320,7 +4845,7 @@ public class EditorController {
                 contentContainer.getChildren().add(webView);
 
                 // Add Loading Overlay
-                Node loadingOverlay = LoadingSpinnerHelper.createOverlay("Cargando editor...");
+                Node loadingOverlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando editor...", "code");
                 contentContainer.getChildren().add(loadingOverlay);
 
                 webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
@@ -5024,7 +5549,7 @@ public class EditorController {
 
     private void openImageInEditor(Path imagePath) {
         try {
-            javafx.scene.image.Image image = new javafx.scene.image.Image(imagePath.toUri().toString());
+            javafx.scene.image.Image image = new javafx.scene.image.Image(imagePath.toUri().toString(), true);
             javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView(image);
             imageView.setPreserveRatio(true);
 
@@ -5132,6 +5657,24 @@ public class EditorController {
             mainLayout.setStyle("-fx-background-color: #1e1e1e;");
             mainLayout.getChildren().add(scrollPane);
 
+            // Add Loading Spinner for Image
+            Node imageLoadingOverlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando imagen...", "textures");
+            mainLayout.getChildren().add(imageLoadingOverlay);
+
+            if (image.getProgress() >= 1.0) {
+                 mainLayout.getChildren().remove(imageLoadingOverlay);
+            } else {
+                image.progressProperty().addListener((obs, oldVal, newVal) -> {
+                    if (newVal.doubleValue() >= 1.0) {
+                        FadeTransition ft = new FadeTransition(Duration.millis(300), imageLoadingOverlay);
+                        ft.setFromValue(1.0);
+                        ft.setToValue(0.0);
+                        ft.setOnFinished(e -> mainLayout.getChildren().remove(imageLoadingOverlay));
+                        ft.play();
+                    }
+                });
+            }
+
             // Zoom Controls Container
             HBox zoomControls = new HBox(5);
             zoomControls.setAlignment(javafx.geometry.Pos.CENTER);
@@ -5143,7 +5686,7 @@ public class EditorController {
 
             // Helper for opening editor with spinner
             java.util.function.Consumer<File> openEditorWithSpinner = (file) -> {
-                Node loadingOverlay = LoadingSpinnerHelper.createOverlay("Cargando editor...");
+                Node loadingOverlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando editor...", "textures");
                 mainLayout.getChildren().add(loadingOverlay);
 
                 // Use PauseTransition to allow the UI to render the spinner

@@ -482,6 +482,12 @@
                                    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
                                        <FlowPane fx:id="texturesFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
                                    </ScrollPane>
+
+                                   <HBox alignment="CENTER" spacing="10" style="-fx-padding: 5;">
+                                       <Button fx:id="btnPrevEzTexturePage" text="&lt;" onAction="#handlePrevEzTexturePage" styleClass="button-primary"/>
+                                       <Label fx:id="ezTexturePageLabel" text="1 / 1" textFill="WHITE"/>
+                                       <Button fx:id="btnNextEzTexturePage" text="&gt;" onAction="#handleNextEzTexturePage" styleClass="button-primary"/>
+                                   </HBox>
                               </VBox>
     
                               <!-- Models View -->
