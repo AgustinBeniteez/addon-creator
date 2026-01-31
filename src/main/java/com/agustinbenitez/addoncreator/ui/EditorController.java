@@ -1063,17 +1063,14 @@ public class EditorController {
         }
         for (String block : currentProject.getBlocks()) {
             if (shouldShow(block)) {
-                Node card = createEzCard("Block", block, null);
                 String key = block.contains(":") ? block.split(":")[1] : block;
                 Path p = blockMap.get(key);
                 if (p != null) {
-                    card.setOnMouseClicked(e -> {
-                        toggleMode();
-                        openFileByPath(p);
-                    });
-                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                    mainElementsFlowPane.getChildren().add(createBlockCard(p));
+                } else {
+                    Node card = createEzCard("Block", block, null);
+                    mainElementsFlowPane.getChildren().add(card);
                 }
-                mainElementsFlowPane.getChildren().add(card);
             }
         }
 
@@ -1240,17 +1237,14 @@ public class EditorController {
 
         for (String block : currentProject.getBlocks()) {
             if (shouldShow(block)) {
-                Node card = createEzCard("Block", block, null);
                 String key = block.contains(":") ? block.split(":")[1] : block;
                 Path p = blockMap.get(key);
                 if (p != null) {
-                    card.setOnMouseClicked(e -> {
-                        toggleMode();
-                        openFileByPath(p);
-                    });
-                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                    blocksFlowPane.getChildren().add(createBlockCard(p));
+                } else {
+                    Node card = createEzCard("Block", block, null);
+                    blocksFlowPane.getChildren().add(card);
                 }
-                blocksFlowPane.getChildren().add(card);
             }
         }
     }
@@ -1560,6 +1554,84 @@ public class EditorController {
         }
     }
 
+    private Node createBlockCard(Path blockPath) {
+        String name = blockPath.getFileName().toString().replace(".json", "");
+        
+        // Try to find texture
+        String texturePath = findBlockTexturePath(name);
+        
+        Node card = createEzCard("Block", name, texturePath);
+        
+        // Add edit handler
+        card.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.SECONDARY) {
+                 toggleMode();
+                 openFileByPath(blockPath);
+            } else {
+                 handleEditBlock(blockPath);
+            }
+        });
+        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+        return card;
+    }
+
+    private String findBlockTexturePath(String blockName) {
+        if (currentProject == null) return null;
+        try {
+            Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+            Path texturesDir = root.resolve("RP/textures/blocks");
+            if (!Files.exists(texturesDir)) return null;
+
+            // Normalize block name (remove namespace if present)
+            String cleanName = blockName.contains(":") ? blockName.split(":")[1] : blockName;
+            
+            // Priority list for texture lookup
+            String[] candidates = {
+                cleanName + ".png",
+                cleanName + "_side.png",
+                cleanName + "_top.png",
+                cleanName + "_front.png",
+                cleanName + "_all.png"
+            };
+
+            for (String cand : candidates) {
+                Path p = texturesDir.resolve(cand);
+                if (Files.exists(p)) {
+                    return p.toAbsolutePath().toString();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Error finding block texture for " + blockName, e);
+        }
+        return null;
+    }
+
+    private void handleEditBlock(Path blockPath) {
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/BlockCreator.fxml"));
+            Parent root = loader.load();
+            BlockCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            controller.setBlockData(blockPath.toFile());
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Edit Block - " + blockPath.getFileName().toString());
+            stage.setScene(new Scene(root));
+            
+            // Apply theme
+            root.getStylesheets().add(getClass().getResource("/css/block-creator.css").toExternalForm());
+            
+            stage.showAndWait();
+            
+            // Refresh views after edit
+            populateEzLists();
+        } catch (IOException ex) {
+            logger.error("Failed to open block editor", ex);
+            showError("Error", "Could not open block editor: " + ex.getMessage());
+        }
+    }
+
     private java.util.List<Path> findFiles(Path root, String... extensions) {
         java.util.List<Path> result = new java.util.ArrayList<>();
         if (!java.nio.file.Files.exists(root))
@@ -1605,9 +1677,16 @@ public class EditorController {
                 specificDir = texturesDir.resolve("entity");
 
             if (specificDir != null && Files.exists(specificDir)) {
-                Path imgPath = specificDir.resolve(cleanName + ".png");
-                if (Files.exists(imgPath)) {
-                    return new javafx.scene.image.Image(imgPath.toUri().toString(), 50, 50, true, true);
+                String[] extensions = { ".png", ".tga", ".jpg", ".jpeg" };
+                for (String ext : extensions) {
+                    Path imgPath = specificDir.resolve(cleanName + ext);
+                    if (Files.exists(imgPath)) {
+                        if (ext.equals(".tga")) {
+                            return TgaImageLoader.loadTga(imgPath.toFile());
+                        } else {
+                            return new javafx.scene.image.Image(imgPath.toUri().toString(), 50, 50, true, true);
+                        }
+                    }
                 }
             }
             return null;
@@ -2574,7 +2653,12 @@ public class EditorController {
         imageView.setPreserveRatio(true);
 
         try {
-            javafx.scene.image.Image img = new javafx.scene.image.Image(path.toUri().toString(), 80, 80, true, true);
+            javafx.scene.image.Image img;
+            if (path.toString().toLowerCase().endsWith(".tga")) {
+                img = TgaImageLoader.loadTga(path.toFile());
+            } else {
+                img = new javafx.scene.image.Image(path.toUri().toString(), 80, 80, true, true);
+            }
             imageView.setImage(img);
             imageView.setSmooth(false); // Pixel art optimization
         } catch (Exception e) {
@@ -5665,7 +5749,12 @@ public class EditorController {
 
     private void openImageInEditor(Path imagePath) {
         try {
-            javafx.scene.image.Image image = new javafx.scene.image.Image(imagePath.toUri().toString(), true);
+            javafx.scene.image.Image image;
+            if (imagePath.toString().toLowerCase().endsWith(".tga")) {
+                image = TgaImageLoader.loadTga(imagePath.toFile());
+            } else {
+                image = new javafx.scene.image.Image(imagePath.toUri().toString(), true);
+            }
             javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView(image);
             imageView.setPreserveRatio(true);
 
@@ -6437,40 +6526,40 @@ public class EditorController {
     }
 
     private void handleAddBlock() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Añadir Bloque");
-        dialog.setHeaderText("Crear nuevo bloque");
-        dialog.setContentText("Nombre del bloque:");
-
-        // Add icon
-        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
-        try {
-            stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
-        } catch (Exception e) {
+        if (currentProject == null) {
+             showError("Error", "No project loaded.");
+             return;
         }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/BlockCreator.fxml"));
+            Parent root = loader.load();
 
-        dialog.showAndWait().ifPresent(blockName -> {
-            if (blockName.trim().isEmpty()) {
-                showError("Error", "El nombre no puede estar vacío");
-                return;
-            }
+            BlockCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
 
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Crear Bloque");
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+            // Add icon
             try {
-                ensureBaseStructure();
-                ProjectGenerator.createBlockFolder(Paths.get(currentProject.getRootPath()));
-
-                currentProject.addBlock(blockName);
-                projectManager.updateProject(currentProject);
-
-                refreshFileTree();
-                loadBlocksView();
-                log("✓ Bloque añadido: " + blockName);
-
+                stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
             } catch (Exception e) {
-                logger.error("Failed to add block", e);
-                log("✗ Error: " + e.getMessage());
             }
-        });
+
+            stage.showAndWait();
+
+            if ("blocks".equals(currentEzViewName)) {
+                loadBlocksView();
+            }
+
+            refreshFileTree();
+
+        } catch (IOException ex) {
+            logger.error("Failed to open block creator", ex);
+            showError("Error", "No se pudo abrir el creador de bloques: " + ex.getMessage());
+        }
     }
 
     private void handleAddRecipe() {

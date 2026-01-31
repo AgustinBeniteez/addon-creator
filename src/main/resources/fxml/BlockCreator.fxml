@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.agustinbenitez.addoncreator.ui.BlockCreatorController"
+            stylesheets="@../css/block-creator.css"
+            styleClass="block-creator-root"
+            prefWidth="900" prefHeight="600">
+
+    <center>
+        <SplitPane dividerPositions="0.6">
+            <!-- Left Side: Settings -->
+            <VBox spacing="10" styleClass="block-creator-settings">
+                <Label text="Block Creator" styleClass="block-creator-title"/>
+                
+                <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
+                    <VBox spacing="15" style="-fx-padding: 10;">
+                        
+                        <!-- Identifier -->
+                        <VBox spacing="5">
+                            <Label text="Identifier (e.g. namespace:blockname)" styleClass="block-creator-label"/>
+                            <TextField fx:id="identifierField" promptText="mypack:custom_block"/>
+                        </VBox>
+
+                        <Separator/>
+
+                        <!-- Appearance Section -->
+                        <Label text="Appearance" styleClass="block-creator-section-title"/>
+                        
+                        <VBox spacing="10" styleClass="block-creator-texture-box">
+                            <Label text="Model Type" styleClass="block-creator-label"/>
+                            <HBox spacing="10">
+                                <RadioButton fx:id="rbCubeAll" text="Cube (All Faces Same)" selected="true"/>
+                                <RadioButton fx:id="rbCubeSided" text="Cube (Side/Top/Bottom)"/>
+                                <RadioButton fx:id="rbCustom" text="Custom Model"/>
+                            </HBox>
+
+                            <!-- Texture Selectors -->
+                            <StackPane>
+                                <!-- Cube All -->
+                                <VBox fx:id="boxTextureAll" spacing="5">
+                                    <Label text="Main Texture" styleClass="block-creator-label"/>
+                                    <Button fx:id="btnTextureAll" text="Select Texture" onAction="#handleSelectTextureAll" maxWidth="Infinity" styleClass="block-creator-button"/>
+                                    <ImageView fx:id="imgTextureAll" fitWidth="64" fitHeight="64" preserveRatio="true"/>
+                                </VBox>
+
+                                <!-- Cube Sided -->
+                                <VBox fx:id="boxTextureSided" spacing="5" visible="false">
+                                    <GridPane hgap="10" vgap="10">
+                                        <VBox spacing="2" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                            <Label text="Top" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureTop" text="Select" onAction="#handleSelectTextureTop" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureTop" fitWidth="48" fitHeight="48" preserveRatio="true"/>
+                                        </VBox>
+                                        <VBox spacing="2" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                            <Label text="Bottom" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureBottom" text="Select" onAction="#handleSelectTextureBottom" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureBottom" fitWidth="48" fitHeight="48" preserveRatio="true"/>
+                                        </VBox>
+                                        <VBox spacing="2" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">
+                                            <Label text="Sides" styleClass="block-creator-label"/>
+                                            <Button fx:id="btnTextureSide" text="Select" onAction="#handleSelectTextureSide" maxWidth="Infinity" styleClass="block-creator-button"/>
+                                            <ImageView fx:id="imgTextureSide" fitWidth="48" fitHeight="48" preserveRatio="true"/>
+                                        </VBox>
+                                    </GridPane>
+                                </VBox>
+
+                                <!-- Custom Model -->
+                                <VBox fx:id="boxCustomModel" spacing="5" visible="false">
+                                    <Label text="Geometry File (.json)" styleClass="block-creator-label"/>
+                                    <HBox spacing="5">
+                                        <TextField fx:id="modelPathField" promptText="geometry.json" HBox.hgrow="ALWAYS" editable="false"/>
+                                        <Button text="..." onAction="#handleSelectModel" styleClass="block-creator-button"/>
+                                    </HBox>
+                                    <Label text="Texture" styleClass="block-creator-label"/>
+                                    <Button fx:id="btnTextureCustom" text="Select Texture" onAction="#handleSelectTextureCustom" maxWidth="Infinity" styleClass="block-creator-button"/>
+                                    <ImageView fx:id="imgTextureCustom" fitWidth="64" fitHeight="64" preserveRatio="true"/>
+                                </VBox>
+                            </StackPane>
+                        </VBox>
+
+                        <Separator/>
+
+                        <!-- Properties Section -->
+                        <Label text="Properties" styleClass="block-creator-section-title"/>
+                        
+                        <GridPane hgap="10" vgap="10">
+                            <!-- Tool -->
+                            <Label text="Destroy Time:" styleClass="block-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="destroyTimeSpinner" editable="true" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Explosion Resistance:" styleClass="block-creator-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="explosionResistanceSpinner" editable="true" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Friction:" styleClass="block-creator-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="frictionSpinner" editable="true" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                            <Label text="Light Emission:" styleClass="block-creator-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="lightEmissionSpinner" editable="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                            
+                            <Label text="Map Color:" styleClass="block-creator-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                            <ColorPicker fx:id="mapColorPicker" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                            <Label text="Mining Tool:" styleClass="block-creator-label" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                            <ComboBox fx:id="toolCombo" maxWidth="Infinity" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                        <Separator/>
+
+                        <!-- Sounds & Loot -->
+                        <Label text="Sounds &amp; Loot" styleClass="block-creator-section-title"/>
+                        <VBox spacing="10">
+                             <Label text="Sound Category" styleClass="block-creator-label"/>
+                             <ComboBox fx:id="soundCategoryCombo" maxWidth="Infinity"/>
+
+                             <Label text="Dropped Item (Simple)" styleClass="block-creator-label"/>
+                             <TextField fx:id="dropItemField" promptText="minecraft:diamond"/>
+
+                             <Label text="Loot Table Path (Advanced)" styleClass="block-creator-label"/>
+                             <TextField fx:id="lootTableField" promptText="loot_tables/blocks/drop.json"/>
+                        </VBox>
+
+                    </VBox>
+                </ScrollPane>
+
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button text="Cancel" onAction="#handleCancel" styleClass="block-creator-button"/>
+                    <Button text="Create Block" onAction="#handleCreate" styleClass="block-creator-primary-button"/>
+                </HBox>
+            </VBox>
+
+            <!-- Right Side: 3D Preview -->
+            <StackPane styleClass="block-creator-preview-area">
+                <Label text="3D Preview" styleClass="block-creator-preview-label" StackPane.alignment="CENTER"/>
+                <Pane fx:id="previewContainer" />
+                <VBox alignment="TOP_RIGHT" spacing="10" pickOnBounds="false" style="-fx-padding: 10;">
+                    <Label text="Right Click + Drag to Rotate" styleClass="block-creator-instruction"/>
+                </VBox>
+            </StackPane>
+        </SplitPane>
+    </center>
+</BorderPane>

@@ -1,0 +1,145 @@
+/* Item Creator Specific Styles */
+
+.item-creator-root {
+    -fx-background-color: #1e1e1e;
+    -fx-font-family: 'Segoe UI', sans-serif;
+}
+
+/* Settings Panel (Left/Center) */
+.item-creator-settings {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.item-creator-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 0 0 15 0;
+    -fx-border-color: transparent transparent #3e3e42 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-margin: 0 0 10 0;
+}
+
+.item-creator-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e7e7e7;
+    -fx-padding: 15 0 5 0;
+}
+
+.item-creator-label {
+    -fx-text-fill: #bbbbbb;
+    -fx-font-size: 12px;
+}
+
+/* Input Fields */
+.item-creator-root .text-field, 
+.item-creator-root .combo-box, 
+.item-creator-root .spinner,
+.item-creator-root .text-area {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #f0f0f0;
+    -fx-background-radius: 2;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 2;
+}
+
+.item-creator-root .text-field:focused, 
+.item-creator-root .combo-box:focused, 
+.item-creator-root .spinner:focused,
+.item-creator-root .text-area:focused {
+    -fx-border-color: #007acc;
+    -fx-background-color: #3c3c3c;
+}
+
+.item-creator-root .combo-box .list-cell {
+    -fx-text-fill: #f0f0f0; 
+}
+
+/* Buttons */
+.item-creator-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #f0f0f0;
+    -fx-cursor: hand;
+    -fx-background-radius: 2;
+    -fx-padding: 5 10;
+}
+
+.item-creator-button:hover {
+    -fx-background-color: #4c4c4c;
+}
+
+.item-creator-primary-button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-background-radius: 2;
+    -fx-padding: 8 16;
+}
+
+.item-creator-primary-button:hover {
+    -fx-background-color: #1177bb;
+}
+
+/* TitledPane Styling to match dark theme */
+.item-creator-root .titled-pane {
+    -fx-text-fill: #e7e7e7;
+}
+.item-creator-root .titled-pane > .title {
+    -fx-background-color: #2d2d30;
+    -fx-border-color: #3e3e42;
+    -fx-border-radius: 2;
+}
+.item-creator-root .titled-pane > .content {
+    -fx-background-color: #252526;
+    -fx-border-color: #3e3e42;
+}
+
+/* Preview Area */
+.item-creator-preview-panel {
+    -fx-background-color: #252526;
+    -fx-border-color: #3e3e3e;
+    -fx-border-width: 0 0 0 1;
+}
+
+.item-creator-preview-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 16px;
+}
+
+.item-creator-preview-info-label {
+    -fx-text-fill: #cccccc;
+    -fx-font-family: 'Segoe Print', 'Comic Sans MS', cursive;
+    -fx-font-size: 18px;
+}
+
+.item-creator-info-text {
+    -fx-text-fill: #888888;
+}
+
+.item-creator-value-text {
+    -fx-text-fill: white;
+}
+
+/* Texture Preview Box */
+.item-creator-texture-box {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #3e3e42;
+    -fx-border-radius: 4;
+    -fx-padding: 10;
+    -fx-alignment: center;
+}
+
+/* CheckBox */
+.item-creator-root .check-box {
+    -fx-text-fill: #cccccc;
+}
+.item-creator-root .check-box .box {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #555555;
+}
+.item-creator-root .check-box:selected .mark {
+    -fx-background-color: #007acc;
+}

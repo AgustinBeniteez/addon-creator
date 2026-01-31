@@ -1,0 +1,125 @@
+/* Block Creator Specific Styles */
+
+.block-creator-root {
+    -fx-background-color: #1e1e1e;
+    -fx-font-family: 'Segoe UI', sans-serif;
+}
+
+.block-creator-root .split-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.block-creator-root .split-pane > .split-pane-divider {
+    -fx-background-color: #333333;
+    -fx-padding: 0 1px;
+}
+
+/* Left Side Settings Panel */
+.block-creator-settings {
+    -fx-background-color: #252526;
+    -fx-padding: 20;
+}
+
+.block-creator-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 0 0 15 0;
+    -fx-border-color: transparent transparent #3e3e42 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-margin: 0 0 10 0;
+}
+
+.block-creator-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e7e7e7;
+    -fx-padding: 15 0 5 0;
+}
+
+.block-creator-label {
+    -fx-text-fill: #bbbbbb;
+    -fx-font-size: 12px;
+}
+
+/* Input Fields */
+.block-creator-root .text-field, 
+.block-creator-root .combo-box, 
+.block-creator-root .spinner {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #f0f0f0;
+    -fx-background-radius: 2;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 2;
+}
+
+.block-creator-root .text-field:focused, 
+.block-creator-root .combo-box:focused, 
+.block-creator-root .spinner:focused {
+    -fx-border-color: #007acc;
+    -fx-background-color: #3c3c3c;
+}
+
+.block-creator-root .combo-box .list-cell {
+    -fx-text-fill: #f0f0f0; 
+}
+
+/* Buttons */
+.block-creator-button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #f0f0f0;
+    -fx-cursor: hand;
+    -fx-background-radius: 2;
+}
+
+.block-creator-button:hover {
+    -fx-background-color: #4c4c4c;
+}
+
+.block-creator-primary-button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-background-radius: 2;
+}
+
+.block-creator-primary-button:hover {
+    -fx-background-color: #1177bb;
+}
+
+/* Texture Preview Box */
+.block-creator-texture-box {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #3e3e42;
+    -fx-border-radius: 4;
+    -fx-padding: 10;
+    -fx-alignment: center;
+}
+
+/* 3D Preview Area */
+.block-creator-preview-area {
+    -fx-background-color: #1e1e1e;
+}
+
+.block-creator-preview-label {
+    -fx-text-fill: #666666;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-opacity: 0.3;
+}
+
+.block-creator-instruction {
+    -fx-text-fill: #888888;
+    -fx-font-size: 11px;
+    -fx-font-style: italic;
+}
+
+/* Radio Buttons */
+.block-creator-root .radio-button {
+    -fx-text-fill: #cccccc;
+}
+.block-creator-root .radio-button:selected .radio {
+    -fx-background-color: #007acc;
+}
