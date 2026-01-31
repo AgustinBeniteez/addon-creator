@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.agustinbenitez.addoncreator.ui.ScriptCreatorController"
+            styleClass="ide-root" style="-fx-background-color: #1e1e1e; -fx-text-fill: white;">
+    
+    <top>
+        <VBox spacing="10" style="-fx-padding: 20;">
+            <Label text="Create New Script" textFill="WHITE">
+                <font>
+                    <Font name="System Bold" size="20"/>
+                </font>
+            </Label>
+            <Label text="Generate a new JavaScript file for your Behavior Pack." textFill="#aaaaaa"/>
+        </VBox>
+    </top>
+    
+    <center>
+        <VBox spacing="20" style="-fx-padding: 0 20 20 20;">
+            <VBox spacing="5">
+                <Label text="Script Name:" textFill="#cccccc"/>
+                <TextField fx:id="nameField" promptText="e.g. main.js" style="-fx-background-color: #333; -fx-text-fill: white; -fx-border-color: #555;"/>
+            </VBox>
+            
+            <VBox spacing="5">
+                <Label text="Template:" textFill="#cccccc"/>
+                <ComboBox fx:id="templateSelector" promptText="Select a template" maxWidth="Infinity" styleClass="combo-box-dark"/>
+            </VBox>
+            
+            <VBox spacing="5" VBox.vgrow="ALWAYS">
+                <Label text="Preview:" textFill="#cccccc"/>
+                <TextArea fx:id="previewArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" 
+                          style="-fx-control-inner-background: #252526; -fx-text-fill: #a9b7c6; -fx-font-family: 'Consolas', monospace;"/>
+            </VBox>
+        </VBox>
+    </center>
+    
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 20;">
+            <Button fx:id="btnCancel" text="Cancel" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-border-color: #555; -fx-border-radius: 3;"/>
+            <Button fx:id="btnCreate" text="Create Script" style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        </HBox>
+    </bottom>
+    
+</BorderPane>

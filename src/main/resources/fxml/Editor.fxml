@@ -420,6 +420,11 @@
         <SVGPath content="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
     </graphic>
 </ToggleButton>
+<ToggleButton fx:id="btnEzScripts" text="Scripts" styleClass="button-primary">
+    <graphic>
+        <SVGPath content="M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4M20,18H4V6H20V18M7.5,15L9,16.5L12.5,13L9,9.5L7.5,11L9.5,13L7.5,15M14,15H19V17H14V15Z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+    </graphic>
+</ToggleButton>
 <ToggleButton fx:id="btnEzWorldGen" text="World Gen" styleClass="button-primary">
     <graphic>
         <SVGPath content="M14 6l-3.75 5 2.85 3.8-1.6 1.2C9.81 13.75 7 10 7 10l-6 8h22L14 6z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
@@ -500,6 +505,14 @@
                                    <Label text="Crafteos" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
                                    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
                                        <FlowPane fx:id="recipesFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
+                                   </ScrollPane>
+                              </VBox>
+
+                              <!-- Scripts View -->
+                              <VBox fx:id="ezScriptsContainer" visible="false" spacing="10">
+                                   <Label text="Scripts (Behavior Pack)" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+                                   <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
+                                       <FlowPane fx:id="scriptsFlowPane" hgap="10" vgap="10" style="-fx-background-color: transparent;"/>
                                    </ScrollPane>
                               </VBox>
 

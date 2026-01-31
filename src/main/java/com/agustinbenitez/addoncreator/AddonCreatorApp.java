@@ -69,8 +69,9 @@ public class AddonCreatorApp extends Application {
 
             logger.info("Application started successfully");
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Failed to load application UI", e);
+            e.printStackTrace();
             showErrorAndExit("Failed to start application: " + e.getMessage());
         }
     }

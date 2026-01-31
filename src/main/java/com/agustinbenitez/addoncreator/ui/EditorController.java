@@ -252,6 +252,8 @@ public class EditorController {
     @FXML
     private ToggleButton btnEzWorldGen; // New World Gen Button
     @FXML
+    private ToggleButton btnEzScripts; // New Scripts Button
+    @FXML
     private ToggleButton btnEzMain;
     @FXML
     private TextField txtEzFilter;
@@ -272,6 +274,8 @@ public class EditorController {
     private VBox ezRecipesContainer; // New Recipes Container
     @FXML
     private VBox ezWorldGenContainer; // New World Gen Container
+    @FXML
+    private VBox ezScriptsContainer; // New Scripts Container
     @FXML
     private VBox ezMainContainer;
     @FXML
@@ -294,6 +298,8 @@ public class EditorController {
     private FlowPane recipesFlowPane; // New Recipes FlowPane
     @FXML
     private FlowPane worldGenFlowPane; // New World Gen FlowPane
+    @FXML
+    private FlowPane scriptsFlowPane; // New Scripts FlowPane
     @FXML
     private FlowPane mainElementsFlowPane;
     @FXML
@@ -641,6 +647,14 @@ public class EditorController {
             });
         }
 
+        if (btnEzScripts != null) {
+            btnEzScripts.setToggleGroup(ezGroup);
+            btnEzScripts.setOnAction(e -> {
+                if (btnEzScripts.isSelected())
+                    switchEzView("scripts");
+            });
+        }
+
         if (txtEzFilter != null) {
             txtEzFilter.textProperty().addListener((obs, oldVal, newVal) -> {
                 switchEzView(currentEzViewName);
@@ -670,6 +684,8 @@ public class EditorController {
             ezPixelArtContainer.setVisible(false);
         if (ezWorldGenContainer != null)
             ezWorldGenContainer.setVisible(false);
+        if (ezScriptsContainer != null)
+            ezScriptsContainer.setVisible(false);
 
         // Ensure Top Bar is visible for main views (navigation buttons are here)
         if (ezTopBar != null) {
@@ -722,6 +738,11 @@ public class EditorController {
                 if (ezWorldGenContainer != null)
                     ezWorldGenContainer.setVisible(true);
                 loadWorldGenView();
+                break;
+            case "scripts":
+                if (ezScriptsContainer != null)
+                    ezScriptsContainer.setVisible(true);
+                loadScriptsView();
                 break;
         }
     }
@@ -936,22 +957,69 @@ public class EditorController {
             return;
         mainElementsFlowPane.getChildren().clear();
 
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        
+        // Prepare Maps for efficient lookup
+        java.util.Map<String, Path> entityMap = new java.util.HashMap<>();
+        findFiles(root.resolve("BP/entities"), ".json").forEach(p -> 
+            entityMap.put(p.getFileName().toString().replace(".json", ""), p));
+            
+        java.util.Map<String, Path> itemMap = new java.util.HashMap<>();
+        findFiles(root.resolve("BP/items"), ".json").forEach(p -> 
+            itemMap.put(p.getFileName().toString().replace(".json", ""), p));
+            
+        java.util.Map<String, Path> blockMap = new java.util.HashMap<>();
+        findFiles(root.resolve("BP/blocks"), ".json").forEach(p -> 
+            blockMap.put(p.getFileName().toString().replace(".json", ""), p));
+
         for (String entity : currentProject.getEntities()) {
-            if (shouldShow(entity))
-                mainElementsFlowPane.getChildren().add(createEzCard("Entity", entity, null));
+            if (shouldShow(entity)) {
+                Node card = createEzCard("Entity", entity, null);
+                String key = entity.contains(":") ? entity.split(":")[1] : entity;
+                Path p = entityMap.get(key);
+                if (p != null) {
+                    card.setOnMouseClicked(e -> {
+                        toggleMode();
+                        openFileByPath(p);
+                    });
+                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                }
+                mainElementsFlowPane.getChildren().add(card);
+            }
         }
         for (String item : currentProject.getItems()) {
-            if (shouldShow(item))
-                mainElementsFlowPane.getChildren().add(createEzCard("Item", item, null));
+            if (shouldShow(item)) {
+                Node card = createEzCard("Item", item, null);
+                String key = item.contains(":") ? item.split(":")[1] : item;
+                Path p = itemMap.get(key);
+                if (p != null) {
+                    card.setOnMouseClicked(e -> {
+                        toggleMode();
+                        openFileByPath(p);
+                    });
+                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                }
+                mainElementsFlowPane.getChildren().add(card);
+            }
         }
         for (String block : currentProject.getBlocks()) {
-            if (shouldShow(block))
-                mainElementsFlowPane.getChildren().add(createEzCard("Block", block, null));
+            if (shouldShow(block)) {
+                Node card = createEzCard("Block", block, null);
+                String key = block.contains(":") ? block.split(":")[1] : block;
+                Path p = blockMap.get(key);
+                if (p != null) {
+                    card.setOnMouseClicked(e -> {
+                        toggleMode();
+                        openFileByPath(p);
+                    });
+                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                }
+                mainElementsFlowPane.getChildren().add(card);
+            }
         }
 
         // Add Recipes to Main View
         try {
-            Path root = java.nio.file.Paths.get(currentProject.getRootPath());
             Path recipesDir = root.resolve("BP/recipes");
             if (java.nio.file.Files.exists(recipesDir)) {
                 java.util.List<Path> recipeFiles = findFiles(recipesDir, ".json");
@@ -964,6 +1032,26 @@ public class EditorController {
         } catch (Exception e) {
             logger.error("Error loading recipes in main view", e);
         }
+
+        // Add Scripts to Main View
+        try {
+            Path scriptsDir = root.resolve("BP/scripts");
+            if (java.nio.file.Files.exists(scriptsDir)) {
+                findFiles(scriptsDir, ".js", ".ts").forEach(path -> {
+                    if (shouldShow(path.getFileName().toString())) {
+                        Node card = createEzCard("Script", path.getFileName().toString(), null);
+                        card.setOnMouseClicked(e -> {
+                            toggleMode();
+                            openFileByPath(path);
+                        });
+                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                        mainElementsFlowPane.getChildren().add(card);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            logger.error("Error loading scripts in main view", e);
+        }
     }
 
     private void loadEntitiesView() {
@@ -971,9 +1059,26 @@ public class EditorController {
             return;
         entitiesFlowPane.getChildren().clear();
         entitiesFlowPane.getChildren().add(createAddCard(this::handleAddEntity));
+
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        java.util.Map<String, Path> entityMap = new java.util.HashMap<>();
+        findFiles(root.resolve("BP/entities"), ".json").forEach(p -> 
+            entityMap.put(p.getFileName().toString().replace(".json", ""), p));
+
         for (String entity : currentProject.getEntities()) {
-            if (shouldShow(entity))
-                entitiesFlowPane.getChildren().add(createEzCard("Entity", entity, null));
+            if (shouldShow(entity)) {
+                Node card = createEzCard("Entity", entity, null);
+                String key = entity.contains(":") ? entity.split(":")[1] : entity;
+                Path p = entityMap.get(key);
+                if (p != null) {
+                    card.setOnMouseClicked(e -> {
+                        toggleMode();
+                        openFileByPath(p);
+                    });
+                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                }
+                entitiesFlowPane.getChildren().add(card);
+            }
         }
     }
 
@@ -982,9 +1087,26 @@ public class EditorController {
             return;
         itemsFlowPane.getChildren().clear();
         itemsFlowPane.getChildren().add(createAddCard(this::handleAddItem));
+
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        java.util.Map<String, Path> itemMap = new java.util.HashMap<>();
+        findFiles(root.resolve("BP/items"), ".json").forEach(p -> 
+            itemMap.put(p.getFileName().toString().replace(".json", ""), p));
+
         for (String item : currentProject.getItems()) {
-            if (shouldShow(item))
-                itemsFlowPane.getChildren().add(createEzCard("Item", item, null));
+            if (shouldShow(item)) {
+                Node card = createEzCard("Item", item, null);
+                String key = item.contains(":") ? item.split(":")[1] : item;
+                Path p = itemMap.get(key);
+                if (p != null) {
+                    card.setOnMouseClicked(e -> {
+                        toggleMode();
+                        openFileByPath(p);
+                    });
+                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                }
+                itemsFlowPane.getChildren().add(card);
+            }
         }
     }
 
@@ -993,9 +1115,26 @@ public class EditorController {
             return;
         blocksFlowPane.getChildren().clear();
         blocksFlowPane.getChildren().add(createAddCard(this::handleAddBlock));
+
+        Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+        java.util.Map<String, Path> blockMap = new java.util.HashMap<>();
+        findFiles(root.resolve("BP/blocks"), ".json").forEach(p -> 
+            blockMap.put(p.getFileName().toString().replace(".json", ""), p));
+
         for (String block : currentProject.getBlocks()) {
-            if (shouldShow(block))
-                blocksFlowPane.getChildren().add(createEzCard("Block", block, null));
+            if (shouldShow(block)) {
+                Node card = createEzCard("Block", block, null);
+                String key = block.contains(":") ? block.split(":")[1] : block;
+                Path p = blockMap.get(key);
+                if (p != null) {
+                    card.setOnMouseClicked(e -> {
+                        toggleMode();
+                        openFileByPath(p);
+                    });
+                    card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                }
+                blocksFlowPane.getChildren().add(card);
+            }
         }
     }
 
@@ -1040,7 +1179,13 @@ public class EditorController {
         java.util.List<Path> soundFiles = findFiles(root, ".ogg", ".wav", ".fsb");
         for (Path path : soundFiles) {
             if (shouldShow(path.getFileName().toString())) {
-                soundsFlowPane.getChildren().add(createEzCard("Sound", path.getFileName().toString(), null));
+                Node card = createEzCard("Sound", path.getFileName().toString(), null);
+                card.setOnMouseClicked(e -> {
+                    toggleMode();
+                    openFileByPath(path);
+                });
+                card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                soundsFlowPane.getChildren().add(card);
             }
         }
     }
@@ -1084,8 +1229,15 @@ public class EditorController {
             Path biomesDir = root.resolve("BP/biomes");
             if (Files.exists(biomesDir)) {
                 findFiles(biomesDir, ".json").forEach(path -> {
-                    if (shouldShow(path.getFileName().toString()))
-                        worldGenFlowPane.getChildren().add(createEzCard("Biome", path.getFileName().toString(), null));
+                    if (shouldShow(path.getFileName().toString())) {
+                        Node card = createEzCard("Biome", path.getFileName().toString(), null);
+                        card.setOnMouseClicked(e -> {
+                            toggleMode();
+                            openFileByPath(path);
+                        });
+                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                        worldGenFlowPane.getChildren().add(card);
+                    }
                 });
             }
 
@@ -1093,9 +1245,15 @@ public class EditorController {
             Path featuresDir = root.resolve("BP/features");
             if (Files.exists(featuresDir)) {
                 findFiles(featuresDir, ".json").forEach(path -> {
-                    if (shouldShow(path.getFileName().toString()))
-                        worldGenFlowPane.getChildren()
-                                .add(createEzCard("Feature", path.getFileName().toString(), null));
+                    if (shouldShow(path.getFileName().toString())) {
+                        Node card = createEzCard("Feature", path.getFileName().toString(), null);
+                        card.setOnMouseClicked(e -> {
+                            toggleMode();
+                            openFileByPath(path);
+                        });
+                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                        worldGenFlowPane.getChildren().add(card);
+                    }
                 });
             }
 
@@ -1103,9 +1261,15 @@ public class EditorController {
             Path rulesDir = root.resolve("BP/feature_rules");
             if (Files.exists(rulesDir)) {
                 findFiles(rulesDir, ".json").forEach(path -> {
-                    if (shouldShow(path.getFileName().toString()))
-                        worldGenFlowPane.getChildren()
-                                .add(createEzCard("Feature Rule", path.getFileName().toString(), null));
+                    if (shouldShow(path.getFileName().toString())) {
+                        Node card = createEzCard("Feature Rule", path.getFileName().toString(), null);
+                        card.setOnMouseClicked(e -> {
+                            toggleMode();
+                            openFileByPath(path);
+                        });
+                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                        worldGenFlowPane.getChildren().add(card);
+                    }
                 });
             }
         } catch (Exception e) {
@@ -1131,6 +1295,61 @@ public class EditorController {
         } catch (Exception e) {
             logger.error("Failed to open World Gen Creator", e);
             showError("Error", "Could not open World Gen Creator.");
+        }
+    }
+
+    private void loadScriptsView() {
+        if (scriptsFlowPane == null || currentProject == null)
+            return;
+        scriptsFlowPane.getChildren().clear();
+        scriptsFlowPane.getChildren().add(createAddCard(this::handleAddScript));
+
+        try {
+            Path root = java.nio.file.Paths.get(currentProject.getRootPath());
+            Path scriptsDir = root.resolve("BP/scripts");
+            if (Files.exists(scriptsDir)) {
+                findFiles(scriptsDir, ".js", ".ts").forEach(path -> {
+                    if (shouldShow(path.getFileName().toString())) {
+                        Node card = createEzCard("Script", path.getFileName().toString(), null);
+                        card.setOnMouseClicked(e -> {
+                            toggleMode();
+                            openFileByPath(path);
+                        });
+                        card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                        scriptsFlowPane.getChildren().add(card);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            logger.error("Error loading scripts", e);
+        }
+    }
+
+    private void handleAddScript() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ScriptCreator.fxml"));
+            Parent root = loader.load();
+            ScriptCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            controller.setOnClose(this::loadScriptsView); // Refresh after creation
+
+            Stage stage = new Stage();
+            stage.setTitle("Create Script");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+
+            // Add icon
+            try {
+                stage.getIcons()
+                        .add(new javafx.scene.image.Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            } catch (Exception e) {
+            }
+
+            stage.showAndWait();
+
+        } catch (Exception e) {
+            logger.error("Failed to open Script Creator", e);
+            showError("Error", "Could not open Script Creator.");
         }
     }
 
@@ -1316,6 +1535,12 @@ public class EditorController {
                 icon.setContent(
                         "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z");
                 color = "#FFC107"; // Amber
+                break;
+            case "script":
+                // Terminal/Script icon
+                icon.setContent(
+                        "M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4M20,18H4V6H20V18M7.5,14L9,15.5L12.5,12L9,8.5L7.5,10L9.5,12L7.5,14M14,14H19V16H14V14Z");
+                color = "#607D8B"; // Blue Grey
                 break;
         }
 
@@ -1520,6 +1745,8 @@ public class EditorController {
         card.getChildren().addAll(iconContainer, titleLabel, typeLabel);
         return card;
     }
+
+
 
     private Node createModelCard(Path path) {
         VBox card = new VBox(5);
@@ -2133,8 +2360,14 @@ public class EditorController {
                     setGraphic(null);
                     setStyle("-fx-background-color: transparent;");
                 } else {
+                    HBox hBox = new HBox(10);
+                    hBox.setAlignment(Pos.CENTER_LEFT);
+
                     CheckBox cb = new CheckBox(task.getDescription());
                     cb.setSelected(task.isCompleted());
+                    HBox.setHgrow(cb, Priority.ALWAYS);
+                    cb.setMaxWidth(Double.MAX_VALUE);
+
                     // Style
                     if (task.isCompleted()) {
                         cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
@@ -2146,7 +2379,7 @@ public class EditorController {
                         task.setCompleted(cb.isSelected());
                         try {
                             todoManager.updateTask(task);
-                            // Refresh just the style of this cell if possible, or reload list
+                            // Refresh just the style of this cell
                             if (task.isCompleted()) {
                                 cb.setStyle("-fx-opacity: 0.6; -fx-text-fill: #888888;");
                             } else {
@@ -2157,7 +2390,25 @@ public class EditorController {
                         }
                     });
 
-                    setGraphic(cb);
+                    Button deleteBtn = new Button("X");
+                    deleteBtn.setStyle(
+                            "-fx-text-fill: #ff6b6b; -fx-background-color: transparent; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0 5;");
+                    deleteBtn.setOnAction(e -> {
+                        try {
+                            todoManager.removeTask(task);
+                            getListView().getItems().remove(task); // Remove from UI list
+                        } catch (IOException ex) {
+                            logger.error("Failed to delete task", ex);
+                        }
+                    });
+
+                    // Show delete on hover
+                    deleteBtn.setVisible(false);
+                    hBox.setOnMouseEntered(ev -> deleteBtn.setVisible(true));
+                    hBox.setOnMouseExited(ev -> deleteBtn.setVisible(false));
+
+                    hBox.getChildren().addAll(cb, deleteBtn);
+                    setGraphic(hBox);
                     setStyle("-fx-background-color: transparent; -fx-padding: 5;");
                 }
             }
