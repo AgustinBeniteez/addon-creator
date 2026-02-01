@@ -672,21 +672,50 @@
     -fx-scale-x: 1.02;
 }
 
-.project-card-title {
-    -fx-font-size: 18px;
+.project-list-item {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.project-list-item:hover {
+    -fx-background-color: #3E3E42;
+    -fx-border-color: #007acc;
+    -fx-border-width: 1;
+}
+
+.project-card-modern {
+    -fx-background-color: #252526;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0, 0, 4);
+    -fx-cursor: hand;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 1;
+}
+
+.project-card-modern:hover {
+    -fx-border-color: #007acc;
+    -fx-effect: dropshadow(gaussian, rgba(0, 122, 204, 0.4), 15, 0, 0, 5);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+.project-card-modern-title {
+    -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
+    -fx-text-fill: white;
 }
 
-.project-card-description {
-    -fx-font-size: 13px;
-    -fx-text-fill: #cccccc;
-}
-
-.project-card-date {
+.project-card-modern-subtitle {
     -fx-font-size: 11px;
-    -fx-text-fill: #999999;
+    -fx-text-fill: #e0e0e0;
+    -fx-opacity: 0.9;
 }
+
 
 .section-title {
     -fx-text-fill: #ffffff;

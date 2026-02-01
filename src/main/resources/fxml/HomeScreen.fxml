@@ -7,10 +7,13 @@
 <?import javafx.scene.text.*?>
 <?import javafx.scene.shape.SVGPath?>
 
-<BorderPane xmlns="http://javafx.com/javafx/21"
+<StackPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.agustinbenitez.addoncreator.ui.HomeScreenController"
+            fx:id="rootStackPane"
             styleClass="root">
+    <children>
+        <BorderPane styleClass="root">
     
     <!-- Top: Header with Image -->
     <top>
@@ -107,6 +110,13 @@
                         </graphic>
                         <tooltip><Tooltip text="Ordenar proyectos"/></tooltip>
                     </Button>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Button fx:id="viewModeButton" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0;">
+                        <graphic>
+                            <SVGPath fx:id="viewModeIcon" content="" fill="#cccccc" scaleX="1.2" scaleY="1.2"/>
+                        </graphic>
+                        <tooltip><Tooltip text="Cambiar vista"/></tooltip>
+                    </Button>
                 </HBox>
                 
                 <!-- Projects Grid in ScrollPane -->
@@ -131,4 +141,6 @@
         </HBox>
     </bottom>
     
-</BorderPane>
+    </BorderPane>
+    </children>
+</StackPane>

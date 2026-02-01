@@ -24,6 +24,7 @@ public class SettingsManager {
     public static final String KEY_WINDOW_HEIGHT = "window_height";
     public static final String KEY_WINDOW_MAXIMIZED = "window_maximized";
     public static final String KEY_BLOCKBENCH_PATH = "blockbench_path";
+    public static final String KEY_PROJECT_VIEW_MODE = "project_view_mode";
 
     private SettingsManager() {
         properties = new Properties();
@@ -74,6 +75,15 @@ public class SettingsManager {
 
     public void setBlockbenchPath(String path) {
         properties.setProperty(KEY_BLOCKBENCH_PATH, path);
+        saveSettings();
+    }
+
+    public String getProjectViewMode() {
+        return properties.getProperty(KEY_PROJECT_VIEW_MODE, "cards");
+    }
+
+    public void setProjectViewMode(String mode) {
+        properties.setProperty(KEY_PROJECT_VIEW_MODE, mode);
         saveSettings();
     }
 

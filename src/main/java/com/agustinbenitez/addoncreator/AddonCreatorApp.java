@@ -5,7 +5,7 @@ import com.agustinbenitez.addoncreator.core.SettingsManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public class AddonCreatorApp extends Application {
             // Load Home Screen
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/fxml/HomeScreen.fxml"));
-            BorderPane root = loader.load();
+            StackPane root = loader.load();
 
             // Create scene with saved dimensions
             double width = SettingsManager.getInstance().getWindowWidth();

@@ -27,6 +27,8 @@ import javafx.stage.Stage;
 import javafx.geometry.Pos;
 import javafx.geometry.Insets;
 import javafx.animation.PauseTransition;
+import javafx.animation.ScaleTransition;
+import javafx.scene.Node;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +58,10 @@ public class HomeScreenController {
     // Ascending (Oldest First): Calendar at BOTTOM
     private static final String SORT_ASCENDING_PATH = "M3 6h12v2H3V6zM3 11h10v2H3v-2zM3 16h8v2H3v-2zM15 13h1v-2h2v2h2v-2h1v2h1c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2h-8c-1.1 0-2-.9-2-2v-6c0-1.1.9-2 2-2h1v-2zm7 8v-4h-8v4h8z";
 
+    // View Mode Icons
+    private static final String VIEW_CARDS_PATH = "M4.5 3h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z M15.5 3h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z M4.5 14h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z M15.5 14h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1 -1.5 1.5h-4a1.5 1.5 0 0 1 -1.5 -1.5v-4a1.5 1.5 0 0 1 1.5 -1.5z";
+    private static final String VIEW_LIST_PATH = "M4 5h1a1 1 0 0 1 1 1v1a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1z M9 5.5h11a1 1 0 0 1 1 1v0a1 1 0 0 1 -1 1h-11a1 1 0 0 1 -1 -1v0a1 1 0 0 1 1 -1z M4 10.5h1a1 1 0 0 1 1 1v1a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1z M9 11h11a1 1 0 0 1 1 1v0a1 1 0 0 1 -1 1h-11a1 1 0 0 1 -1 -1v0a1 1 0 0 1 1 -1z M4 16h1a1 1 0 0 1 1 1v1a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1z M9 16.5h11a1 1 0 0 1 1 1v0a1 1 0 0 1 -1 1h-11a1 1 0 0 1 -1 -1v0a1 1 0 0 1 1 -1z";
+
     @FXML
     private FlowPane projectsGrid;
 
@@ -78,6 +84,12 @@ public class HomeScreenController {
     private Button sortProjectsButton;
 
     @FXML
+    private Button viewModeButton;
+
+    @FXML
+    private SVGPath viewModeIcon;
+
+    @FXML
     private Button loginButton;
 
     @FXML
@@ -89,11 +101,15 @@ public class HomeScreenController {
     @FXML
     private TextField searchField;
 
+    @FXML
+    private StackPane rootStackPane;
+
     private List<Project> allProjects;
 
     private ProjectManager projectManager;
     private GitManager gitManager;
     private boolean isSortAscending = false;
+    private boolean isListMode = false;
 
     @FXML
     public void initialize() {
@@ -150,6 +166,15 @@ public class HomeScreenController {
         } else {
             logger.error("Sort button failed to inject!");
         }
+
+        if (viewModeButton != null) {
+            viewModeButton.setOnAction(e -> handleToggleViewMode());
+            // Load saved view mode
+            String savedMode = SettingsManager.getInstance().getProjectViewMode();
+            isListMode = "list".equals(savedMode);
+            updateViewModeIcon();
+        }
+
         if (loginButton != null) {
             loginButton.setOnAction(e -> handleLogin());
         }
@@ -166,6 +191,28 @@ public class HomeScreenController {
 
         // Load and display projects
         loadProjects();
+    }
+
+    private void handleToggleViewMode() {
+        isListMode = !isListMode;
+        SettingsManager.getInstance().setProjectViewMode(isListMode ? "list" : "cards");
+        updateViewModeIcon();
+        
+        // Re-filter if search is active
+        if (searchField != null && !searchField.getText().isEmpty()) {
+            filterProjects(searchField.getText());
+        } else {
+            displayProjects(allProjects);
+        }
+    }
+
+    private void updateViewModeIcon() {
+        if (viewModeIcon != null) {
+            viewModeIcon.setContent(isListMode ? VIEW_LIST_PATH : VIEW_CARDS_PATH);
+        }
+        if (viewModeButton != null && viewModeButton.getTooltip() != null) {
+            viewModeButton.getTooltip().setText(isListMode ? "Vista: Lista" : "Vista: Tarjetas");
+        }
     }
 
     private void handleLogin() {
@@ -318,26 +365,220 @@ public class HomeScreenController {
 
     private void displayProjects(List<Project> projects) {
         projectsGrid.getChildren().clear();
-        for (Project project : projects) {
-            VBox projectCard = createProjectCard(project);
-            projectsGrid.getChildren().add(projectCard);
+        
+        if (isListMode) {
+            projectsGrid.setHgap(0);
+            projectsGrid.setVgap(10);
+            projectsGrid.setAlignment(Pos.TOP_CENTER);
+            for (Project project : projects) {
+                projectsGrid.getChildren().add(createProjectListItem(project));
+            }
+        } else {
+            projectsGrid.setHgap(20);
+            projectsGrid.setVgap(20);
+            projectsGrid.setAlignment(Pos.TOP_LEFT);
+            for (Project project : projects) {
+                projectsGrid.getChildren().add(createProjectCard(project));
+            }
         }
     }
 
-    private VBox createProjectCard(Project project) {
-        VBox card = new VBox(10);
-        card.getStyleClass().add("project-card");
-        card.setPadding(new Insets(15));
-        card.setAlignment(Pos.TOP_LEFT);
-        card.setPrefWidth(250);
-        card.setPrefHeight(200);
+    private HBox createProjectListItem(Project project) {
+        HBox item = new HBox(15);
+        item.getStyleClass().add("project-list-item"); 
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(10, 15, 10, 15));
+        
+        // Make full width
+        if (projectsScrollPane != null) {
+             item.prefWidthProperty().bind(projectsScrollPane.widthProperty().subtract(100));
+        } else {
+             item.setPrefWidth(800);
+        }
 
         // Project icon
         ImageView iconView = new ImageView();
-        iconView.setFitWidth(64);
-        iconView.setFitHeight(64);
+        iconView.setFitWidth(48);
+        iconView.setFitHeight(48);
         iconView.setPreserveRatio(true);
+        setProjectIcon(project, iconView);
 
+        // Name and Description (Vertical)
+        VBox infoBox = new VBox(5);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(infoBox, Priority.ALWAYS);
+        
+        Label nameLabel = new Label(project.getName());
+        nameLabel.getStyleClass().add("project-card-title");
+        nameLabel.setStyle("-fx-font-size: 16px;"); // Slightly smaller than card title
+        
+        Label descLabel = new Label(project.getDescription());
+        descLabel.getStyleClass().add("project-card-description");
+        descLabel.setMaxHeight(40);
+        
+        infoBox.getChildren().addAll(nameLabel, descLabel);
+
+        // Right side: Date + Actions
+        HBox rightBox = new HBox(15);
+        rightBox.setAlignment(Pos.CENTER_RIGHT);
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        Label dateLabel = new Label(project.getLastModified().format(formatter));
+        dateLabel.getStyleClass().add("project-card-date");
+        
+        // Edit Button
+        Button editBtn = new Button();
+        SVGPath editIcon = new SVGPath();
+        editIcon.setContent("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z");
+        editIcon.setFill(Color.WHITE);
+        editIcon.setScaleX(0.8); editIcon.setScaleY(0.8);
+        editBtn.setGraphic(editIcon);
+        editBtn.getStyleClass().add("icon-button");
+        editBtn.setTooltip(new Tooltip("Editar"));
+        editBtn.setOnAction(e -> {
+            e.consume();
+            NavigationManager.getInstance().showEditProject(project);
+        });
+
+        // Delete Button
+        Button deleteBtn = new Button();
+        SVGPath deleteIcon = new SVGPath();
+        deleteIcon.setContent("M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z");
+        deleteIcon.setFill(Color.WHITE);
+        deleteIcon.setScaleX(0.8); deleteIcon.setScaleY(0.8);
+        deleteBtn.setGraphic(deleteIcon);
+        deleteBtn.getStyleClass().add("icon-button");
+        deleteBtn.setTooltip(new Tooltip("Eliminar"));
+        deleteBtn.setOnAction(e -> {
+            e.consume();
+            handleDeleteProject(project);
+        });
+        
+        rightBox.getChildren().addAll(dateLabel, editBtn, deleteBtn);
+
+        item.getChildren().addAll(iconView, infoBox, rightBox);
+
+        // Interactions
+        item.setOnMouseClicked(e -> {
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                // Ignore clicks on buttons (handled by their actions)
+                if (!(e.getTarget() instanceof Button) && !(e.getTarget() instanceof SVGPath)) {
+                    handleProjectClick(project, item);
+                }
+            }
+        });
+        
+        return item;
+    }
+
+    private Pane createProjectCard(Project project) {
+        StackPane card = new StackPane();
+        card.getStyleClass().add("project-card-modern");
+        card.setPrefWidth(280);
+        card.setPrefHeight(180);
+
+        // Inner Container for Clipped Content (Image + Overlay + BottomBg)
+        StackPane innerContent = new StackPane();
+        innerContent.setPrefSize(280, 180);
+        
+        // Background Image (Blurred)
+        ImageView bgView = new ImageView();
+        bgView.setFitWidth(280);
+        bgView.setFitHeight(180);
+        bgView.setPreserveRatio(false);
+        setProjectIcon(project, bgView);
+        bgView.setEffect(new javafx.scene.effect.GaussianBlur(10));
+        
+        // Dark Overlay
+        Rectangle overlay = new Rectangle(280, 180);
+        overlay.setFill(Color.rgb(0, 0, 0, 0.6));
+        
+        // Bottom Background (Gray) - Reduced height to 75
+        Rectangle bottomBg = new Rectangle(280, 75);
+        bottomBg.setFill(Color.web("#252526"));
+        StackPane.setAlignment(bottomBg, Pos.BOTTOM_CENTER);
+        
+        // Clip to rounded corners (Applied to inner container)
+        Rectangle clip = new Rectangle(280, 180);
+        clip.setArcWidth(30);
+        clip.setArcHeight(30);
+        innerContent.setClip(clip);
+        
+        // Content Container (Text + Icon) - Not clipped by inner container to allow potential overlaps if needed, 
+        // but here it fits inside. Actually, text should be inside innerContent if we want it to be clipped?
+        // Usually text doesn't need clipping unless it overflows. 
+        // But the bottomBg IS inside innerContent, so it gets clipped.
+        
+        HBox content = new HBox(15);
+        content.setAlignment(Pos.BOTTOM_LEFT);
+        content.setPadding(new Insets(15));
+        
+        // Larger Icon
+        ImageView icon = new ImageView();
+        icon.setFitWidth(58);
+        icon.setFitHeight(58);
+        setProjectIcon(project, icon);
+        
+        // Text Info (Title + Description)
+        VBox textInfo = new VBox(2);
+        textInfo.setAlignment(Pos.BOTTOM_LEFT);
+        
+        Label nameLabel = new Label(project.getName());
+        nameLabel.getStyleClass().add("project-card-modern-title");
+        nameLabel.setWrapText(true);
+        nameLabel.setMaxWidth(180); 
+        
+        Label descLabel = new Label(project.getDescription());
+        descLabel.getStyleClass().add("project-card-modern-subtitle");
+        descLabel.setWrapText(true);
+        descLabel.setMaxHeight(35);
+        descLabel.setMaxWidth(180);
+        
+        textInfo.getChildren().addAll(nameLabel, descLabel);
+        
+        content.getChildren().addAll(icon, textInfo);
+        
+        // Add layers to inner content
+        innerContent.getChildren().addAll(bgView, overlay, bottomBg);
+        
+        // Add inner content and text content to card
+        // Note: 'content' (Text/Icon) is added after innerContent so it sits on top.
+        // If we want 'content' to be clipped too, add it to innerContent.
+        // Let's add it to innerContent to be safe with rounded corners.
+        innerContent.getChildren().add(content);
+        
+        card.getChildren().add(innerContent);
+
+        // Interactions
+        card.setOnMouseClicked(e -> {
+            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                handleProjectClick(project, card);
+            }
+        });
+
+        // Context Menu
+        card.setOnContextMenuRequested(e -> {
+            ContextMenu menu = new ContextMenu();
+            
+            MenuItem editItem = new MenuItem("✎ Editar Proyecto");
+            editItem.setOnAction(event -> NavigationManager.getInstance().showEditProject(project));
+            menu.getItems().add(editItem);
+
+            MenuItem exportItem = new MenuItem("⬇ Exportar ZIP");
+            exportItem.setOnAction(event -> handleDownloadProject(project));
+            menu.getItems().add(exportItem);
+            
+            MenuItem deleteItem = new MenuItem("🗑 Eliminar Proyecto");
+            deleteItem.setOnAction(event -> handleDeleteProject(project));
+            menu.getItems().add(deleteItem);
+            
+            menu.show(card, e.getScreenX(), e.getScreenY());
+        });
+
+        return card;
+    }
+
+    private void setProjectIcon(Project project, ImageView iconView) {
         try {
             // Check BP first, then RP
             Path iconPath = Paths.get(project.getRootPath(), "BP", "pack_icon.png");
@@ -361,97 +602,38 @@ public class HomeScreenController {
                 logger.error("Failed to load preset icon", ex);
             }
         }
+    }
 
-        // Project name
-        Label nameLabel = new Label(project.getName());
-        nameLabel.getStyleClass().add("project-card-title");
-        nameLabel.setWrapText(true);
-
-        // Project description
-        Label descLabel = new Label(project.getDescription());
-        descLabel.getStyleClass().add("project-card-description");
-        descLabel.setWrapText(true);
-        descLabel.setMaxHeight(60);
-
-        // Last modified date
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        Label dateLabel = new Label("Modificado: " + project.getLastModified().format(formatter));
-        dateLabel.getStyleClass().add("project-card-date");
-
-        // Download button
-        Button downloadBtn = new Button("⬇ Descargar ZIP");
-        downloadBtn.getStyleClass().add("project-card-button");
-        downloadBtn.setMaxWidth(Double.MAX_VALUE);
-        downloadBtn.setOnAction(e -> {
-            e.consume();
-            handleDownloadProject(project);
-        });
-
-        // Add spacer
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-
-        card.getChildren().addAll(iconView, nameLabel, descLabel, spacer, dateLabel, downloadBtn);
-
-        // Click handler to open editor
-        card.setOnMouseClicked(e -> {
-            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
-                // Show loading overlay
-                BorderPane root = (BorderPane) card.getScene().getRoot();
-                
-                javafx.scene.Node overlay = LoadingSpinnerHelper.createOverlay("Cargando proyecto: " + project.getName());
-                
-                if (root.getScene().getRoot() instanceof StackPane) {
-                    ((StackPane) root.getScene().getRoot()).getChildren().add(overlay);
-                    
-                    PauseTransition pause = new PauseTransition(Duration.millis(100));
-                    pause.setOnFinished(event -> {
-                         logger.info("Opening project: {}", project.getName());
-                         NavigationManager.getInstance().showEditor(project);
-                         ((StackPane) root.getScene().getRoot()).getChildren().remove(overlay);
-                    });
-                    pause.play();
-                } else {
-                     // Best approach for BorderPane: Create a temporary StackPane
-                     javafx.scene.Node originalCenter = root.getCenter();
-                     StackPane stack = new StackPane();
-                     if (originalCenter != null) stack.getChildren().add(originalCenter);
-                     stack.getChildren().add(overlay);
-                     
-                     root.setCenter(stack);
-                     
-                     PauseTransition pause = new PauseTransition(Duration.millis(100));
-                     pause.setOnFinished(event -> {
-                          logger.info("Opening project: {}", project.getName());
-                          NavigationManager.getInstance().showEditor(project);
-                          // Restore center (though scene will change anyway)
-                          root.setCenter(originalCenter); 
-                     });
-                     pause.play();
-                }
+    private void handleProjectClick(Project project, Pane cardNode) {
+        // Animation feedback
+        javafx.animation.ScaleTransition st = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(100), cardNode);
+        st.setFromX(1.0);
+        st.setFromY(1.0);
+        st.setToX(0.95);
+        st.setToY(0.95);
+        st.setAutoReverse(true);
+        st.setCycleCount(2);
+        st.setOnFinished(ev -> {
+            File projectDir = new File(project.getRootPath());
+            if (!projectDir.exists()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Proyecto no encontrado");
+                alert.setContentText("La carpeta del proyecto no existe: " + project.getRootPath());
+                alert.showAndWait();
+                return;
             }
+
+            if (rootStackPane != null) {
+                Node overlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando proyecto...", "code");
+                rootStackPane.getChildren().add(overlay);
+            }
+
+            PauseTransition pause = new PauseTransition(Duration.millis(100));
+            pause.setOnFinished(event -> NavigationManager.getInstance().showEditor(project));
+            pause.play();
         });
-
-        // Context menu for delete
-        card.setOnContextMenuRequested(e -> {
-            ContextMenu menu = new ContextMenu();
-            
-            MenuItem editItem = new MenuItem("✎ Editar Proyecto");
-            editItem.setOnAction(event -> NavigationManager.getInstance().showEditProject(project));
-            menu.getItems().add(editItem);
-            
-            MenuItem deleteItem = new MenuItem("🗑 Eliminar Proyecto");
-            deleteItem.setOnAction(event -> handleDeleteProject(project));
-            menu.getItems().add(deleteItem);
-            
-            menu.show(card, e.getScreenX(), e.getScreenY());
-        });
-
-        // Hover effect
-        card.setOnMouseEntered(e -> card.setStyle("-fx-cursor: hand;"));
-        card.setOnMouseExited(e -> card.setStyle("-fx-cursor: default;"));
-
-        return card;
+        st.play();
     }
 
     private void handleDeleteProject(Project project) {
@@ -485,14 +667,24 @@ public class HomeScreenController {
                  .filter(p -> p.getRootPath().equals(path))
                  .findFirst();
                  
-             if (existingProject.isPresent()) {
-                 NavigationManager.getInstance().showEditor(existingProject.get());
-             } else {
-                 // Create new project entry and save it
-                 Project project = new Project(selectedDirectory.getName(), "Imported Project", path);
-                 projectManager.addProject(project);
-                 NavigationManager.getInstance().showEditor(project);
+             // Show Loading Overlay
+             if (rootStackPane != null) {
+                 Node overlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando proyecto...", "code");
+                 rootStackPane.getChildren().add(overlay);
              }
+
+             PauseTransition pause = new PauseTransition(Duration.millis(100));
+             pause.setOnFinished(event -> {
+                 if (existingProject.isPresent()) {
+                     NavigationManager.getInstance().showEditor(existingProject.get());
+                 } else {
+                     // Create new project entry and save it
+                     Project project = new Project(selectedDirectory.getName(), "Imported Project", path);
+                     projectManager.addProject(project);
+                     NavigationManager.getInstance().showEditor(project);
+                 }
+             });
+             pause.play();
         }
     }
 
