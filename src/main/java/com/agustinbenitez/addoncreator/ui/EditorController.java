@@ -986,6 +986,52 @@ public class EditorController {
         });
     }
 
+    private void handleRenameTexture() {
+        if (selectedTexturePath == null)
+            return;
+
+        String currentName = selectedTexturePath.getFileName().toString();
+        TextInputDialog dialog = new TextInputDialog(currentName);
+        dialog.setTitle("Renombrar Textura");
+        dialog.setHeaderText("Ingresa el nuevo nombre para la textura");
+        dialog.setContentText("Nombre:");
+
+        // Apply styling if needed
+        if (dialog.getDialogPane().getScene().getWindow() instanceof Stage) {
+             java.io.InputStream iconStream = getClass().getResourceAsStream("/images/addoncreator.png");
+             if (iconStream != null) {
+                 ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(new Image(iconStream));
+             }
+        }
+        
+        java.net.URL cssResource = getClass().getResource("/css/styles.css");
+        if (cssResource != null) {
+            dialog.getDialogPane().getStylesheets().add(cssResource.toExternalForm());
+        }
+
+        dialog.showAndWait().ifPresent(newName -> {
+            if (newName.trim().isEmpty() || newName.equals(currentName))
+                return;
+
+            try {
+                Path source = selectedTexturePath;
+                Path target = source.resolveSibling(newName);
+
+                if (Files.exists(target)) {
+                    showError("Error", "Ya existe un archivo con ese nombre.");
+                    return;
+                }
+
+                Files.move(source, target);
+                selectedTexturePath = null;
+                loadTexturesView();
+            } catch (Exception ex) {
+                logger.error("Failed to rename texture", ex);
+                showError("Error", "No se pudo renombrar la textura: " + ex.getMessage());
+            }
+        });
+    }
+
     private void handleAddModel() {
         if (currentProject == null)
             return;
@@ -3339,6 +3385,12 @@ public class EditorController {
             handleEditTexture();
         });
 
+        MenuItem renameItem = new MenuItem("Renombrar");
+        renameItem.setOnAction(e -> {
+            selectedTexturePath = path;
+            handleRenameTexture();
+        });
+
         MenuItem duplicateItem = new MenuItem("Duplicar");
         duplicateItem.setOnAction(e -> {
             selectedTexturePath = path;
@@ -3352,7 +3404,7 @@ public class EditorController {
             handleDeleteTexture();
         });
 
-        cm.getItems().addAll(editItem, duplicateItem, new SeparatorMenuItem(), deleteItem);
+        cm.getItems().addAll(editItem, renameItem, duplicateItem, new SeparatorMenuItem(), deleteItem);
 
         card.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
@@ -3908,6 +3960,36 @@ public class EditorController {
                     deleteBtn.setVisible(false);
                     hBox.setOnMouseEntered(ev -> deleteBtn.setVisible(true));
                     hBox.setOnMouseExited(ev -> deleteBtn.setVisible(false));
+
+                    // Context Menu for Rename
+                    ContextMenu contextMenu = new ContextMenu();
+                    MenuItem renameItem = new MenuItem("Rename");
+                    renameItem.setOnAction(event -> {
+                        TextInputDialog dialog = new TextInputDialog(task.getDescription());
+                        dialog.setTitle("Rename Task");
+                        dialog.setHeaderText("Rename Task");
+                        dialog.setContentText("New description:");
+
+                        // Apply custom style to dialog
+                        styleDialog(dialog);
+
+                        dialog.showAndWait().ifPresent(newName -> {
+                            if (!newName.trim().isEmpty() && !newName.equals(task.getDescription())) {
+                                task.setDescription(newName);
+                                cb.setText(newName); // Update UI
+                                try {
+                                    todoManager.updateTask(task);
+                                } catch (IOException ex) {
+                                    logger.error("Failed to update task description", ex);
+                                }
+                            }
+                        });
+                    });
+                    contextMenu.getItems().add(renameItem);
+
+                    // Attach context menu to the HBox (and CheckBox to be safe)
+                    hBox.setOnContextMenuRequested(e -> contextMenu.show(hBox, e.getScreenX(), e.getScreenY()));
+                    cb.setOnContextMenuRequested(e -> contextMenu.show(cb, e.getScreenX(), e.getScreenY()));
 
                     hBox.getChildren().addAll(cb, deleteBtn);
                     setGraphic(hBox);

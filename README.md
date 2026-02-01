@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Java](https://img.shields.io/badge/Java-21-orange.svg)
 ![JavaFX](https://img.shields.io/badge/JavaFX-21-green.svg)
-![Version](https://img.shields.io/badge/version-1.0.2-purple.svg)
+![Version](https://img.shields.io/badge/version-1.0.3-purple.svg)
 
 **Desktop application for creating Minecraft Bedrock Edition addons**
 
@@ -102,7 +102,7 @@ mvn test
 mvn clean package
 ```
 
-The executable JAR will be located in `target/addon-creator-1.0.2.jar`.
+The executable JAR will be located in `target/addon-creator-1.0.3.jar`.
 
 ---
 
