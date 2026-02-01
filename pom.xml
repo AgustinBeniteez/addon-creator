@@ -166,68 +166,79 @@
                 </executions>
             </plugin>
 
-            <!-- Copy jar to input directory for jpackage -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>prepare-jpackage</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <mkdir dir="${project.build.directory}/jpackage-input"/>
-                                <copy file="${project.build.directory}/${project.artifactId}-${project.version}.jar"
-                                      tofile="${project.build.directory}/jpackage-input/${project.artifactId}-${project.version}.jar"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Run jpackage -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>jpackage-exe</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>${java.home}/bin/jpackage</executable>
-                            <arguments>
-                                <argument>--input</argument>
-                                <argument>${project.build.directory}/jpackage-input</argument>
-                                <argument>--name</argument>
-                                <argument>AddonCreator</argument>
-                                <argument>--main-jar</argument>
-                                <argument>${project.artifactId}-${project.version}.jar</argument>
-                                <argument>--main-class</argument>
-                                <argument>com.agustinbenitez.addoncreator.Launcher</argument>
-                                <argument>--type</argument>
-                                <argument>msi</argument>
-                                <argument>--win-dir-chooser</argument>
-                                <argument>--win-menu</argument>
-                                <argument>--win-shortcut</argument>
-                                <argument>--dest</argument>
-                                <argument>${project.build.directory}/dist</argument>
-                                <argument>--app-version</argument>
-                                <argument>${project.version}</argument>
-                                <argument>--icon</argument>
-                                <argument>src/main/resources/images/addoncreator.ico</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            <!-- Run jpackage configuration moved to 'installer' profile -->
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>installer</id>
+            <build>
+                <plugins>
+                    <!-- Copy jar to input directory for jpackage -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>prepare-jpackage</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <mkdir dir="${project.build.directory}/jpackage-input"/>
+                                        <copy file="${project.build.directory}/${project.artifactId}-${project.version}.jar"
+                                              tofile="${project.build.directory}/jpackage-input/${project.artifactId}-${project.version}.jar"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Run jpackage -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>jpackage-exe</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${java.home}/bin/jpackage</executable>
+                                    <arguments>
+                                        <argument>--input</argument>
+                                        <argument>${project.build.directory}/jpackage-input</argument>
+                                        <argument>--name</argument>
+                                        <argument>AddonCreator</argument>
+                                        <argument>--main-jar</argument>
+                                        <argument>${project.artifactId}-${project.version}.jar</argument>
+                                        <argument>--main-class</argument>
+                                        <argument>com.agustinbenitez.addoncreator.Launcher</argument>
+                                        <argument>--type</argument>
+                                        <argument>msi</argument>
+                                        <argument>--win-dir-chooser</argument>
+                                        <argument>--win-menu</argument>
+                                        <argument>--win-shortcut</argument>
+                                        <argument>--dest</argument>
+                                        <argument>${project.build.directory}/dist</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>--icon</argument>
+                                        <argument>src/main/resources/images/addoncreator.ico</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
