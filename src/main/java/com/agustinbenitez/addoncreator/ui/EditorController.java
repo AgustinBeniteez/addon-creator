@@ -173,6 +173,8 @@ public class EditorController {
     @FXML
     private CheckMenuItem menuToggleConsole;
     @FXML
+    private MenuItem menuSwitchMode; // New Menu Item
+    @FXML
     private RadioMenuItem menuSidebarRight;
     @FXML
     private MenuItem menuAbout;
@@ -322,6 +324,8 @@ public class EditorController {
 
     private int currentEzTexturePage = 0;
     private static final int EZ_TEXTURE_PAGE_SIZE = 150;
+
+    private PixelArtEditorController ezPixelArtController;
 
     @FXML
     private FlowPane modelsFlowPane;
@@ -481,6 +485,7 @@ public class EditorController {
         setupErrorStatus();
         setupUserProfile();
         setupPixelArt();
+        setupCodeModePlaceholder();
         setupBlockbench();
 
         // Tab selection listener to update save button state
@@ -507,6 +512,20 @@ public class EditorController {
         // Initial state
         updateSaveButtonState();
 
+        // Setup Global Keys
+        if (mainLayout != null) {
+            mainLayout.sceneProperty().addListener((obs, oldScene, newScene) -> {
+                if (newScene != null) {
+                    newScene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+                        if (event.getCode() == KeyCode.F3) {
+                            toggleMode();
+                            event.consume();
+                        }
+                    });
+                }
+            });
+        }
+
         log("IDE initialized successfully");
     }
 
@@ -516,6 +535,11 @@ public class EditorController {
             alert.setTitle("Unsaved Changes");
             alert.setHeaderText("Unsaved Changes Detected");
             alert.setContentText("Are you sure you want to close? You will lose any unsaved changes.");
+
+            // Apply CSS
+            DialogPane dialogPane = alert.getDialogPane();
+            dialogPane.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            dialogPane.getStyleClass().add("dark-dialog");
 
             ButtonType closeBtn = new ButtonType("Close Without Saving", ButtonBar.ButtonData.OK_DONE);
             ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -528,12 +552,40 @@ public class EditorController {
         return true;
     }
 
+    private boolean checkEzUnsavedChanges() {
+        if (uiEzModeView != null && uiEzModeView.isVisible() &&
+                ezPixelArtContainer != null && ezPixelArtContainer.isVisible()) {
+
+            if (ezPixelArtController != null && ezPixelArtController.isDirty()) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Cambios sin guardar");
+                alert.setHeaderText("Cambios sin guardar detectados");
+                alert.setContentText("¿Estás seguro de que quieres salir? Perderás los cambios no guardados.");
+
+                // Apply CSS
+                DialogPane dialogPane = alert.getDialogPane();
+                dialogPane.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+                dialogPane.getStyleClass().add("dark-dialog");
+
+                ButtonType closeBtn = new ButtonType("Descartar Cambios", ButtonBar.ButtonData.OK_DONE);
+                ButtonType cancelBtn = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+                alert.getButtonTypes().setAll(closeBtn, cancelBtn);
+
+                Optional<ButtonType> result = alert.showAndWait();
+                return result.isPresent() && result.get() == closeBtn;
+            }
+        }
+        return true;
+    }
+
     private void setupTabContextMenu(Tab tab) {
         ContextMenu cm = new ContextMenu();
 
         MenuItem close = new MenuItem("Close");
         close.setOnAction(e -> {
-            if (!checkUnsavedChanges(tab)) return;
+            if (!checkUnsavedChanges(tab))
+                return;
 
             if (tab.getOnClosed() != null) {
                 tab.getOnClosed().handle(null);
@@ -545,7 +597,7 @@ public class EditorController {
         closeOthers.setOnAction(e -> {
             List<Tab> toClose = new ArrayList<>(editorTabs.getTabs());
             toClose.remove(tab);
-            
+
             for (Tab t : toClose) {
                 if (checkUnsavedChanges(t)) {
                     editorTabs.getTabs().remove(t);
@@ -815,6 +867,17 @@ public class EditorController {
     }
 
     private void switchEzView(String viewName) {
+        // Check for unsaved changes if currently in Pixel Art view
+        if (!checkEzUnsavedChanges()) {
+            // Revert toggle button selection if possible
+            // We can't easily revert the button state generically here without knowing
+            // which button triggered it,
+            // but preventing the view switch is the most important part.
+            // Ideally we would re-select the button corresponding to currentEzViewName.
+            restoreEzSidebarSelection(currentEzViewName);
+            return;
+        }
+
         this.currentEzViewName = viewName;
         if (ezMainContainer != null)
             ezMainContainer.setVisible(false);
@@ -896,6 +959,45 @@ public class EditorController {
                     ezScriptsContainer.setVisible(true);
                 loadScriptsView();
                 break;
+        }
+    }
+
+    private void restoreEzSidebarSelection(String viewName) {
+        ToggleButton target = null;
+        switch (viewName) {
+            case "main":
+                target = btnEzMain;
+                break;
+            case "entities":
+                target = btnEzEntities;
+                break;
+            case "items":
+                target = btnEzItems;
+                break;
+            case "blocks":
+                target = btnEzBlocks;
+                break;
+            case "textures":
+                target = btnEzTextures;
+                break;
+            case "models":
+                target = btnEzModels;
+                break;
+            case "sounds":
+                target = btnEzSounds;
+                break;
+            case "recipes":
+                target = btnEzRecipes;
+                break;
+            case "worldgen":
+                target = btnEzWorldGen;
+                break;
+            case "scripts":
+                target = btnEzScripts;
+                break;
+        }
+        if (target != null) {
+            target.setSelected(true);
         }
     }
 
@@ -1312,6 +1414,16 @@ public class EditorController {
             }
         } catch (Exception e) {
             logger.error("Error loading scripts in main view", e);
+        }
+
+        if (mainElementsFlowPane.getChildren().isEmpty()) {
+            Label emptyLabel = new Label("Press + to create addon elements");
+            emptyLabel
+                    .setStyle("-fx-text-fill: #888888; -fx-font-size: 18px; -fx-font-weight: bold; -fx-opacity: 0.8;");
+            mainElementsFlowPane.setAlignment(Pos.CENTER);
+            mainElementsFlowPane.getChildren().add(emptyLabel);
+        } else {
+            mainElementsFlowPane.setAlignment(Pos.TOP_LEFT);
         }
     }
 
@@ -3533,6 +3645,11 @@ public class EditorController {
         boolean isEzMode = uiEzModeView.isVisible();
 
         if (isEzMode) {
+            // Check for unsaved changes in Ez Mode (Pixel Art) before switching
+            if (!checkEzUnsavedChanges()) {
+                return;
+            }
+
             // Switch to Code Mode
             uiEzModeView.setVisible(false);
             if (codeModeView != null)
@@ -4610,6 +4727,10 @@ public class EditorController {
         menuAddBlock.setOnAction(e -> handleAddBlock());
         menuAddRecipe.setOnAction(e -> handleAddRecipe());
         menuTest.setOnAction(e -> handleTest());
+
+        if (menuSwitchMode != null) {
+            menuSwitchMode.setOnAction(e -> toggleMode());
+        }
 
         menuToggleConsole.setOnAction(e -> toggleConsole());
 
@@ -8050,6 +8171,11 @@ public class EditorController {
         // Setup Back Button for Ez Mode
         if (btnEzBackFromPixelArt != null) {
             btnEzBackFromPixelArt.setOnAction(e -> {
+                // Check for unsaved changes before closing
+                if (!checkEzUnsavedChanges()) {
+                    return;
+                }
+
                 if (ezPixelArtContainer != null)
                     ezPixelArtContainer.setVisible(false);
 
@@ -8097,6 +8223,9 @@ public class EditorController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PixelArtEditor.fxml"));
             javafx.scene.Parent root = loader.load();
             PixelArtEditorController controller = loader.getController();
+
+            // Save controller for Easy Mode dirty checking
+            this.ezPixelArtController = controller;
 
             // Pass project context
             if (currentProject != null) {
@@ -8149,6 +8278,27 @@ public class EditorController {
                 Tab tab = new Tab(file != null ? file.getName() : "Untitled.png");
                 tab.setContent(root);
                 tab.setTooltip(new Tooltip(file != null ? file.getAbsolutePath() : "New Pixel Art"));
+
+                // Register tab for dirty tracking
+                if (file != null) {
+                    tabFileMap.put(tab, file.toPath());
+                }
+                tabDirtyMap.put(tab, false);
+
+                // Handle Close Request
+                tab.setOnCloseRequest(e -> {
+                    if (!checkUnsavedChanges(tab)) {
+                        e.consume();
+                    }
+                });
+
+                // Handle Content Modification
+                controller.setOnContentModified(() -> {
+                    if (!Boolean.TRUE.equals(tabDirtyMap.get(tab))) {
+                        tabDirtyMap.put(tab, true);
+                        tab.setText(tab.getText() + "*");
+                    }
+                });
 
                 // Add to editor tab pane
                 if (editorTabs != null) {
@@ -8645,5 +8795,92 @@ public class EditorController {
         g.setScaleY(0.55);
 
         return g;
+    }
+
+    private void setupCodeModePlaceholder() {
+        if (editorTabs == null)
+            return;
+
+        // Create Placeholder
+        VBox placeholder = new VBox(20);
+        placeholder.setAlignment(Pos.CENTER);
+        placeholder.setStyle("-fx-background-color: #1e1e1e;");
+
+        try {
+            ImageView logo = new ImageView(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+            logo.setFitWidth(128);
+            logo.setFitHeight(128);
+            logo.setPreserveRatio(true);
+            logo.setOpacity(0.3);
+            placeholder.getChildren().add(logo);
+        } catch (Exception e) {
+            // Ignore if image missing
+        }
+
+        Label lbl = new Label("Ctrl + N  New File");
+        lbl.setStyle(
+                "-fx-text-fill: #666666; -fx-font-size: 24px; -fx-font-family: 'Consolas', monospace; -fx-font-weight: bold;");
+        placeholder.getChildren().add(lbl);
+
+        Label lblF3 = new Label("F3  Switch Mode");
+        lblF3.setStyle(
+                "-fx-text-fill: #666666; -fx-font-size: 18px; -fx-font-family: 'Consolas', monospace; -fx-font-weight: bold; -fx-opacity: 0.7;");
+        placeholder.getChildren().add(lblF3);
+
+        // Wrap editorTabs
+        Parent parent = editorTabs.getParent();
+        if (parent == null) {
+            return;
+        }
+
+        StackPane wrapper = new StackPane();
+        // Propagate VGrow/HGrow if applicable
+        if (parent instanceof VBox) {
+            VBox.setVgrow(wrapper, VBox.getVgrow(editorTabs));
+        } else if (parent instanceof HBox) {
+            HBox.setHgrow(wrapper, HBox.getHgrow(editorTabs));
+        }
+
+        // Replace editorTabs with wrapper
+        boolean replaced = false;
+        if (parent instanceof SplitPane) {
+            SplitPane sp = (SplitPane) parent;
+            int idx = sp.getItems().indexOf(editorTabs);
+            if (idx != -1) {
+                sp.getItems().set(idx, wrapper);
+                replaced = true;
+            }
+        } else if (parent instanceof BorderPane) {
+            BorderPane bp = (BorderPane) parent;
+            if (bp.getCenter() == editorTabs) {
+                bp.setCenter(wrapper);
+                replaced = true;
+            } else if (bp.getTop() == editorTabs) {
+                bp.setTop(wrapper);
+                replaced = true;
+            }
+        } else if (parent instanceof Pane) {
+            Pane p = (Pane) parent;
+            int idx = p.getChildren().indexOf(editorTabs);
+            if (idx != -1) {
+                p.getChildren().set(idx, wrapper);
+                replaced = true;
+            }
+        }
+
+        if (replaced) {
+            wrapper.getChildren().setAll(placeholder, editorTabs);
+
+            Runnable update = () -> {
+                boolean empty = editorTabs.getTabs().isEmpty();
+                placeholder.setVisible(empty);
+                editorTabs.setVisible(!empty);
+            };
+
+            editorTabs.getTabs().addListener((javafx.collections.ListChangeListener.Change<? extends Tab> c) -> {
+                update.run();
+            });
+            update.run();
+        }
     }
 }

@@ -44,6 +44,8 @@
                 </Menu>
                 
                 <Menu text="View">
+                    <MenuItem fx:id="menuSwitchMode" text="Switch Mode" accelerator="F3"/>
+                    <SeparatorMenuItem/>
                     <CheckMenuItem fx:id="menuToggleConsole" text="Console" selected="true"/>
                     <Menu text="Panel Lateral">
                         <RadioMenuItem fx:id="menuSidebarLeft" text="Izquierda" selected="true">

@@ -118,9 +118,30 @@ public class PixelArtEditorController implements Initializable {
     
     // Project context
     private File projectRoot;
+    private Runnable onContentModified;
+    private boolean isDirty = false;
 
     public void setProjectRoot(File projectRoot) {
         this.projectRoot = projectRoot;
+    }
+
+    public void setOnContentModified(Runnable onContentModified) {
+        this.onContentModified = onContentModified;
+    }
+    
+    public boolean isDirty() {
+        return isDirty;
+    }
+    
+    public void setDirty(boolean dirty) {
+        this.isDirty = dirty;
+    }
+
+    private void notifyContentModified() {
+        this.isDirty = true;
+        if (onContentModified != null) {
+            onContentModified.run();
+        }
     }
 
     public void setStandaloneMode(boolean isStandalone) {
@@ -257,6 +278,7 @@ public class PixelArtEditorController implements Initializable {
         }
         
         drawCanvas();
+        notifyContentModified();
     }
 
     private void copySelection() {
@@ -317,6 +339,7 @@ public class PixelArtEditorController implements Initializable {
         }
         drawCanvas();
         System.out.println("Selection cut.");
+        notifyContentModified();
     }
     
     private boolean isInsideLasso(int x, int y) {
@@ -364,6 +387,7 @@ public class PixelArtEditorController implements Initializable {
         lassoPoints.clear();
         drawCanvas();
         System.out.println("Selection pasted.");
+        notifyContentModified();
     }
     
     private void commitSelection() {
@@ -389,6 +413,7 @@ public class PixelArtEditorController implements Initializable {
         }
         hasSelection = false;
         drawCanvas();
+        notifyContentModified();
     }
 
     private void updateCanvasSize() {
@@ -680,6 +705,7 @@ public class PixelArtEditorController implements Initializable {
             layer.setImage(newImg);
         }
         drawCanvas();
+        notifyContentModified();
     }
 
     private void resizeArt(int newW, int newH) {
@@ -700,6 +726,7 @@ public class PixelArtEditorController implements Initializable {
         artWidth = newW;
         artHeight = newH;
         updateCanvasSize();
+        notifyContentModified();
     }
 
     private void setupCanvas() {
@@ -1033,6 +1060,7 @@ public class PixelArtEditorController implements Initializable {
                 }
             }
         }
+        notifyContentModified();
     }
 
     private void drawGradient(int x1, int y1, int x2, int y2, Color c1, Color c2) {
@@ -1074,6 +1102,7 @@ public class PixelArtEditorController implements Initializable {
                 pw.setColor(x, y, color);
             }
         }
+        notifyContentModified();
     }
 
     private void handleDrawing(MouseEvent e) {
@@ -1126,6 +1155,7 @@ public class PixelArtEditorController implements Initializable {
                 }
             }
             drawCanvas(); 
+            notifyContentModified();
         }
     }
 
@@ -1242,6 +1272,7 @@ public class PixelArtEditorController implements Initializable {
                      if (x >= 0 && x < artWidth && y >= 0 && y < artHeight)
                         pw.setColor(x, y, color);
                  }, x1, y1, x2, y2, tool);
+                 notifyContentModified();
              }
         } else {
              GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -1373,6 +1404,7 @@ public class PixelArtEditorController implements Initializable {
             }
         }
         drawCanvas();
+        notifyContentModified();
     }
 
     public void setImage(Image image) {
@@ -1396,6 +1428,9 @@ public class PixelArtEditorController implements Initializable {
         if (heightField != null) heightField.setText(String.valueOf(artHeight));
         
         setupCanvas();
+        
+        // Reset dirty state after loading image
+        this.isDirty = false;
     }
 
     private void exportImage() {

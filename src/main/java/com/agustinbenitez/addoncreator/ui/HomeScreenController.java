@@ -730,6 +730,26 @@ public class HomeScreenController {
             PixelArtEditorController controller = loader.getController();
             controller.setStandaloneMode(true);
 
+            // Handle Unsaved Changes on Close
+            stage.setOnCloseRequest(e -> {
+                if (controller.isDirty()) {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("Cambios sin guardar");
+                    alert.setHeaderText("Cambios sin guardar detectados");
+                    alert.setContentText("¿Estás seguro de que quieres salir? Perderás los cambios no guardados.");
+                    
+                    // Apply CSS
+                    DialogPane dialogPane = alert.getDialogPane();
+                    dialogPane.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+                    dialogPane.getStyleClass().add("dark-dialog");
+                    
+                    java.util.Optional<ButtonType> result = alert.showAndWait();
+                    if (!result.isPresent() || result.get() != ButtonType.OK) {
+                        e.consume();
+                    }
+                }
+            });
+
             stage.show();
         } catch (Exception e) {
             logger.error("Failed to open Pixel Art Editor", e);
