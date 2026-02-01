@@ -494,6 +494,11 @@ public class EditorController {
                 if (c.wasAdded()) {
                     for (Tab tab : c.getAddedSubList()) {
                         setupTabContextMenu(tab);
+                        tab.setOnCloseRequest(e -> {
+                            if (!checkUnsavedChanges(tab)) {
+                                e.consume();
+                            }
+                        });
                     }
                 }
             }
@@ -505,11 +510,31 @@ public class EditorController {
         log("IDE initialized successfully");
     }
 
+    private boolean checkUnsavedChanges(Tab tab) {
+        if (Boolean.TRUE.equals(tabDirtyMap.get(tab))) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Unsaved Changes");
+            alert.setHeaderText("Unsaved Changes Detected");
+            alert.setContentText("Are you sure you want to close? You will lose any unsaved changes.");
+
+            ButtonType closeBtn = new ButtonType("Close Without Saving", ButtonBar.ButtonData.OK_DONE);
+            ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            alert.getButtonTypes().setAll(closeBtn, cancelBtn);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            return result.isPresent() && result.get() == closeBtn;
+        }
+        return true;
+    }
+
     private void setupTabContextMenu(Tab tab) {
         ContextMenu cm = new ContextMenu();
 
         MenuItem close = new MenuItem("Close");
         close.setOnAction(e -> {
+            if (!checkUnsavedChanges(tab)) return;
+
             if (tab.getOnClosed() != null) {
                 tab.getOnClosed().handle(null);
             }
@@ -520,11 +545,22 @@ public class EditorController {
         closeOthers.setOnAction(e -> {
             List<Tab> toClose = new ArrayList<>(editorTabs.getTabs());
             toClose.remove(tab);
-            editorTabs.getTabs().removeAll(toClose);
+            
+            for (Tab t : toClose) {
+                if (checkUnsavedChanges(t)) {
+                    editorTabs.getTabs().remove(t);
+                }
+            }
         });
 
         MenuItem closeAll = new MenuItem("Close All");
-        closeAll.setOnAction(e -> editorTabs.getTabs().clear());
+        closeAll.setOnAction(e -> {
+            for (Tab t : new ArrayList<>(editorTabs.getTabs())) {
+                if (checkUnsavedChanges(t)) {
+                    editorTabs.getTabs().remove(t);
+                }
+            }
+        });
 
         cm.getItems().addAll(close, closeOthers, closeAll);
         tab.setContextMenu(cm);
@@ -998,12 +1034,12 @@ public class EditorController {
 
         // Apply styling if needed
         if (dialog.getDialogPane().getScene().getWindow() instanceof Stage) {
-             java.io.InputStream iconStream = getClass().getResourceAsStream("/images/addoncreator.png");
-             if (iconStream != null) {
-                 ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(new Image(iconStream));
-             }
+            java.io.InputStream iconStream = getClass().getResourceAsStream("/images/addoncreator.png");
+            if (iconStream != null) {
+                ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(new Image(iconStream));
+            }
         }
-        
+
         java.net.URL cssResource = getClass().getResource("/css/styles.css");
         if (cssResource != null) {
             dialog.getDialogPane().getStylesheets().add(cssResource.toExternalForm());
@@ -3379,6 +3415,13 @@ public class EditorController {
 
         // Context Menu
         ContextMenu cm = new ContextMenu();
+
+        MenuItem viewCodeItem = new MenuItem("Ver Preview");
+        viewCodeItem.setOnAction(e -> {
+            toggleMode();
+            openFileByPath(path);
+        });
+
         MenuItem editItem = new MenuItem("Editar");
         editItem.setOnAction(e -> {
             selectedTexturePath = path;
@@ -3404,30 +3447,13 @@ public class EditorController {
             handleDeleteTexture();
         });
 
-        cm.getItems().addAll(editItem, renameItem, duplicateItem, new SeparatorMenuItem(), deleteItem);
+        cm.getItems().addAll(viewCodeItem, editItem, renameItem, duplicateItem, new SeparatorMenuItem(), deleteItem);
 
         card.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.SECONDARY) {
                 cm.show(card, e.getScreenX(), e.getScreenY());
-            } else {
-                if (e.getClickCount() == 1) {
-                    selectedTexturePath = path;
-                    if (card.getParent() instanceof FlowPane) {
-                        for (Node child : ((FlowPane) card.getParent()).getChildren()) {
-                            // Reset style for others (simplified for now, ideally check if it's not the
-                            // current card)
-                            if (child != card && !(child.getStyle().contains("-fx-border-style: dashed"))) {
-                                child.setStyle(
-                                        "-fx-background-color: #2D2D30; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);");
-                            }
-                        }
-                    }
-                    card.setStyle(
-                            "-fx-background-color: #444444; -fx-padding: 10; -fx-background-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 5, 0, 0, 0); -fx-border-color: #007ACC; -fx-border-width: 2; -fx-border-radius: 5;");
-                }
-                if (e.getClickCount() == 2) {
-                    openSearchResult(path.toAbsolutePath().toString());
-                }
+            } else if (e.getButton() == MouseButton.PRIMARY) {
+                openPixelArtEditor(path.toFile());
             }
         });
 
@@ -8158,7 +8184,10 @@ public class EditorController {
 
         group.getChildren().addAll(frame, sun, mountain);
 
-        // Scale to fit if needed, but 24x24 is standard
+        // Scale to fit if needed
+        group.setScaleX(0.8);
+        group.setScaleY(0.8);
+
         return group;
     }
 

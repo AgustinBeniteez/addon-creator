@@ -30,6 +30,9 @@
                 <ToggleButton fx:id="btnSelectLasso" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
                     <tooltip><Tooltip text="Lasso Select"/></tooltip>
                 </ToggleButton>
+                <ToggleButton fx:id="btnReplaceColor" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
+                    <tooltip><Tooltip text="Replace Color (Tint)"/></tooltip>
+                </ToggleButton>
                 <ToggleButton fx:id="btnPicker" contentDisplay="GRAPHIC_ONLY" styleClass="pixel-art-tool-button">
                     <tooltip><Tooltip text="Color Picker (O)"/></tooltip>
                 </ToggleButton>

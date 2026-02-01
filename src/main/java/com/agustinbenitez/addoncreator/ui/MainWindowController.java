@@ -65,16 +65,16 @@ public class MainWindowController {
 
     @FXML
     private TextArea descriptionArea;
-    
+
     @FXML
     private TextField authorField;
-    
+
     @FXML
     private TextField licenseField;
 
     @FXML
     private ImageView logoImageView;
-    
+
     @FXML
     private Button btnUploadLogo;
 
@@ -110,7 +110,7 @@ public class MainWindowController {
 
     @FXML
     private FlowPane templatesContainer;
-    
+
     @FXML
     private VBox templatesSection;
 
@@ -119,6 +119,8 @@ public class MainWindowController {
     private Project editingProject;
     private List<AddonTemplate> allTemplates;
     private AddonTemplate selectedTemplate;
+
+    private Label sizeLimitLabel;
 
     @FXML
     public void initialize() {
@@ -131,10 +133,9 @@ public class MainWindowController {
 
         // Initialize Project Types
         projectTypeCombo.getItems().addAll(
-            "Resource Pack",
-            "Behavior Pack",
-            "Both (Addon)"
-        );
+                "Resource Pack",
+                "Behavior Pack",
+                "Both (Addon)");
         projectTypeCombo.getSelectionModel().select("Both (Addon)");
 
         // Git repo field is disabled unless checkbox is checked
@@ -148,12 +149,33 @@ public class MainWindowController {
         btnUploadLogo.setOnAction(e -> handleUploadLogo());
         generateButton.setOnAction(e -> handleGenerate());
 
+        // Add size limit label
+        if (btnUploadLogo != null) {
+            sizeLimitLabel = new Label("Max size: 500px x 500px");
+            sizeLimitLabel.setStyle("-fx-text-fill: #999999; -fx-font-size: 10px;");
+
+            // Try to add it to the layout container
+            // We assume the button is in a VBox or similar container
+            Platform.runLater(() -> {
+                if (btnUploadLogo.getParent() instanceof javafx.scene.layout.Pane) {
+                    javafx.scene.layout.Pane parent = (javafx.scene.layout.Pane) btnUploadLogo.getParent();
+                    // Check if it's a VBox to add it nicely
+                    if (parent instanceof VBox) {
+                        parent.getChildren().add(sizeLimitLabel);
+                    } else {
+                        // Just add it if we can
+                        parent.getChildren().add(sizeLimitLabel);
+                    }
+                }
+            });
+        }
+
         // Load default logo if available (optional)
         try {
-             Image defaultLogo = new Image(getClass().getResourceAsStream("/images/preset_logo.png"));
-             if (!defaultLogo.isError()) {
-                 logoImageView.setImage(defaultLogo);
-             }
+            Image defaultLogo = new Image(getClass().getResourceAsStream("/images/preset_logo.png"));
+            if (!defaultLogo.isError()) {
+                logoImageView.setImage(defaultLogo);
+            }
         } catch (Exception e) {
             // Ignore if default logo missing
         }
@@ -163,7 +185,7 @@ public class MainWindowController {
         if (templatesContainer != null) {
             renderTemplates("All");
         }
-        
+
         createTextureOptionsUI();
 
         log("Addon Creator initialized - Ready to create addons!");
@@ -171,17 +193,19 @@ public class MainWindowController {
 
     private void initializeTemplates() {
         allTemplates = new ArrayList<>();
-        
+
         // Load from "plantillas" directory
         // Check standard location
         File plantillasDir = new File(System.getProperty("user.dir"), "plantillas");
-        
-        // Check for app/plantillas (jpackage structure often puts app content in 'app' subdir relative to exe if configured so, or in root)
-        // In jpackage input, we put it in 'plantillas', so it ends up in 'app/plantillas' usually.
+
+        // Check for app/plantillas (jpackage structure often puts app content in 'app'
+        // subdir relative to exe if configured so, or in root)
+        // In jpackage input, we put it in 'plantillas', so it ends up in
+        // 'app/plantillas' usually.
         if (!plantillasDir.exists()) {
-             plantillasDir = new File(System.getProperty("user.dir") + File.separator + "app", "plantillas");
+            plantillasDir = new File(System.getProperty("user.dir") + File.separator + "app", "plantillas");
         }
-        
+
         // Fallback for dev environment (project root templates)
         if (!plantillasDir.exists()) {
             plantillasDir = new File("templates");
@@ -200,14 +224,19 @@ public class MainWindowController {
                 }
             }
         }
-        
+
         // If no templates found, add defaults (fallback)
         if (allTemplates.isEmpty()) {
-            allTemplates.add(new AddonTemplate("tools", "Tools Addon", "Adds new pickaxes and drills.", "Both (Addon)", "Tools", null));
-            allTemplates.add(new AddonTemplate("blocks", "Custom Blocks", "Adds decorative blocks.", "Both (Addon)", "Blocks", null));
-            allTemplates.add(new AddonTemplate("hud", "Custom HUD", "Modifies the game HUD.", "Resource Pack", "Utility", null));
-            allTemplates.add(new AddonTemplate("texture", "Texture Pack", "Changes vanilla textures.", "Resource Pack", "Utility", null));
-            allTemplates.add(new AddonTemplate("custom_entity", "Custom Entity", "Adds a new entity.", "Both (Addon)", "Mobs", null));
+            allTemplates.add(new AddonTemplate("tools", "Tools Addon", "Adds new pickaxes and drills.", "Both (Addon)",
+                    "Tools", null));
+            allTemplates.add(new AddonTemplate("blocks", "Custom Blocks", "Adds decorative blocks.", "Both (Addon)",
+                    "Blocks", null));
+            allTemplates.add(
+                    new AddonTemplate("hud", "Custom HUD", "Modifies the game HUD.", "Resource Pack", "Utility", null));
+            allTemplates.add(new AddonTemplate("texture", "Texture Pack", "Changes vanilla textures.", "Resource Pack",
+                    "Utility", null));
+            allTemplates.add(new AddonTemplate("custom_entity", "Custom Entity", "Adds a new entity.", "Both (Addon)",
+                    "Mobs", null));
         }
     }
 
@@ -216,18 +245,31 @@ public class MainWindowController {
         String id = name.toLowerCase().replaceAll("\\s+", "_");
         File iconFile = new File(dir, "templateIcon.png");
         String imagePath = iconFile.exists() ? iconFile.toURI().toString() : null;
-        
+
         // Infer category/type based on name conventions
         String type = "Both (Addon)";
         String category = "Custom";
         String description = "Custom template: " + name;
 
-        if (name.equalsIgnoreCase("Tools Addon")) { category = "Tools"; description = "Adds new pickaxes and drills."; }
-        else if (name.equalsIgnoreCase("Custom Blocks")) { category = "Blocks"; description = "Adds decorative blocks."; }
-        else if (name.equalsIgnoreCase("Custom HUD")) { category = "Utility"; type = "Resource Pack"; description = "Modifies the game HUD."; }
-        else if (name.equalsIgnoreCase("Texture Pack")) { category = "Utility"; type = "Resource Pack"; description = "Changes vanilla textures."; }
-        else if (name.equalsIgnoreCase("Custom Entity")) { category = "Mobs"; description = "Adds a new entity."; }
-        
+        if (name.equalsIgnoreCase("Tools Addon")) {
+            category = "Tools";
+            description = "Adds new pickaxes and drills.";
+        } else if (name.equalsIgnoreCase("Custom Blocks")) {
+            category = "Blocks";
+            description = "Adds decorative blocks.";
+        } else if (name.equalsIgnoreCase("Custom HUD")) {
+            category = "Utility";
+            type = "Resource Pack";
+            description = "Modifies the game HUD.";
+        } else if (name.equalsIgnoreCase("Texture Pack")) {
+            category = "Utility";
+            type = "Resource Pack";
+            description = "Changes vanilla textures.";
+        } else if (name.equalsIgnoreCase("Custom Entity")) {
+            category = "Mobs";
+            description = "Adds a new entity.";
+        }
+
         return new AddonTemplate(id, name, description, type, category, imagePath, dir);
     }
 
@@ -240,7 +282,8 @@ public class MainWindowController {
             if (children != null) {
                 for (String child : children) {
                     // Skip metadata files
-                    if (child.equals("templateIcon.png") || child.equals("description.txt")) continue;
+                    if (child.equals("templateIcon.png") || child.equals("description.txt"))
+                        continue;
                     copyTemplateFiles(new File(source, child), new File(dest, child));
                 }
             }
@@ -253,8 +296,8 @@ public class MainWindowController {
         templatesContainer.getChildren().clear();
 
         List<AddonTemplate> filtered = allTemplates.stream()
-            .filter(t -> categoryFilter.equals("All") || t.getCategory().equalsIgnoreCase(categoryFilter))
-            .collect(Collectors.toList());
+                .filter(t -> categoryFilter.equals("All") || t.getCategory().equalsIgnoreCase(categoryFilter))
+                .collect(Collectors.toList());
 
         for (AddonTemplate template : filtered) {
             VBox card = createTemplateCard(template);
@@ -266,12 +309,13 @@ public class MainWindowController {
         VBox card = new VBox(10);
         card.setPadding(new Insets(15));
         card.setPrefWidth(200);
-        card.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
-        
+        card.setStyle(
+                "-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
+
         // Placeholder Icon
         HBox iconContainer = new HBox();
         iconContainer.setAlignment(Pos.CENTER_LEFT);
-        
+
         javafx.scene.Node iconNode;
         if (template.getImagePath() != null) {
             try {
@@ -293,44 +337,48 @@ public class MainWindowController {
             placeholderIcon.setArcHeight(10);
             iconNode = placeholderIcon;
         }
-        
+
         VBox textContainer = new VBox(5);
         Label title = new Label(template.getName());
         title.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");
         title.setWrapText(true);
-        
+
         Label desc = new Label(template.getDescription());
         desc.setStyle("-fx-text-fill: #888; -fx-font-size: 11px;");
         desc.setWrapText(true);
         desc.setPrefHeight(40); // Fixed height for alignment
-        
+
         textContainer.getChildren().addAll(title, desc);
-        
+
         HBox header = new HBox(10);
         header.getChildren().addAll(iconNode, textContainer);
-        
+
         Button useBtn = new Button("Use Template");
         useBtn.setMaxWidth(Double.MAX_VALUE);
         useBtn.getStyleClass().add("button-primary");
         useBtn.setStyle("-fx-background-color: #0e639c; -fx-text-fill: white; -fx-font-size: 11px;");
-        
+
         useBtn.setOnAction(e -> selectTemplate(template));
 
         card.getChildren().addAll(header, useBtn);
-        
+
         // Hover effect
-        card.setOnMouseEntered(e -> card.setStyle("-fx-background-color: #333; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 8, 0, 0, 0);"));
+        card.setOnMouseEntered(e -> card.setStyle(
+                "-fx-background-color: #333; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 8, 0, 0, 0);"));
         card.setOnMouseExited(e -> {
             if (selectedTemplate != template) {
-                card.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
+                card.setStyle(
+                        "-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
             } else {
-                card.setStyle("-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
+                card.setStyle(
+                        "-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
             }
         });
 
         // Selection style
         if (selectedTemplate == template) {
-            card.setStyle("-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
+            card.setStyle(
+                    "-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
         }
 
         return card;
@@ -338,28 +386,28 @@ public class MainWindowController {
 
     private void selectTemplate(AddonTemplate template) {
         this.selectedTemplate = template;
-        
+
         // Update UI to reflect selection
         projectTypeCombo.setValue(template.getProjectType());
-        
+
         // Optionally update description if empty
         if (descriptionArea.getText().isEmpty()) {
             descriptionArea.setText(template.getDescription());
         }
-        
+
         // Re-render to show selection state
         renderTemplates("All"); // Or keep current filter
-        
+
         // Show texture options if RP related
         if (textureOptionsBox != null) {
-            boolean isRpTemplate = "Resource Pack".equals(template.getProjectType()) || 
-                                   "texture".equals(template.getId()) || 
-                                   "hud".equals(template.getId());
-            
+            boolean isRpTemplate = "Resource Pack".equals(template.getProjectType()) ||
+                    "texture".equals(template.getId()) ||
+                    "hud".equals(template.getId());
+
             textureOptionsBox.setVisible(isRpTemplate);
             textureOptionsBox.setManaged(isRpTemplate);
         }
-        
+
         log("Selected template: " + template.getName());
     }
 
@@ -373,18 +421,50 @@ public class MainWindowController {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Project Logo");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
-        );
-        
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+
         File file = fileChooser.showOpenDialog(btnUploadLogo.getScene().getWindow());
         if (file != null) {
-            selectedLogoFile = file;
             try {
+                // Check dimensions
+                // Check dimensions
+                BufferedImage bImg = ImageIO.read(file);
+                if (bImg != null) {
+                    if (bImg.getWidth() > 500 || bImg.getHeight() > 500) {
+                        if (sizeLimitLabel != null) {
+                            sizeLimitLabel.setStyle("-fx-text-fill: red; -fx-font-size: 10px; -fx-font-weight: bold;");
+                            sizeLimitLabel.setText("Error: Image too large (>500x500)");
+                        }
+                        showError("Invalid Image Size", "The image must be 500x500 pixels or smaller.\nCurrent size: "
+                                + bImg.getWidth() + "x" + bImg.getHeight());
+                        return;
+                    }
+
+                    if (bImg.getWidth() != bImg.getHeight()) {
+                        if (sizeLimitLabel != null) {
+                            sizeLimitLabel.setStyle("-fx-text-fill: red; -fx-font-size: 10px; -fx-font-weight: bold;");
+                            sizeLimitLabel.setText("Error: Image must be square");
+                        }
+                        showError("Invalid Aspect Ratio",
+                                "The image must be square (width equals height).\nCurrent size: "
+                                        + bImg.getWidth() + "x" + bImg.getHeight());
+                        return;
+                    }
+                }
+
+                // Reset label if valid
+                if (sizeLimitLabel != null) {
+                    sizeLimitLabel.setStyle("-fx-text-fill: #999999; -fx-font-size: 10px;");
+                    sizeLimitLabel.setText("Max size: 500px x 500px");
+                }
+
+                selectedLogoFile = file;
                 Image image = new Image(file.toURI().toString());
                 logoImageView.setImage(image);
                 log("Selected logo: " + file.getName());
             } catch (Exception e) {
                 log("Error loading image: " + e.getMessage());
+                showError("Error", "Failed to load image: " + e.getMessage());
             }
         }
     }
@@ -410,32 +490,33 @@ public class MainWindowController {
     public void setProjectToEdit(Project project) {
         this.editingProject = project;
         this.selectedFolder = new File(project.getRootPath());
-        
+
         // Update UI for Edit Mode
-        if (titleLabel != null) titleLabel.setText("Edit Project");
+        if (titleLabel != null)
+            titleLabel.setText("Edit Project");
         addonNameField.setText(project.getName());
         descriptionArea.setText(project.getDescription());
         folderPathField.setText(project.getRootPath());
-        
+
         // Hide/Disable immutable fields
         if (projectTypeCombo != null) {
             projectTypeCombo.getParent().setVisible(false);
             projectTypeCombo.getParent().setManaged(false);
         }
-        
+
         if (folderPathField != null) {
             folderPathField.getParent().getParent().setVisible(false);
             folderPathField.getParent().getParent().setManaged(false);
         }
-        
+
         // Hide Templates Section in Edit Mode
         if (templatesSection != null) {
             templatesSection.setVisible(false);
             templatesSection.setManaged(false);
         }
-        
+
         generateButton.setText("Save Changes");
-        
+
         // Load existing logo
         try {
             Path iconPath = selectedFolder.toPath().resolve("BP/pack_icon.png");
@@ -459,26 +540,26 @@ public class MainWindowController {
             String addonName = addonNameField.getText().trim();
             String description = descriptionArea.getText().trim();
             Path rootPath = selectedFolder.toPath();
-            
+
             // If Editing, just update metadata and logo
             if (editingProject != null) {
                 log("Updating project: " + addonName);
-                
+
                 // Update Logo if changed
                 if (selectedLogoFile != null) {
                     applyLogo(rootPath, selectedLogoFile);
                 }
-                
+
                 // Update Project Metadata
                 editingProject.setName(addonName);
                 editingProject.setDescription(description);
                 // Note: Not updating rootPath as it is fixed in edit mode
-                
+
                 ProjectManager projectManager = new ProjectManager();
                 projectManager.updateProject(editingProject);
-                
+
                 log("✓ Project updated successfully!");
-                
+
                 // Navigate back
                 NavigationManager.getInstance().showHomeScreen();
                 return;
@@ -487,13 +568,12 @@ public class MainWindowController {
             String projectType = projectTypeCombo.getValue();
             boolean initGit = gitConnectCheck.isSelected();
             String gitRemote = gitRepoField.getText().trim();
-            
+
             // Build version string
-            String version = String.format("%s.%s.%s", 
-                versionMajorField.getText().trim(),
-                versionMinorField.getText().trim(),
-                versionPatchField.getText().trim()
-            );
+            String version = String.format("%s.%s.%s",
+                    versionMajorField.getText().trim(),
+                    versionMinorField.getText().trim(),
+                    versionPatchField.getText().trim());
 
             log("Generating project: " + addonName);
             log("Type: " + projectType);
@@ -517,7 +597,7 @@ public class MainWindowController {
                 // ManifestGenerator checks != null.
                 // Let's add a default if empty? No, user can leave it empty.
             }
-            
+
             String license = licenseField.getText().trim();
             if (license.isEmpty()) {
                 license = "All Rights Reserved";
@@ -525,30 +605,30 @@ public class MainWindowController {
 
             // Generate the project structure
             ProjectGenerator.generateBaseStructure(rootPath, addonName, description, projectType, authors, license);
-            
+
             // Handle Template Generation (Simple File Stubs for now)
             if (selectedTemplate != null) {
                 try {
                     if (selectedTemplate.getSourceDir() != null) {
-                         // Copy files from sourceDir to rootPath
-                         copyTemplateFiles(selectedTemplate.getSourceDir(), rootPath.toFile());
-                         log("✓ Applied template: " + selectedTemplate.getName());
+                        // Copy files from sourceDir to rootPath
+                        copyTemplateFiles(selectedTemplate.getSourceDir(), rootPath.toFile());
+                        log("✓ Applied template: " + selectedTemplate.getName());
                     } else if (selectedTemplate.getId().equals("tools")) {
-                         // Add a sample pickaxe JSON
-                         ProjectGenerator.createItemFolder(rootPath);
-                         // TODO: Write actual JSON content
-                         log("✓ Added sample tool files");
+                        // Add a sample pickaxe JSON
+                        ProjectGenerator.createItemFolder(rootPath);
+                        // TODO: Write actual JSON content
+                        log("✓ Added sample tool files");
                     } else if (selectedTemplate.getId().equals("blocks")) {
-                         // Add a sample block JSON
-                         ProjectGenerator.createBlockFolder(rootPath);
-                         log("✓ Added sample block files");
+                        // Add a sample block JSON
+                        ProjectGenerator.createBlockFolder(rootPath);
+                        log("✓ Added sample block files");
                     }
                 } catch (Exception e) {
                     logger.error("Failed to apply template", e);
                     log("⚠ Failed to apply template files: " + e.getMessage());
                 }
             }
-            
+
             // Handle Logo Copy
             if (selectedLogoFile != null) {
                 applyLogo(rootPath, selectedLogoFile);
@@ -562,17 +642,17 @@ public class MainWindowController {
                     GitManager gitManager = new GitManager();
                     gitManager.initRepository(rootPath.toFile());
                     log("✓ Git repository initialized");
-                    
+
                     if (!gitRemote.isEmpty()) {
                         gitManager.addRemote("origin", gitRemote);
                         log("✓ Remote 'origin' added: " + gitRemote);
                     }
-                    
+
                     // Initial commit
                     gitManager.addAll();
                     gitManager.commit("Initial commit: " + addonName + " v" + version);
                     log("✓ Initial commit created");
-                    
+
                 } catch (Exception e) {
                     logger.error("Git initialization failed", e);
                     log("⚠ Git initialization failed: " + e.getMessage());
@@ -582,22 +662,27 @@ public class MainWindowController {
             // Register project
             Project newProject = new Project(addonName, description, rootPath.toString());
             // TODO: Set version and type in Project model if supported in future
-            
+
             ProjectManager projectManager = new ProjectManager();
             projectManager.addProject(newProject);
 
             // Handle Texture Downloads
             if (textureOptionsBox != null && textureOptionsBox.isVisible()) {
                 Set<BedrockSamplesDownloader.TextureCategory> categories = new HashSet<>();
-                if (chkItems.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.ITEMS);
-                if (chkBlocks.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.BLOCKS);
-                if (chkEntities.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.ENTITIES);
-                if (chkHud.isSelected()) categories.add(BedrockSamplesDownloader.TextureCategory.HUD);
-                
+                if (chkItems.isSelected())
+                    categories.add(BedrockSamplesDownloader.TextureCategory.ITEMS);
+                if (chkBlocks.isSelected())
+                    categories.add(BedrockSamplesDownloader.TextureCategory.BLOCKS);
+                if (chkEntities.isSelected())
+                    categories.add(BedrockSamplesDownloader.TextureCategory.ENTITIES);
+                if (chkHud.isSelected())
+                    categories.add(BedrockSamplesDownloader.TextureCategory.HUD);
+
                 if (!categories.isEmpty()) {
                     // Create Overlay
-                    Node overlay = LoadingSpinnerHelper.createDownloadOverlay("Descargando texturas de bedrock-samples...");
-                    
+                    Node overlay = LoadingSpinnerHelper
+                            .createDownloadOverlay("Descargando texturas de bedrock-samples...");
+
                     // Show Overlay
                     javafx.scene.Parent root = generateButton.getScene().getRoot();
                     if (root instanceof StackPane) {
@@ -606,16 +691,18 @@ public class MainWindowController {
                         javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) root;
                         Node originalCenter = borderPane.getCenter();
                         StackPane stack = new StackPane();
-                        if (originalCenter != null) stack.getChildren().add(originalCenter);
+                        if (originalCenter != null)
+                            stack.getChildren().add(originalCenter);
                         stack.getChildren().add(overlay);
                         borderPane.setCenter(stack);
                     }
-                    
+
                     // Start Download Thread
                     new Thread(() -> {
                         try {
-                            BedrockSamplesDownloader.downloadTextures(rootPath, categories, () -> {});
-                            
+                            BedrockSamplesDownloader.downloadTextures(rootPath, categories, () -> {
+                            });
+
                             Platform.runLater(() -> {
                                 log("✓ Texturas descargadas correctamente");
                                 NavigationManager.getInstance().showEditor(newProject);
@@ -624,12 +711,13 @@ public class MainWindowController {
                             Platform.runLater(() -> {
                                 logger.error("Download failed", e);
                                 log("⚠ Error descargando texturas: " + e.getMessage());
-                                showError("Error de descarga", "No se pudieron descargar las texturas.\nVerifique su conexión a internet.");
+                                showError("Error de descarga",
+                                        "No se pudieron descargar las texturas.\nVerifique su conexión a internet.");
                                 NavigationManager.getInstance().showEditor(newProject);
                             });
                         }
                     }).start();
-                    
+
                     return; // Wait for download
                 }
             }
@@ -648,7 +736,7 @@ public class MainWindowController {
         try {
             Path bpIcon = rootPath.resolve("BP/pack_icon.png");
             Path rpIcon = rootPath.resolve("RP/pack_icon.png");
-            
+
             // Check extension
             String name = logoFile.getName().toLowerCase();
             boolean isPng = name.endsWith(".png");
@@ -678,7 +766,7 @@ public class MainWindowController {
                     ImageIO.write(image, "png", rpIcon.toFile());
                 }
             }
-            
+
             log("✓ Logo updated for available packs");
 
         } catch (Exception e) {
@@ -721,33 +809,56 @@ public class MainWindowController {
         alert.showAndWait();
     }
 
-    @FXML private void handleFilterAll() { renderTemplates("All"); }
-    @FXML private void handleFilterTools() { renderTemplates("Tools"); }
-    @FXML private void handleFilterBlocks() { renderTemplates("Blocks"); }
-    @FXML private void handleFilterArmor() { renderTemplates("Armor"); }
-    @FXML private void handleFilterMagic() { renderTemplates("Magic"); }
-    @FXML private void handleFilterUtility() { renderTemplates("Utility"); }
+    @FXML
+    private void handleFilterAll() {
+        renderTemplates("All");
+    }
+
+    @FXML
+    private void handleFilterTools() {
+        renderTemplates("Tools");
+    }
+
+    @FXML
+    private void handleFilterBlocks() {
+        renderTemplates("Blocks");
+    }
+
+    @FXML
+    private void handleFilterArmor() {
+        renderTemplates("Armor");
+    }
+
+    @FXML
+    private void handleFilterMagic() {
+        renderTemplates("Magic");
+    }
+
+    @FXML
+    private void handleFilterUtility() {
+        renderTemplates("Utility");
+    }
 
     private void createTextureOptionsUI() {
         textureOptionsBox = new VBox(10);
         textureOptionsBox.setPadding(new Insets(15, 0, 15, 0));
         textureOptionsBox.setVisible(false);
         textureOptionsBox.setManaged(false);
-        
+
         Label lblTitle = new Label("Opciones de Texturas (Bedrock Samples)");
         lblTitle.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
-        
+
         Label lblDesc = new Label("Selecciona las texturas que deseas descargar del repositorio oficial:");
         lblDesc.setStyle("-fx-text-fill: #aaa; -fx-font-size: 11px;");
-        
+
         HBox optionsContainer = new HBox(20);
-        
+
         chkAll = new CheckBox("Todas");
         chkItems = new CheckBox("Items");
         chkBlocks = new CheckBox("Blocks");
         chkEntities = new CheckBox("Entities");
         chkHud = new CheckBox("HUD");
-        
+
         // Style checkboxes
         String chkStyle = "-fx-text-fill: white;";
         chkAll.setStyle(chkStyle);
@@ -755,9 +866,9 @@ public class MainWindowController {
         chkBlocks.setStyle(chkStyle);
         chkEntities.setStyle(chkStyle);
         chkHud.setStyle(chkStyle);
-        
+
         optionsContainer.getChildren().addAll(chkAll, chkItems, chkBlocks, chkEntities, chkHud);
-        
+
         // Logic for "All" checkbox
         chkAll.selectedProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal) {
@@ -765,7 +876,7 @@ public class MainWindowController {
                 chkBlocks.setSelected(true);
                 chkEntities.setSelected(true);
                 chkHud.setSelected(true);
-                
+
                 chkItems.setDisable(true);
                 chkBlocks.setDisable(true);
                 chkEntities.setDisable(true);
@@ -777,9 +888,9 @@ public class MainWindowController {
                 chkHud.setDisable(false);
             }
         });
-        
+
         textureOptionsBox.getChildren().addAll(lblTitle, lblDesc, optionsContainer);
-        
+
         // Add to main layout (assuming templatesSection is the parent container)
         if (templatesSection != null) {
             templatesSection.getChildren().add(textureOptionsBox);

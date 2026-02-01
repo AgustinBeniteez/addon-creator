@@ -69,7 +69,7 @@ public class PixelArtEditorController implements Initializable {
     private Layer activeLayer;
 
     // Tool states
-    private enum Tool { PENCIL, ERASER, LINE, RECTANGLE, CIRCLE, FILL, PICKER, SELECT_RECT, SELECT_LASSO, GRADIENT }
+    private enum Tool { PENCIL, ERASER, LINE, RECTANGLE, CIRCLE, FILL, PICKER, SELECT_RECT, SELECT_LASSO, GRADIENT, REPLACE_COLOR }
     private Tool currentTool = Tool.PENCIL;
     private boolean showGrid = false;
     
@@ -105,6 +105,7 @@ public class PixelArtEditorController implements Initializable {
     @FXML private ToggleButton btnGradient;
     @FXML private ToggleButton btnSelectRect;
     @FXML private ToggleButton btnSelectLasso;
+    @FXML private ToggleButton btnReplaceColor;
     @FXML private ToggleButton btnGrid;
     @FXML private Button btnFlipH;
     @FXML private Button btnFlipV;
@@ -412,6 +413,20 @@ public class PixelArtEditorController implements Initializable {
         configureToolButton(btnGradient, toolGroup, Tool.GRADIENT);
         configureToolButton(btnSelectRect, toolGroup, Tool.SELECT_RECT);
         configureToolButton(btnSelectLasso, toolGroup, Tool.SELECT_LASSO);
+        configureToolButton(btnReplaceColor, toolGroup, Tool.REPLACE_COLOR);
+        
+        // Clear selection when changing tools
+        toolGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                if (hasSelection || isSelecting) {
+                    hasSelection = false;
+                    isSelecting = false;
+                    lassoPoints.clear();
+                    floatingSelection = null;
+                    drawCanvas();
+                }
+            }
+        });
         
         if (btnSwapColors != null) {
             btnSwapColors.setOnAction(e -> swapColors());
@@ -600,6 +615,8 @@ public class PixelArtEditorController implements Initializable {
         // Select Lasso: Freeform loop - Dashed/Dotted style
         setBtnIcon(btnSelectLasso, "M10 4h2v2h-2z M14 4h2v2h-2z M17 6h2v2h-2z M19 9h2v2h-2z M19 13h2v2h-2z M16 16h2v2h-2z M12 18h2v2h-2z M8 17h2v2h-2z M5 14h2v2h-2z M5 10h2v2h-2z M7 6h2v2h-2z M14 20h2v2h-2z"); 
 
+        // Replace Color: Refresh/Cycle arrows (modified for Tint/Magic Wand look)
+        setBtnIcon(btnReplaceColor, "M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L21 15l-1.4-2.5L21 10l-2.5 1.4L17 10l-1.4 2.5L13 11l2.5 1.4L13 14l2.5 1.4zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35z");
 
         // Picker: Eyedropper
         setBtnIcon(btnPicker, "M20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-3.12 3.12-1.93-1.91-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12c.4-.4.4-1.03.01-1.42zM5.21 18.83l-1.41-1.41 8.06-8.06 1.41 1.41-8.06 8.06z");
@@ -740,13 +757,13 @@ public class PixelArtEditorController implements Initializable {
             int y = (int) (e.getY() / zoom);
             
             // Selection Tools Logic
-            if (currentTool == Tool.SELECT_RECT || currentTool == Tool.SELECT_LASSO) {
+            if (currentTool == Tool.SELECT_RECT || currentTool == Tool.SELECT_LASSO || currentTool == Tool.REPLACE_COLOR) {
                 // Check if clicking inside existing selection to move it
                 boolean insideSelection = hasSelection && 
                     x >= Math.min(selectStartX, selectEndX) && x <= Math.max(selectStartX, selectEndX) &&
                     y >= Math.min(selectStartY, selectEndY) && y <= Math.max(selectStartY, selectEndY);
 
-                if (insideSelection) {
+                if (insideSelection && currentTool != Tool.REPLACE_COLOR) { // Don't move selection with Replace Color tool
                     isDraggingSelection = true;
                     dragStartX = x; 
                     dragStartY = y;
@@ -760,7 +777,7 @@ public class PixelArtEditorController implements Initializable {
                     selectEndY = y;
                     hasSelection = false;
                     lassoPoints.clear();
-                    if (currentTool == Tool.SELECT_LASSO) {
+                    if (currentTool == Tool.SELECT_LASSO || currentTool == Tool.REPLACE_COLOR) {
                         lassoPoints.add(new Point2D(x, y));
                     }
                     drawCanvas();
@@ -881,7 +898,7 @@ public class PixelArtEditorController implements Initializable {
             }
             
             if (isSelecting) {
-                if (currentTool == Tool.SELECT_LASSO) {
+                if (currentTool == Tool.SELECT_LASSO || currentTool == Tool.REPLACE_COLOR) {
                      Point2D p = new Point2D(x, y);
                      if (lassoPoints.isEmpty() || !lassoPoints.get(lassoPoints.size() - 1).equals(p)) {
                          lassoPoints.add(p);
@@ -925,7 +942,15 @@ public class PixelArtEditorController implements Initializable {
     private void handleMouseReleased(MouseEvent e) {
         if (isSelecting) {
             isSelecting = false;
-            hasSelection = true;
+            
+            if (currentTool == Tool.REPLACE_COLOR) {
+                // Apply Tint to Lasso Area immediately and clear selection
+                applyTintToLassoArea();
+                hasSelection = false;
+                lassoPoints.clear();
+            } else {
+                hasSelection = true;
+            }
             drawCanvas();
         }
         if (isDraggingSelection) {
@@ -943,6 +968,70 @@ public class PixelArtEditorController implements Initializable {
             isDraggingGradient = false;
             drawGradient(dragStartX, dragStartY, currentDragX, currentDragY, colorPicker.getValue(), secondaryColorPicker.getValue());
             drawCanvas();
+        }
+    }
+
+    private void applyTintToLassoArea() {
+        if (activeLayer == null || !activeLayer.isVisible() || lassoPoints.isEmpty()) return;
+        
+        saveUndoState();
+        PixelWriter pw = activeLayer.getImage().getPixelWriter();
+        PixelReader pr = activeLayer.getImage().getPixelReader();
+        
+        // Calculate bounds of lasso
+        int minX = (int) lassoPoints.stream().mapToDouble(Point2D::getX).min().orElse(0);
+        int maxX = (int) lassoPoints.stream().mapToDouble(Point2D::getX).max().orElse(artWidth - 1);
+        int minY = (int) lassoPoints.stream().mapToDouble(Point2D::getY).min().orElse(0);
+        int maxY = (int) lassoPoints.stream().mapToDouble(Point2D::getY).max().orElse(artHeight - 1);
+        
+        Color tintColor = currentDrawColor;
+        double targetBrightness = tintColor.getBrightness();
+        
+        // First pass: Calculate average brightness of pixels in the lasso
+        double totalBrightness = 0;
+        int pixelCount = 0;
+        
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x >= 0 && x < artWidth && y >= 0 && y < artHeight) {
+                    if (isInsideLasso(x, y)) {
+                        Color c = pr.getColor(x, y);
+                        if (c.getOpacity() > 0) {
+                            totalBrightness += c.getBrightness();
+                            pixelCount++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        double avgBrightness = (pixelCount > 0) ? totalBrightness / pixelCount : 0.5;
+        double brightnessShift = targetBrightness - avgBrightness;
+
+        // Second pass: Apply tint with brightness shift
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                if (x >= 0 && x < artWidth && y >= 0 && y < artHeight) {
+                    if (isInsideLasso(x, y)) {
+                         Color original = pr.getColor(x, y);
+                         if (original.getOpacity() > 0) {
+                             // Shift brightness to match target's tonal range
+                             double newBrightness = original.getBrightness() + brightnessShift;
+                             
+                             // Clamp brightness between 0.0 and 1.0
+                             newBrightness = Math.max(0.0, Math.min(1.0, newBrightness));
+                             
+                             Color newColor = Color.hsb(
+                                 tintColor.getHue(),
+                                 tintColor.getSaturation(),
+                                 newBrightness,
+                                 original.getOpacity()
+                             );
+                             pw.setColor(x, y, newColor);
+                         }
+                    }
+                }
+            }
         }
     }
 
