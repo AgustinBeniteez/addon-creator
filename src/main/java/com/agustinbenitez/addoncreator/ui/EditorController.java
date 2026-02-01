@@ -52,6 +52,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.web.WebView;
 import javafx.scene.web.WebEngine;
+import javafx.scene.control.ToggleButton;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import javafx.concurrent.Worker;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
@@ -102,7 +105,9 @@ import javafx.animation.FadeTransition;
 import javafx.util.Duration;
 import javafx.scene.Node;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.io.UncheckedIOException;
 import java.util.function.Consumer;
@@ -358,8 +363,22 @@ public class EditorController {
     private Label searchStatusLabel;
     @FXML
     private ListView<String> searchResultsList;
+    @FXML
+    private Button btnToggleReplace;
+    @FXML
+    private HBox replaceBox;
+    @FXML
+    private TextField replaceField;
+    @FXML
+    private Button btnReplaceAll;
+    @FXML
+    private ToggleButton btnMatchCase;
+    @FXML
+    private ToggleButton btnWholeWord;
 
     private String currentEzViewName = "main";
+    private java.util.Map<Path, Integer> pendingScrollMap = new HashMap<>();
+    private java.util.Map<Path, String> pendingSelectionMap = new HashMap<>();
 
     @FXML
     private VBox todoView;
@@ -519,6 +538,9 @@ public class EditorController {
                     newScene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
                         if (event.getCode() == KeyCode.F3) {
                             toggleMode();
+                            event.consume();
+                        } else if (event.isControlDown() && event.getCode() == KeyCode.F) {
+                            handleSearch();
                             event.consume();
                         }
                     });
@@ -4567,6 +4589,25 @@ public class EditorController {
             searchDebounce.playFromStart();
         });
 
+        if (btnToggleReplace != null) {
+            btnToggleReplace.setOnAction(e -> {
+                boolean isVisible = replaceBox.isVisible();
+                replaceBox.setVisible(!isVisible);
+                replaceBox.setManaged(!isVisible);
+            });
+        }
+
+        if (btnReplaceAll != null) {
+            btnReplaceAll.setOnAction(e -> handleReplaceAll());
+        }
+
+        if (btnMatchCase != null) {
+            btnMatchCase.setOnAction(e -> performSearch());
+        }
+        if (btnWholeWord != null) {
+            btnWholeWord.setOnAction(e -> performSearch());
+        }
+
         // Highlight matching text in results
         searchResultsList.setCellFactory(lv -> new ListCell<String>() {
             @Override
@@ -4819,9 +4860,217 @@ public class EditorController {
         if (searchView != null) {
             searchView.setVisible(true);
             searchView.setManaged(true);
+
+            // Pre-fill selection
+            String selection = getActiveEditorSelection();
+            if (selection != null && !selection.isEmpty()) {
+                searchField.setText(selection);
+                performSearch(); // Optional: auto-trigger search
+            }
+
             searchField.requestFocus();
+            if (selection != null && !selection.isEmpty()) {
+                searchField.selectAll(); // Select text so it can be easily replaced
+            }
         }
         updateSidebarVisibility();
+    }
+
+    private String getActiveEditorSelection() {
+        if (editorTabs == null)
+            return null;
+        Tab selectedTab = editorTabs.getSelectionModel().getSelectedItem();
+        if (selectedTab == null)
+            return null;
+
+        WebView webView = null;
+        Node content = selectedTab.getContent();
+        if (content instanceof WebView) {
+            webView = (WebView) content;
+        } else if (content instanceof StackPane) {
+            for (Node n : ((StackPane) content).getChildren()) {
+                if (n instanceof WebView) {
+                    webView = (WebView) n;
+                    break;
+                }
+            }
+        } else if (content instanceof SplitPane) { // Handle Markdown/Split view
+            SplitPane sp = (SplitPane) content;
+            if (sp.getUserData() instanceof WebView) {
+                webView = (WebView) sp.getUserData();
+            } else {
+                // Try to find first WebView
+                for (Node n : sp.getItems()) {
+                    if (n instanceof WebView) {
+                        webView = (WebView) n;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (webView != null) {
+            try {
+                Object result = webView.getEngine().executeScript(
+                        "(function() { " +
+                                "   if (window.editor && typeof window.editor.getModel === 'function') { " +
+                                "       var sel = window.editor.getSelection(); " +
+                                "       if (sel) return window.editor.getModel().getValueInRange(sel); " +
+                                "   } " +
+                                "   return window.getSelection().toString(); " +
+                                "})()");
+                return result != null ? result.toString() : null;
+            } catch (Exception e) {
+                // Ignore JS errors if editor not ready
+            }
+        }
+        return null; // Add fallback for TextArea if needed
+    }
+
+    private void handleReplaceAll() {
+        String query = searchField.getText();
+        String replacement = replaceField.getText();
+
+        if (query == null || query.isEmpty())
+            return;
+        if (replacement == null)
+            replacement = "";
+
+        if (currentProject == null)
+            return;
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Replace All");
+        alert.setHeaderText("Replace in Files");
+        alert.setContentText("Replace '" + query + "' with '" + replacement + "' in all project files?");
+        styleDialog(alert);
+
+        final String finalReplacement = replacement;
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                performReplaceAll(query, finalReplacement);
+            }
+        });
+    }
+
+    private void performReplaceAll(String query, String replacement) {
+        searchStatusLabel.setText("Replacing...");
+        String rootPath = currentProject.getRootPath();
+
+        new Thread(() -> {
+            try {
+                Path root = Paths.get(rootPath);
+                AtomicInteger replacedCount = new AtomicInteger(0);
+
+                Files.walk(root)
+                        .filter(Files::isRegularFile)
+                        .forEach(file -> {
+                            if (isBinary(file.getFileName().toString()))
+                                return;
+
+                            try {
+                                String content = Files.readString(file);
+                                if (content.contains(query)) {
+                                    String newContent = content.replace(query, replacement);
+
+                                    // Check if file is open in editor
+                                    boolean isOpen = false;
+                                    for (Tab tab : editorTabs.getTabs()) {
+                                        Path tabPath = tabFileMap.get(tab);
+                                        if (tabPath != null && tabPath.equals(file)) {
+                                            // Update Open Editor
+                                            isOpen = true;
+                                            javafx.application.Platform.runLater(() -> {
+                                                updateEditorContent(tab, newContent);
+                                            });
+                                            break;
+                                        }
+                                    }
+
+                                    if (!isOpen) {
+                                        Files.writeString(file, newContent);
+                                    }
+                                    replacedCount.incrementAndGet();
+                                }
+                            } catch (IOException e) {
+                                logger.error("Failed to replace in " + file, e);
+                            }
+                        });
+
+                javafx.application.Platform.runLater(() -> {
+                    searchStatusLabel.setText("Replaced in " + replacedCount.get() + " files.");
+                    // Refresh search
+                    performSearch();
+                });
+
+            } catch (Exception e) {
+                logger.error("Replace All failed", e);
+                javafx.application.Platform
+                        .runLater(() -> searchStatusLabel.setText("Replace error: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void updateEditorContent(Tab tab, String newContent) {
+        Node content = tab.getContent();
+        WebView webView = null;
+        if (content instanceof WebView)
+            webView = (WebView) content;
+        else if (content instanceof StackPane) {
+            for (Node n : ((StackPane) content).getChildren())
+                if (n instanceof WebView)
+                    webView = (WebView) n;
+        } else if (content instanceof SplitPane && ((SplitPane) content).getUserData() instanceof WebView) {
+            webView = (WebView) ((SplitPane) content).getUserData();
+        }
+
+        if (webView != null) {
+            // Update Monaco
+            // Escape content for JS string... difficult.
+            // Better to bridge it or set value.
+            // Since we have JavaBridge, we might use it or just reload?
+            // Reloading is safest but loses cursor.
+            // Let's rely on JavaBridge if possible, or simple setValue if content isn't too
+            // huge.
+            // Actually, we can just write to file (which we skipped if open)
+            // But if we skipped writing to file, we MUST update editor.
+            // If we write to file, Monaco might not auto-reload.
+
+            // Simpler approach: Write to file even if open, then reload tab?
+            // Or: use editor.setValue()
+
+            // To safely pass content to JS:
+            // window.editor.setValue(content)
+            // But content needs escaping.
+
+            // Alternative:
+            // Get the JavaBridge and call a method on it? No, JavaBridge is for JS->Java.
+            // We can add a method to JavaBridge to setContent? No.
+
+            // Best approach given constraints:
+            // Write to file, then reload tab content from file.
+            try {
+                Path path = tabFileMap.get(tab);
+                Files.writeString(path, newContent);
+                // Trigger reload
+                // openFileByPath(path, true) might re-select tab.
+                // We want to reload content.
+                // Just calling openFileByPath deals with "already open" by selecting it.
+                // We need to force reload.
+
+                // Let's basically close and reopen or refresh WebView.
+                // Or simplified: execute "location.reload()" inside webview?
+                // But that needs saved file.
+                // Yes, we just wrote it.
+                webView.getEngine().reload();
+
+            } catch (IOException e) {
+                logger.error("Failed to write/reload open file", e);
+            }
+        } else if (content instanceof TextArea) {
+            ((TextArea) content).setText(newContent);
+        }
     }
 
     private void handleGit() {
@@ -5252,6 +5501,9 @@ public class EditorController {
         // Capture root path outside the thread
         String rootPath = currentProject.getRootPath();
 
+        boolean matchCase = btnMatchCase != null && btnMatchCase.isSelected();
+        boolean wholeWord = btnWholeWord != null && btnWholeWord.isSelected();
+
         new Thread(() -> {
             try {
                 Path root = Paths.get(rootPath);
@@ -5263,19 +5515,44 @@ public class EditorController {
                 AtomicInteger resultsCount = new AtomicInteger(0);
                 int MAX_RESULTS = 500;
 
+                // Prepare Regex for Whole Word if needed
+                Pattern pattern = null;
+                if (wholeWord) {
+                    String q = Pattern.quote(query);
+                    String regex = "\\b" + q + "\\b";
+                    int flags = matchCase ? 0 : Pattern.CASE_INSENSITIVE;
+                    pattern = Pattern.compile(regex, flags);
+                }
+
                 try {
+                    // Capture final variables for lambda
+                    Pattern finalPattern = pattern;
+
                     Files.walk(root)
                             .filter(Files::isRegularFile)
                             .forEach(file -> {
-                                // Stop processing if we have enough results (optimization)
                                 if (resultsCount.get() >= MAX_RESULTS)
                                     return;
 
                                 String fileName = file.getFileName().toString();
-                                boolean foundInFile = false;
 
+                                // 1. Filename Match (Only if NOT whole word search, usually filename search is
+                                // loose)
+                                // But if user wants Whole Word, maybe filename matching is stricter?
+                                // Let's keep filename match simple or apply same rules?
+                                // Apply simple rules for filename to be helpful.
                                 // 1. Filename Match
-                                if (fileName.toLowerCase().contains(query.toLowerCase())) {
+                                boolean isFileMatch = false;
+                                if (finalPattern != null) {
+                                    isFileMatch = finalPattern.matcher(fileName).find();
+                                } else {
+                                    if (matchCase)
+                                        isFileMatch = fileName.contains(query);
+                                    else
+                                        isFileMatch = fileName.toLowerCase().contains(query.toLowerCase());
+                                }
+
+                                if (isFileMatch) {
                                     String result = fileName + " (File Match)";
                                     String fullPath = file.toAbsolutePath().toString();
                                     String displayStr = result + " |" + fullPath;
@@ -5284,7 +5561,6 @@ public class EditorController {
                                         javafx.application.Platform
                                                 .runLater(() -> searchResultsList.getItems().add(displayStr));
                                     }
-                                    foundInFile = true;
                                 }
 
                                 // 2. Content Match (skip binaries)
@@ -5296,7 +5572,18 @@ public class EditorController {
                                                 return;
 
                                             int currentLine = lineNum.incrementAndGet();
-                                            if (line.toLowerCase().contains(query.toLowerCase())) {
+                                            boolean lineMatches = false;
+
+                                            if (wholeWord) {
+                                                lineMatches = finalPattern.matcher(line).find();
+                                            } else {
+                                                if (matchCase)
+                                                    lineMatches = line.contains(query);
+                                                else
+                                                    lineMatches = line.toLowerCase().contains(query.toLowerCase());
+                                            }
+
+                                            if (lineMatches) {
                                                 // Limit line length for display
                                                 String displayLine = line.trim();
                                                 if (displayLine.length() > 80)
@@ -5348,9 +5635,130 @@ public class EditorController {
         if (resultItem.contains("|")) {
             String fullPath = resultItem.substring(resultItem.lastIndexOf("|") + 1);
             Path path = Paths.get(fullPath);
-            if (Files.exists(path)) {
-                openFileByPath(path);
+            int lineNumber = 0;
+
+            // Extract line number
+            if (resultItem.contains(":")) {
+                try {
+                    String part = resultItem.substring(0, resultItem.lastIndexOf("|"));
+                    if (part.contains(":")) {
+                        String[] info = part.split(":", 2);
+                        if (info.length > 1) {
+                            String lnStr = info[1].split("-", 2)[0].trim();
+                            lineNumber = Integer.parseInt(lnStr);
+                        }
+                    }
+                } catch (Exception e) {
+                    // ignore parse error
+                }
             }
+
+            if (Files.exists(path)) {
+                // Determine search text for highligthing (handles match case logic)
+                String searchText = searchField.getText();
+
+                // Store pending actions
+                if (lineNumber > 0) {
+                    pendingScrollMap.put(path, lineNumber);
+                    pendingSelectionMap.put(path, searchText);
+                }
+
+                openFileByPath(path);
+
+                // If tab was already open, trigger highlight immediately
+                for (Tab t : editorTabs.getTabs()) {
+                    if (tabFileMap.get(t).equals(path)) {
+                        highlightInEditor(t, lineNumber, searchText);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void highlightInEditor(Tab tab, int line, String text) {
+        if (line <= 0)
+            return;
+
+        Node content = tab.getContent();
+        WebView webView = null;
+
+        if (content instanceof WebView)
+            webView = (WebView) content;
+        else if (content instanceof StackPane) {
+            for (Node n : ((StackPane) content).getChildren())
+                if (n instanceof WebView)
+                    webView = (WebView) n;
+        } else if (content instanceof SplitPane && ((SplitPane) content).getUserData() instanceof WebView) {
+            webView = (WebView) ((SplitPane) content).getUserData();
+        }
+
+        if (webView != null) {
+            // Need to check if editor is ready using JavaBridge or JS check
+            // We can retry a few times if not ready
+            final WebView wv = webView;
+            new Thread(() -> {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException ignored) {
+                    }
+
+                    boolean ready = false;
+                    try {
+                        // Check if editor exists
+                        // We run on FX thread
+                        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+                        AtomicBoolean isReady = new AtomicBoolean(false);
+
+                        javafx.application.Platform.runLater(() -> {
+                            try {
+                                Object res = wv.getEngine()
+                                        .executeScript("!!(window.editor && window.editor.revealLineInCenter)");
+                                if (Boolean.TRUE.equals(res))
+                                    isReady.set(true);
+                            } catch (Exception e) {
+                            }
+                            latch.countDown();
+                        });
+                        latch.await();
+                        ready = isReady.get();
+
+                        if (ready) {
+                            javafx.application.Platform.runLater(() -> {
+                                try {
+                                    // Reveal Line
+                                    wv.getEngine().executeScript("window.editor.revealLineInCenter(" + line + ");");
+
+                                    // Find and select match
+                                    String script = "var model = window.editor.getModel();" +
+                                            "var lineContent = model.getLineContent(" + line + ");" +
+                                            "var col = lineContent.toLowerCase().indexOf('"
+                                            + text.toLowerCase().replace("'", "\\'") + "'.toLowerCase()) + 1;" +
+                                            "if (col > 0) {" +
+                                            "   window.editor.setSelection({startLineNumber: " + line
+                                            + ", startColumn: col, endLineNumber: " + line + ", endColumn: col + "
+                                            + text.length() + "});" +
+                                            "} else {" +
+                                            "   window.editor.setPosition({lineNumber: " + line + ", column: 1});" +
+                                            "}";
+
+                                    // If match case is on, use it? User wants exact filtering,
+                                    // so highlight should probably respect that, but simple indexOf
+                                    // case-insensitive is fallback
+                                    // Currently passing text as is.
+
+                                    wv.getEngine().executeScript(script);
+                                } catch (Exception e) {
+                                    logger.error("Error highlighting", e);
+                                }
+                            });
+                            break;
+                        }
+                    } catch (Exception ex) {
+                    }
+                }
+            }).start();
         }
     }
 
@@ -5976,7 +6384,16 @@ public class EditorController {
                         FadeTransition ft = new FadeTransition(Duration.millis(300), loadingOverlay);
                         ft.setFromValue(1.0);
                         ft.setToValue(0.0);
-                        ft.setOnFinished(e -> contentContainer.getChildren().remove(loadingOverlay));
+                        ft.setOnFinished(e -> {
+                            contentContainer.getChildren().remove(loadingOverlay);
+
+                            // Check for pending scroll/selection AFTER loading is confirmed
+                            if (pendingScrollMap.containsKey(filePath)) {
+                                int line = pendingScrollMap.remove(filePath);
+                                String text = pendingSelectionMap.remove(filePath);
+                                highlightInEditor(tab, line, text);
+                            }
+                        });
                         ft.play();
                     }
                 });
