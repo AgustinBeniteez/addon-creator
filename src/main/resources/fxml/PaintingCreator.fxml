@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.agustinbenitez.addoncreator.ui.PaintingCreatorController"
+            styleClass="item-creator-root" stylesheets="@../css/item-creator.css" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-min-width: 500; -fx-min-height: 400;">
+    
+    <top>
+        <VBox spacing="10" style="-fx-padding: 20;">
+            <Label text="Create Custom Painting" textFill="WHITE">
+                <font>
+                    <Font name="System Bold" size="20"/>
+                </font>
+            </Label>
+            <Label text="Generates a painting template and opens it in the Pixel Art Editor." textFill="#aaaaaa"/>
+        </VBox>
+    </top>
+    
+    <center>
+        <VBox spacing="20" style="-fx-padding: 0 20 20 20;">
+            <GridPane hgap="15" vgap="15">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="120" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+                
+                <Label text="File Name:" styleClass="item-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="nameField" promptText="my_painting" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                
+                <Label text="Dimensions:" styleClass="item-creator-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <ComboBox fx:id="dimensionCombo" maxWidth="Infinity" styleClass="combo-box-dark" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+            </GridPane>
+            
+            <Label text="Note: This will create a PNG file in RP/textures/painting/ and open it for editing." textFill="#888888" wrapText="true"/>
+        </VBox>
+    </center>
+    
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 20;">
+            <Button text="Cancel" onAction="#handleCancel" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-border-color: #555; -fx-border-radius: 3;"/>
+            <Button fx:id="createButton" text="Create Painting" onAction="#handleCreate" style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        </HBox>
+    </bottom>
+    
+</BorderPane>

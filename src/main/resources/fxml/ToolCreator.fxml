@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.agustinbenitez.addoncreator.ui.ToolCreatorController"
+            styleClass="item-creator-root" stylesheets="@../css/item-creator.css" style="-fx-background-color: #1e1e1e; -fx-text-fill: white; -fx-min-width: 600; -fx-min-height: 500;">
+    
+    <top>
+        <VBox spacing="10" style="-fx-padding: 20;">
+            <Label text="Create Custom Tool" textFill="WHITE">
+                <font>
+                    <Font name="System Bold" size="20"/>
+                </font>
+            </Label>
+            <Label text="Generates a custom tool (Sword, Pickaxe, Axe, etc.) with specific properties." textFill="#aaaaaa"/>
+        </VBox>
+    </top>
+    
+    <center>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;">
+            <VBox spacing="20" style="-fx-padding: 0 20 20 20;">
+                <!-- Basic Info -->
+                <TitledPane text="Basic Information" collapsible="false" expanded="true">
+                    <GridPane hgap="15" vgap="15">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="150" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
+                        
+                        <Label text="Identifier:" styleClass="item-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                        <TextField fx:id="identifierField" promptText="namespace:custom_sword" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                        
+                        <Label text="Display Name:" styleClass="item-creator-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                        <TextField fx:id="nameField" promptText="Custom Sword" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                        
+                        <Label text="Tool Type:" styleClass="item-creator-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                        <ComboBox fx:id="toolTypeCombo" maxWidth="Infinity" styleClass="combo-box-dark" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Texture -->
+                <TitledPane text="Texture" collapsible="false" expanded="true">
+                    <HBox spacing="20" alignment="CENTER_LEFT">
+                        <StackPane fx:id="texturePreviewPane" prefWidth="64" prefHeight="64" style="-fx-border-color: #555; -fx-border-style: dashed;">
+                            <ImageView fx:id="texturePreview" fitWidth="48" fitHeight="48" preserveRatio="true"/>
+                            <Label text="None" textFill="#555"/>
+                        </StackPane>
+                        <VBox spacing="10">
+                            <Button fx:id="textureButton" text="Select Texture" styleClass="item-creator-button"/>
+                            <Label fx:id="textureNameLabel" text="No texture selected" textFill="#888888"/>
+                        </VBox>
+                    </HBox>
+                </TitledPane>
+                
+                <!-- Properties -->
+                <TitledPane text="Properties" collapsible="false" expanded="true">
+                    <GridPane hgap="15" vgap="15">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="150" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
+                        
+                        <Label text="Durability:" styleClass="item-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                        <Spinner fx:id="durabilitySpinner" editable="true" maxWidth="Infinity" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                        
+                        <Label text="Mining Speed:" styleClass="item-creator-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                        <Spinner fx:id="miningSpeedSpinner" editable="true" maxWidth="Infinity" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                        
+                        <Label text="Attack Damage:" styleClass="item-creator-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                        <Spinner fx:id="damageSpinner" editable="true" maxWidth="Infinity" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        
+                        <Label text="Hand Equipped:" styleClass="item-creator-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                        <CheckBox fx:id="handEquippedCheck" selected="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                        
+                        <Label text="Glint (Enchanted):" styleClass="item-creator-label" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                        <CheckBox fx:id="glintCheck" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    </GridPane>
+                </TitledPane>
+            </VBox>
+        </ScrollPane>
+    </center>
+    
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 20;">
+            <Button text="Cancel" onAction="#handleCancel" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-border-color: #555; -fx-border-radius: 3;"/>
+            <Button fx:id="createButton" text="Create Tool" onAction="#handleCreate" style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        </HBox>
+    </bottom>
+    
+</BorderPane>

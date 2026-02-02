@@ -118,11 +118,25 @@ public class PixelArtEditorController implements Initializable {
     
     // Project context
     private File projectRoot;
+    private File currentFile; // The file currently being edited
     private Runnable onContentModified;
     private boolean isDirty = false;
 
     public void setProjectRoot(File projectRoot) {
         this.projectRoot = projectRoot;
+    }
+
+    public void setCurrentFile(File file) {
+        this.currentFile = file;
+        if (file != null && btnExport != null) {
+             btnExport.setText("Guardar");
+             // Update tooltip or visual cue if needed
+             if (btnExport.getTooltip() == null) {
+                 btnExport.setTooltip(new Tooltip(file.getAbsolutePath()));
+             } else {
+                 btnExport.getTooltip().setText(file.getAbsolutePath());
+             }
+        }
     }
 
     public void setOnContentModified(Runnable onContentModified) {
@@ -1434,6 +1448,12 @@ public class PixelArtEditorController implements Initializable {
     }
 
     private void exportImage() {
+        // If we have a current file (direct edit mode), save to it directly
+        if (currentFile != null) {
+            saveToCurrentFile();
+            return;
+        }
+
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Export Image");
         fileChooser.getExtensionFilters().addAll(
@@ -1454,35 +1474,47 @@ public class PixelArtEditorController implements Initializable {
         
         File file = fileChooser.showSaveDialog(canvas.getScene().getWindow());
         if (file != null) {
-            try {
-                // Combine layers logic
-                Canvas tempCanvas = new Canvas(artWidth, artHeight);
-                GraphicsContext gc = tempCanvas.getGraphicsContext2D();
-                
-                for (Layer layer : layers) {
-                    if (layer.isVisible()) {
-                        gc.drawImage(layer.getImage(), 0, 0);
-                    }
+            saveToFile(file);
+        }
+    }
+
+    private void saveToCurrentFile() {
+        if (currentFile == null) return;
+        saveToFile(currentFile);
+    }
+
+    private void saveToFile(File file) {
+        try {
+            // Combine layers logic
+            Canvas tempCanvas = new Canvas(artWidth, artHeight);
+            GraphicsContext gc = tempCanvas.getGraphicsContext2D();
+            
+            for (Layer layer : layers) {
+                if (layer.isVisible()) {
+                    gc.drawImage(layer.getImage(), 0, 0);
                 }
-                
-                WritableImage snapshot = new WritableImage(artWidth, artHeight);
-                
-                SnapshotParameters params = new SnapshotParameters();
-                params.setFill(Color.TRANSPARENT);
-                
-                tempCanvas.snapshot(params, snapshot);
-                
-                ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), "png", file);
-                
-                if (statusLabel != null) {
-                    statusLabel.setText("Image exported to " + file.getName());
-                }
-                
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                if (statusLabel != null) {
-                    statusLabel.setText("Error exporting image: " + ex.getMessage());
-                }
+            }
+            
+            WritableImage snapshot = new WritableImage(artWidth, artHeight);
+            
+            SnapshotParameters params = new SnapshotParameters();
+            params.setFill(Color.TRANSPARENT);
+            
+            tempCanvas.snapshot(params, snapshot);
+            
+            ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), "png", file);
+            
+            if (statusLabel != null) {
+                statusLabel.setText("Image saved to " + file.getName());
+            }
+            
+            // Update dirty state
+            this.isDirty = false;
+            
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            if (statusLabel != null) {
+                statusLabel.setText("Error saving image: " + ex.getMessage());
             }
         }
     }

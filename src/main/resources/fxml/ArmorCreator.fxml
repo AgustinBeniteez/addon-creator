@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Font?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.agustinbenitez.addoncreator.ui.ArmorCreatorController"
+      spacing="20" styleClass="item-creator-root" stylesheets="@../css/item-creator.css"
+      style="-fx-padding: 20; -fx-min-width: 950; -fx-min-height: 600;">
+
+    <!-- Header -->
+    <Label text="ARMOR CREATOR" styleClass="item-creator-title"/>
+
+    <!-- Main Content Area -->
+    <HBox spacing="20" VBox.vgrow="ALWAYS">
+        
+        <!-- LEFT: Form Area -->
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" HBox.hgrow="ALWAYS">
+            <content>
+                <VBox spacing="20" styleClass="item-creator-settings">
+                    
+                    <!-- General Info -->
+                    <TitledPane text="General Information" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="150" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+
+                            <Label text="Base Identifier:" styleClass="item-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <TextField fx:id="identifierField" promptText="namespace:ruby" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            <Label text="e.g., myaddon:ruby (will create ruby_helmet, etc.)" styleClass="item-creator-instruction" style="-fx-text-fill: #888888; -fx-font-size: 10;" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Display Name:" styleClass="item-creator-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <TextField fx:id="nameField" promptText="Ruby" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+                    </TitledPane>
+
+                    <!-- Pieces Selection -->
+                    <TitledPane text="Armor Pieces" collapsible="false" expanded="true">
+                        <HBox spacing="20">
+                            <CheckBox fx:id="helmetCheck" text="Helmet" selected="true"/>
+                            <CheckBox fx:id="chestplateCheck" text="Chestplate" selected="true"/>
+                            <CheckBox fx:id="leggingsCheck" text="Leggings" selected="true"/>
+                            <CheckBox fx:id="bootsCheck" text="Boots" selected="true"/>
+                        </HBox>
+                    </TitledPane>
+
+                    <!-- Icons -->
+                    <TitledPane text="Item Icons" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="100" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                                <ColumnConstraints minWidth="100" />
+                            </columnConstraints>
+
+                            <!-- Helmet Icon -->
+                            <Label text="Helmet Icon:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                                <Button text="Select" onAction="#handleSelectHelmetIcon"/>
+                                <Label fx:id="helmetIconLabel" text="None"/>
+                            </HBox>
+                            <ImageView fx:id="helmetIconPreview" fitWidth="32" fitHeight="32" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+
+                            <!-- Chestplate Icon -->
+                            <Label text="Chestplate Icon:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                                <Button text="Select" onAction="#handleSelectChestIcon"/>
+                                <Label fx:id="chestIconLabel" text="None"/>
+                            </HBox>
+                            <ImageView fx:id="chestIconPreview" fitWidth="32" fitHeight="32" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+
+                            <!-- Leggings Icon -->
+                            <Label text="Leggings Icon:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="2" GridPane.columnIndex="1">
+                                <Button text="Select" onAction="#handleSelectLeggingsIcon"/>
+                                <Label fx:id="leggingsIconLabel" text="None"/>
+                            </HBox>
+                            <ImageView fx:id="leggingsIconPreview" fitWidth="32" fitHeight="32" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+
+                            <!-- Boots Icon -->
+                            <Label text="Boots Icon:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                                <Button text="Select" onAction="#handleSelectBootsIcon"/>
+                                <Label fx:id="bootsIconLabel" text="None"/>
+                            </HBox>
+                            <ImageView fx:id="bootsIconPreview" fitWidth="32" fitHeight="32" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+                        </GridPane>
+                    </TitledPane>
+
+                    <!-- Armor Skin -->
+                    <TitledPane text="Armor Skin (Models)" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="100" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                                <ColumnConstraints minWidth="100" />
+                            </columnConstraints>
+
+                            <Label text="Layer 1 (Head/Body/Boots):" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                                <Button text="Select Layer 1" onAction="#handleSelectLayer1"/>
+                                <Label fx:id="layer1Label" text="None"/>
+                            </HBox>
+                            <ImageView fx:id="layer1Preview" fitWidth="64" fitHeight="32" preserveRatio="true" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+
+                            <Label text="Layer 2 (Legs):" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                                <Button text="Select Layer 2" onAction="#handleSelectLayer2"/>
+                                <Label fx:id="layer2Label" text="None"/>
+                            </HBox>
+                            <ImageView fx:id="layer2Preview" fitWidth="64" fitHeight="32" preserveRatio="true" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                        </GridPane>
+                    </TitledPane>
+
+                    <!-- Properties -->
+                    <TitledPane text="Properties" collapsible="false" expanded="true">
+                        <GridPane hgap="15" vgap="15">
+                             <Label text="Durability:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                             <Spinner fx:id="durabilitySpinner" editable="true" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                             
+                             <Label text="Protection:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                             <Spinner fx:id="protectionSpinner" editable="true" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                        </GridPane>
+                    </TitledPane>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <!-- RIGHT: Preview / Actions -->
+        <VBox spacing="20" minWidth="300" styleClass="item-creator-preview-panel">
+            <Label text="Preview" styleClass="preview-title"/>
+            
+            <VBox spacing="10" alignment="CENTER" style="-fx-background-color: #222; -fx-padding: 20; -fx-background-radius: 5;">
+                <Label text="Armor Set" style="-fx-text-fill: #aaa;"/>
+                <!-- Simple representation of the armor set -->
+                <HBox spacing="5" alignment="CENTER">
+                    <ImageView fx:id="previewHelmet" fitWidth="32" fitHeight="32"/>
+                    <ImageView fx:id="previewChest" fitWidth="32" fitHeight="32"/>
+                    <ImageView fx:id="previewLeggings" fitWidth="32" fitHeight="32"/>
+                    <ImageView fx:id="previewBoots" fitWidth="32" fitHeight="32"/>
+                </HBox>
+                <Label fx:id="previewNameLabel" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                <Label fx:id="previewIdLabel" style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+            </VBox>
+
+            <Region VBox.vgrow="ALWAYS"/>
+            
+            <Button fx:id="createButton" text="Create Armor Set" onAction="#handleCreate" 
+                    styleClass="create-button" maxWidth="Infinity" prefHeight="45"/>
+        </VBox>
+    </HBox>
+
+</VBox>

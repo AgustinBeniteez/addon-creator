@@ -127,13 +127,26 @@ public class ItemCreatorController {
 
     public void setProject(Project project) {
         this.project = project;
-        if (project != null && project.getName() != null) {
-            this.projectNamespace = formatToId(project.getName());
+        if (project != null) {
+            this.projectNamespace = findNamespace(project);
             // Update identifier immediately if name is empty
             if (nameField.getText().isEmpty()) {
                 identifierField.setText(this.projectNamespace + ":");
             }
         }
+    }
+
+    private String findNamespace(Project proj) {
+        if (proj.getEntities() != null && !proj.getEntities().isEmpty()) {
+            for (String e : proj.getEntities()) {
+                if (e.contains(":"))
+                    return e.split(":")[0];
+            }
+        }
+        if (proj.getName() != null) {
+            return proj.getName().toLowerCase().replaceAll("[^a-z0-9_]", "_");
+        }
+        return "namespace";
     }
 
     public void loadItem(File file) {

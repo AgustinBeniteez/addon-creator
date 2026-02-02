@@ -192,8 +192,11 @@
                     </padding>
                     
                     <!-- Add Element Button -->
-                    <Button fx:id="btnAddElement" text="+ Add Element" 
+                    <Button fx:id="btnAddElement" text="Template" contentDisplay="RIGHT"
                             styleClass="add-element-button" maxWidth="Infinity">
+                        <graphic>
+                             <SVGPath content="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" style="-fx-fill: white;" scaleX="0.8" scaleY="0.8"/>
+                        </graphic>
                         <font>
                             <Font name="System Bold" size="13"/>
                         </font>

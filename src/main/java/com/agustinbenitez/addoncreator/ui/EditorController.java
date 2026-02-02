@@ -679,39 +679,7 @@ public class EditorController {
 
     private void setupAddEzButton() {
         if (btnAddEz != null) {
-            btnAddEz.setOnAction(e -> {
-                ContextMenu contextMenu = new ContextMenu();
-
-                MenuItem addEntity = new MenuItem("Entity");
-                addEntity.setOnAction(ev -> {
-                    if (menuAddEntity != null)
-                        menuAddEntity.fire();
-                });
-
-                MenuItem addItem = new MenuItem("Item");
-                addItem.setOnAction(ev -> {
-                    if (menuAddItem != null)
-                        menuAddItem.fire();
-                });
-
-                MenuItem addBlock = new MenuItem("Block");
-                addBlock.setOnAction(ev -> {
-                    if (menuAddBlock != null)
-                        menuAddBlock.fire();
-                });
-
-                MenuItem addRecipe = new MenuItem("Recipe");
-                addRecipe.setOnAction(ev -> {
-                    if (menuAddRecipe != null)
-                        menuAddRecipe.fire();
-                });
-
-                contextMenu.getItems().addAll(addEntity, addItem, addBlock, addRecipe);
-
-                // Show to the right of the button
-                javafx.geometry.Bounds bounds = btnAddEz.localToScreen(btnAddEz.getBoundsInLocal());
-                contextMenu.show(btnAddEz, bounds.getMaxX(), bounds.getMinY());
-            });
+            btnAddEz.setOnAction(e -> openTemplateSelection());
         }
     }
 
@@ -6742,7 +6710,24 @@ public class EditorController {
     }
 
     private void setupAddElementButton() {
-        btnAddElement.setOnAction(e -> showAddElementMenu());
+        if (btnAddElement != null) {
+            btnAddElement.setText("Template");
+            btnAddElement.setContentDisplay(ContentDisplay.RIGHT);
+            btnAddElement.setGraphicTextGap(10);
+            
+            SVGPath icon = new SVGPath();
+            // Use a grid/template icon or keep the plus? User said "icon to the right", implies moving the existing one or a new one.
+            // "Template" usually implies a grid. Let's use a grid-like icon + plus.
+            // Or just the existing plus. User said "change it to say template with an icon to the right".
+            // I'll use a simple plus for now as it's "Add".
+            icon.setContent("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z");
+            icon.setStyle("-fx-fill: white;"); 
+            icon.setScaleX(1.2);
+            icon.setScaleY(1.2);
+            
+            btnAddElement.setGraphic(icon);
+            btnAddElement.setOnAction(e -> openTemplateSelection());
+        }
     }
 
     private void setupNewFileButton() {
@@ -6844,6 +6829,261 @@ public class EditorController {
                 log("✗ Error al crear archivo: " + e.getMessage());
             }
         });
+    }
+
+    private void openTemplateSelection() {
+        TemplateSelectionDialog dialog = new TemplateSelectionDialog(id -> {
+            switch (id) {
+                case "block":
+                    handleAddBlock();
+                    break;
+                case "item":
+                    handleAddItem();
+                    break;
+                case "entity":
+                    handleAddEntity();
+                    break;
+                case "recipe":
+                    if (menuAddRecipe != null) menuAddRecipe.fire();
+                    break;
+                case "script":
+                    openScriptCreator();
+                    break;
+                case "worldgen":
+                    openWorldGenCreator();
+                    break;
+                case "function":
+                     handleCreateFile(".mcfunction"); 
+                     break;
+                case "armor":
+                     openArmorCreator();
+                     break;
+                case "biome":
+                     // Biome is part of WorldGen
+                     openWorldGenCreator();
+                     break;
+                case "command":
+                     openCommandCreator();
+                     break;
+                case "gamerule":
+                     openGameruleCreator();
+                     break;
+                case "tool":
+                     openToolCreator();
+                     break;
+                case "painting":
+                     openPaintingCreator();
+                     break;
+                default:
+                    log("Selected template: " + id + " (Not implemented yet)");
+                    break;
+            }
+        });
+        if (btnAddElement.getScene() != null) {
+            dialog.initOwner(btnAddElement.getScene().getWindow());
+        }
+        dialog.show();
+    }
+
+    private void openScriptCreator() {
+         if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ScriptCreator.fxml"));
+            Parent root = loader.load();
+            ScriptCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Script");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open script creator", e);
+        }
+    }
+
+    private void openWorldGenCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/WorldGenCreator.fxml"));
+            Parent root = loader.load();
+            WorldGenCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("World Gen Creator");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+             // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open world gen creator", e);
+        }
+    }
+
+    private void openArmorCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ArmorCreator.fxml"));
+            Parent root = loader.load();
+            ArmorCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Armor Set");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+             // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open armor creator", e);
+        }
+    }
+
+    private void openCommandCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/CommandCreator.fxml"));
+            Parent root = loader.load();
+            CommandCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Custom Command");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open command creator", e);
+        }
+    }
+
+    private void openGameruleCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/GameruleCreator.fxml"));
+            Parent root = loader.load();
+            GameruleCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Custom Gamerule");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open gamerule creator", e);
+        }
+    }
+
+    private void openToolCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ToolCreator.fxml"));
+            Parent root = loader.load();
+            ToolCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Custom Tool");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open tool creator", e);
+        }
+    }
+
+    private void openPaintingCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PaintingCreator.fxml"));
+            Parent root = loader.load();
+            PaintingCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Painting");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+            
+            if (controller.getCreatedFile() != null) {
+                openPixelArtEditor(controller.getCreatedFile());
+            }
+            
+        } catch (IOException e) {
+            logger.error("Failed to open painting creator", e);
+        }
     }
 
     private void showAddElementMenu() {
@@ -8658,6 +8898,7 @@ public class EditorController {
                     img = new javafx.scene.image.Image(file.toURI().toString());
                 }
                 controller.setImage(img);
+                controller.setCurrentFile(file);
             }
 
             // Check if in Easy Mode
