@@ -2833,8 +2833,8 @@ public class EditorController {
     }
 
     private void downloadSelectedFiles(List<String> files, String itemName, Runnable onRefresh) {
-        Node overlay = LoadingSpinnerHelper
-                .createDownloadOverlay("Descargando " + files.size() + " " + itemName + "...");
+        LoadingSpinnerHelper.DownloadOverlay overlay = LoadingSpinnerHelper
+                .createInteractiveDownloadOverlay("Descargando " + files.size() + " " + itemName + "...");
 
         Parent sceneRoot = btnBack.getScene().getRoot();
         StackPane overlayContainer = null;
@@ -2846,14 +2846,32 @@ public class EditorController {
 
         final StackPane finalOverlayContainer = overlayContainer;
         if (finalOverlayContainer != null)
-            finalOverlayContainer.getChildren().add(overlay);
+            finalOverlayContainer.getChildren().add(overlay.getRoot());
+
+        java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
+        overlay.setOnCancel(() -> {
+            cancelled.set(true);
+            overlay.setProgress("Cancelando...");
+        });
 
         new Thread(() -> {
-            BedrockSamplesDownloader.downloadSpecificFiles(files, Paths.get(currentProject.getRootPath()), () -> {
-            });
+            BedrockSamplesDownloader.downloadSpecificFiles(files, Paths.get(currentProject.getRootPath()), 
+                (done, total) -> {
+                    double percent = (double) done / total * 100.0;
+                    overlay.setProgress(String.format("Archivo %d de %d (%.0f%%)", done, total, percent));
+                },
+                cancelled::get
+            );
+
             Platform.runLater(() -> {
                 if (finalOverlayContainer != null)
-                    finalOverlayContainer.getChildren().remove(overlay);
+                    finalOverlayContainer.getChildren().remove(overlay.getRoot());
+                
+                if (cancelled.get()) {
+                    // Alert cancellation if desired, or just return
+                    return;
+                }
+
                 if (onRefresh != null)
                     onRefresh.run();
 

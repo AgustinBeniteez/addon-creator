@@ -680,40 +680,74 @@ public class MainWindowController {
 
                 if (!categories.isEmpty()) {
                     // Create Overlay
-                    Node overlay = LoadingSpinnerHelper
-                            .createDownloadOverlay("Descargando texturas de bedrock-samples...");
+                    LoadingSpinnerHelper.DownloadOverlay overlay = LoadingSpinnerHelper
+                            .createInteractiveDownloadOverlay("Descargando texturas de bedrock-samples...");
 
                     // Show Overlay
                     javafx.scene.Parent root = generateButton.getScene().getRoot();
                     if (root instanceof StackPane) {
-                        ((StackPane) root).getChildren().add(overlay);
+                        ((StackPane) root).getChildren().add(overlay.getRoot());
                     } else if (root instanceof javafx.scene.layout.BorderPane) {
                         javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) root;
                         Node originalCenter = borderPane.getCenter();
                         StackPane stack = new StackPane();
                         if (originalCenter != null)
                             stack.getChildren().add(originalCenter);
-                        stack.getChildren().add(overlay);
+                        stack.getChildren().add(overlay.getRoot());
                         borderPane.setCenter(stack);
                     }
+
+                    // Cancellation Flag
+                    java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
+                    
+                    overlay.setOnCancel(() -> {
+                        cancelled.set(true);
+                        overlay.setProgress("Cancelando...");
+                    });
 
                     // Start Download Thread
                     new Thread(() -> {
                         try {
-                            BedrockSamplesDownloader.downloadTextures(rootPath, categories, () -> {
-                            });
+                            // Estimated size of bedrock-samples zip (approx 180MB) for fallback
+                            final long ESTIMATED_SIZE = 180 * 1024 * 1024; 
+
+                            BedrockSamplesDownloader.downloadTextures(rootPath, categories, 
+                                (downloaded, total) -> {
+                                    if (total > 0) {
+                                        double percent = (double) downloaded / total * 100.0;
+                                        overlay.setProgress(String.format("%.0f%%", percent));
+                                    } else {
+                                        // Fallback for unknown size
+                                        double percent = (double) downloaded / ESTIMATED_SIZE * 100.0;
+                                        if (percent > 99) percent = 99; // Cap at 99% if we exceed estimate
+                                        
+                                        double downloadedMb = downloaded / (1024.0 * 1024.0);
+                                        overlay.setProgress(String.format("%.1f MB (%.0f%%)", downloadedMb, percent));
+                                    }
+                                },
+                                cancelled::get
+                            );
 
                             Platform.runLater(() -> {
-                                log("✓ Texturas descargadas correctamente");
+                                if (cancelled.get()) {
+                                    log("⚠ Descarga cancelada por el usuario");
+                                } else {
+                                    log("✓ Texturas descargadas correctamente");
+                                }
                                 NavigationManager.getInstance().showEditor(newProject);
                             });
                         } catch (Exception e) {
                             Platform.runLater(() -> {
-                                logger.error("Download failed", e);
-                                log("⚠ Error descargando texturas: " + e.getMessage());
-                                showError("Error de descarga",
-                                        "No se pudieron descargar las texturas.\nVerifique su conexión a internet.");
-                                NavigationManager.getInstance().showEditor(newProject);
+                                if (cancelled.get()) {
+                                    log("⚠ Descarga cancelada");
+                                    NavigationManager.getInstance().showEditor(newProject);
+                                } else {
+                                    logger.error("Download failed", e);
+                                    log("⚠ Error descargando texturas: " + e.getMessage());
+                                    showError("Error de descarga",
+                                            "No se pudieron descargar las texturas.\nVerifique su conexión a internet.");
+                                    NavigationManager.getInstance().showEditor(newProject);
+                                }
                             });
                         }
                     }).start();

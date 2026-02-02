@@ -673,6 +673,55 @@ public class EntityCreatorController {
         if (project == null || selectedModelPath == null)
             return;
 
+        // Create and show overlay
+        LoadingSpinnerHelper.DownloadOverlay overlay = LoadingSpinnerHelper
+                .createInteractiveDownloadOverlay("Descargando modelo...");
+        
+        // Find a place to show the overlay
+        javafx.scene.Node rootNode = identifierField.getScene().getRoot();
+        javafx.scene.layout.StackPane overlayContainer = null;
+        
+        if (rootNode instanceof javafx.scene.layout.StackPane) {
+            overlayContainer = (javafx.scene.layout.StackPane) rootNode;
+        } else if (rootNode instanceof javafx.scene.layout.BorderPane) {
+             javafx.scene.layout.BorderPane bp = (javafx.scene.layout.BorderPane) rootNode;
+             if (bp.getCenter() instanceof javafx.scene.layout.StackPane) {
+                 overlayContainer = (javafx.scene.layout.StackPane) bp.getCenter();
+             } else {
+                 // Center is not a StackPane, wrap it!
+                 javafx.scene.Node originalCenter = bp.getCenter();
+                 javafx.scene.layout.StackPane newStack = new javafx.scene.layout.StackPane();
+                 if (originalCenter != null) {
+                     newStack.getChildren().add(originalCenter);
+                 }
+                 bp.setCenter(newStack);
+                 overlayContainer = newStack;
+             }
+        }
+
+        // Fallback: Try to find any StackPane parent if still null (e.g. if root is neither)
+        if (overlayContainer == null) {
+             javafx.scene.Parent parent = identifierField.getParent();
+             while (parent != null) {
+                 if (parent instanceof javafx.scene.layout.StackPane) {
+                     overlayContainer = (javafx.scene.layout.StackPane) parent;
+                     break;
+                 }
+                 parent = parent.getParent();
+             }
+        }
+
+        final javafx.scene.layout.StackPane finalOverlayContainer = overlayContainer;
+        if (finalOverlayContainer != null) {
+            finalOverlayContainer.getChildren().add(overlay.getRoot());
+        }
+
+        java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
+        overlay.setOnCancel(() -> {
+            cancelled.set(true);
+            overlay.setProgress("Cancelando...");
+        });
+
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
@@ -694,13 +743,27 @@ public class EntityCreatorController {
                     toDownload.add(selectedTexturePath);
 
                 if (!toDownload.isEmpty()) {
-                    BedrockSamplesDownloader.downloadSpecificFiles(toDownload, Path.of(project.getRootPath()), null);
+                    BedrockSamplesDownloader.downloadSpecificFiles(toDownload, Path.of(project.getRootPath()), 
+                        (done, total) -> {
+                            double percent = (double) done / total * 100.0;
+                            overlay.setProgress(String.format("Archivo %d de %d (%.0f%%)", done, total, percent));
+                        },
+                        cancelled::get
+                    );
                 }
                 return null;
             }
 
             @Override
             protected void succeeded() {
+                if (finalOverlayContainer != null) {
+                    finalOverlayContainer.getChildren().remove(overlay.getRoot());
+                }
+                
+                if (cancelled.get()) {
+                    return; 
+                }
+
                 if (localTextureFile != null && localTextureFile.exists()) {
                     selectedTextureFile = localTextureFile;
                     textureNameLabel.setText(localTextureFile.getName());
@@ -714,7 +777,12 @@ public class EntityCreatorController {
 
             @Override
             protected void failed() {
-                showAlert("Error", "Failed to download model files.");
+                if (finalOverlayContainer != null) {
+                    finalOverlayContainer.getChildren().remove(overlay.getRoot());
+                }
+                if (!cancelled.get()) {
+                    showAlert("Error", "Failed to download model files.");
+                }
             }
         };
         new Thread(task).start();

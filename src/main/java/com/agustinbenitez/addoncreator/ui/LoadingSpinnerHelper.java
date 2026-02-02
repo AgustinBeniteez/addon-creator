@@ -570,6 +570,46 @@ public class LoadingSpinnerHelper {
         return createOverlayInternal(message, createDownloadSpinner());
     }
 
+    public static class DownloadOverlay {
+        private final StackPane root;
+        private final Label progressLabel;
+        private final javafx.scene.control.Button cancelButton;
+
+        public DownloadOverlay(StackPane root, Label progressLabel, javafx.scene.control.Button cancelButton) {
+            this.root = root;
+            this.progressLabel = progressLabel;
+            this.cancelButton = cancelButton;
+        }
+
+        public StackPane getRoot() { return root; }
+        public void setProgress(String text) { javafx.application.Platform.runLater(() -> progressLabel.setText(text)); }
+        public void setOnCancel(Runnable action) { cancelButton.setOnAction(e -> action.run()); }
+    }
+
+    public static DownloadOverlay createInteractiveDownloadOverlay(String message) {
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(30, 30, 30, 0.8);");
+        
+        VBox content = new VBox(15);
+        content.setAlignment(Pos.CENTER);
+        
+        Label msgLabel = new Label(message);
+        msgLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        Label progressLabel = new Label("0%");
+        progressLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 12px;");
+        
+        javafx.scene.control.Button cancelBtn = new javafx.scene.control.Button("Cancelar");
+        cancelBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 5 15;");
+        cancelBtn.setOnMouseEntered(e -> cancelBtn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 5 15;"));
+        cancelBtn.setOnMouseExited(e -> cancelBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-cursor: hand; -fx-background-radius: 4; -fx-padding: 5 15;"));
+        
+        content.getChildren().addAll(createDownloadSpinner(), msgLabel, progressLabel, cancelBtn);
+        overlay.getChildren().add(content);
+        
+        return new DownloadOverlay(overlay, progressLabel, cancelBtn);
+    }
+
     public static Node createFileLoadingOverlay(String message) {
         return createOverlayInternal(message, createTextureLoadingSpinner());
     }

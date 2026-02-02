@@ -111,11 +111,19 @@ public class BedrockSamplesDownloader {
      * @param projectRoot Project root path
      * @param onProgress Callback run after each file download
      */
-    public static void downloadSpecificFiles(List<String> relativePaths, Path projectRoot, Runnable onProgress) {
+    public static void downloadSpecificFiles(List<String> relativePaths, Path projectRoot, java.util.function.BiConsumer<Integer, Integer> onProgress, java.util.function.Supplier<Boolean> isCancelled) {
         Path rpRoot = projectRoot.resolve("RP");
         Path bpRoot = projectRoot.resolve("BP");
         
+        int totalFiles = relativePaths.size();
+        int downloadedFiles = 0;
+
         for (String relativePath : relativePaths) {
+            // Check cancellation
+            if (isCancelled != null && isCancelled.get()) {
+                break;
+            }
+
             try {
                 Path targetRoot = rpRoot;
                 String pathInsidePack = relativePath;
@@ -138,8 +146,10 @@ public class BedrockSamplesDownloader {
                     Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
                 }
                 
+                downloadedFiles++;
                 if (onProgress != null) {
-                    Platform.runLater(onProgress);
+                    final int current = downloadedFiles;
+                    Platform.runLater(() -> onProgress.accept(current, totalFiles));
                 }
                 
             } catch (Exception e) {
@@ -149,14 +159,24 @@ public class BedrockSamplesDownloader {
     }
 
     /**
+     * Legacy support for old calls (to be updated if necessary)
+     */
+    public static void downloadSpecificFiles(List<String> relativePaths, Path projectRoot, Runnable onProgress) {
+        downloadSpecificFiles(relativePaths, projectRoot, (done, total) -> {
+            if (onProgress != null) onProgress.run();
+        }, null);
+    }
+
+    /**
      * Downloads and extracts selected texture categories to the project's Resource Pack folder.
      * This method is blocking and should be run on a background thread.
      *
      * @param projectRoot The root folder of the project.
      * @param categories The set of categories to download.
-     * @param onProgress Callback for progress (optional).
+     * @param onProgress Callback for progress (downloaded bytes, total bytes). Total bytes may be -1 if unknown.
+     * @param isCancelled Callback to check if download should be cancelled.
      */
-    public static void downloadTextures(Path projectRoot, Set<TextureCategory> categories, Runnable onProgress) throws IOException {
+    public static void downloadTextures(Path projectRoot, Set<TextureCategory> categories, java.util.function.BiConsumer<Long, Long> onProgress, java.util.function.Supplier<Boolean> isCancelled) throws IOException {
         logger.info("Starting download of textures for categories: {}", categories);
         
         Path rpRoot = projectRoot.resolve("RP");
@@ -165,53 +185,93 @@ public class BedrockSamplesDownloader {
         }
 
         URL url = new URL(REPO_ZIP_URL);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        long contentLength = conn.getContentLengthLong();
         
-        try (InputStream in = url.openStream();
-             BufferedInputStream buf = new BufferedInputStream(in);
-             ZipInputStream zipIn = new ZipInputStream(buf)) {
+        try (InputStream rawIn = conn.getInputStream();
+             BufferedInputStream buf = new BufferedInputStream(rawIn)) {
             
-            ZipEntry entry;
-            while ((entry = zipIn.getNextEntry()) != null) {
-                if (entry.isDirectory()) {
-                    continue;
-                }
-
-                String name = entry.getName();
+            // Wrap in CountingInputStream logic
+            InputStream in = new InputStream() {
+                private long totalRead = 0;
+                private long lastUpdate = 0;
                 
-                // Strip the root folder name (e.g. bedrock-samples-main/)
-                String relativeName = name;
-                if (name.startsWith(ZIP_ROOT_PREFIX)) {
-                    relativeName = name.substring(ZIP_ROOT_PREFIX.length());
-                } else {
-                    // Just in case the branch name is different or structure changed
-                    int slashIndex = name.indexOf('/');
-                    if (slashIndex != -1) {
-                        relativeName = name.substring(slashIndex + 1);
+                @Override
+                public int read() throws IOException {
+                    int b = buf.read();
+                    if (b != -1) updateProgress(1);
+                    return b;
+                }
+                
+                @Override
+                public int read(byte[] b, int off, int len) throws IOException {
+                    int read = buf.read(b, off, len);
+                    if (read != -1) updateProgress(read);
+                    return read;
+                }
+                
+                private void updateProgress(int read) {
+                    totalRead += read;
+                    if (isCancelled != null && isCancelled.get()) {
+                        throw new RuntimeException("Download cancelled");
+                    }
+                    if (onProgress != null) {
+                        // Throttle updates to avoid flooding UI thread
+                        long now = System.currentTimeMillis();
+                        if (now - lastUpdate > 100 || (contentLength > 0 && totalRead == contentLength)) {
+                            final long currentRead = totalRead;
+                            Platform.runLater(() -> onProgress.accept(currentRead, contentLength));
+                            lastUpdate = now;
+                        }
                     }
                 }
+            };
 
-                // We only care about resource_pack/
-                if (!relativeName.startsWith(RP_PREFIX)) {
-                    continue;
-                }
+            try (ZipInputStream zipIn = new ZipInputStream(in)) {
+                ZipEntry entry;
+                while ((entry = zipIn.getNextEntry()) != null) {
+                    if (entry.isDirectory()) {
+                        continue;
+                    }
 
-                String pathInsideRp = relativeName.substring(RP_PREFIX.length());
-                
-                if (shouldDownload(pathInsideRp, categories)) {
-                    Path targetPath = rpRoot.resolve(pathInsideRp);
+                    String name = entry.getName();
                     
-                    // Create parent directories
-                    Files.createDirectories(targetPath.getParent());
+                    // Strip the root folder name (e.g. bedrock-samples-main/)
+                    String relativeName = name;
+                    if (name.startsWith(ZIP_ROOT_PREFIX)) {
+                        relativeName = name.substring(ZIP_ROOT_PREFIX.length());
+                    } else {
+                        // Just in case the branch name is different or structure changed
+                        int slashIndex = name.indexOf('/');
+                        if (slashIndex != -1) {
+                            relativeName = name.substring(slashIndex + 1);
+                        }
+                    }
+
+                    // We only care about resource_pack/
+                    if (!relativeName.startsWith(RP_PREFIX)) {
+                        continue;
+                    }
+
+                    String pathInsideRp = relativeName.substring(RP_PREFIX.length());
                     
-                    // Copy file
-                    Files.copy(zipIn, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                    
-                    if (onProgress != null) {
-                        // Simple progress tick
-                        Platform.runLater(onProgress);
+                    if (shouldDownload(pathInsideRp, categories)) {
+                        Path targetPath = rpRoot.resolve(pathInsideRp);
+                        
+                        // Create parent directories
+                        Files.createDirectories(targetPath.getParent());
+                        
+                        // Copy file
+                        Files.copy(zipIn, targetPath, StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
             }
+        } catch (RuntimeException e) {
+            if ("Download cancelled".equals(e.getMessage())) {
+                logger.info("Download cancelled by user");
+                return; // Graceful exit
+            }
+            throw new IOException(e);
         }
         
         logger.info("Texture download completed.");
