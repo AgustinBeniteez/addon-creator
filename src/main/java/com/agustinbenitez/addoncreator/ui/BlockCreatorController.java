@@ -1,13 +1,11 @@
 package com.agustinbenitez.addoncreator.ui;
 
 import com.agustinbenitez.addoncreator.models.Project;
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
@@ -16,14 +14,12 @@ import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.transform.Rotate;
-import javafx.scene.transform.Translate;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -34,12 +30,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
 
-import javafx.collections.FXCollections;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.converter.IntegerStringConverter;
@@ -1209,24 +1201,6 @@ public class BlockCreatorController {
             return "";
         }
         return name.substring(lastIndexOf);
-    }
-
-    private File findTextureFile(File dir, String baseName) {
-        if (!dir.exists())
-            return null;
-        File png = new File(dir, baseName + ".png");
-        if (png.exists())
-            return png;
-        File tga = new File(dir, baseName + ".tga");
-        if (tga.exists())
-            return tga;
-        File jpg = new File(dir, baseName + ".jpg");
-        if (jpg.exists())
-            return jpg;
-        File jpeg = new File(dir, baseName + ".jpeg");
-        if (jpeg.exists())
-            return jpeg;
-        return null;
     }
 
     private void showAlert(String title, String msg) {

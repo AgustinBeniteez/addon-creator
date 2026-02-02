@@ -13,14 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TodoManager {
-    private final Path projectRoot;
     private final Path todoDir;
     private final Path tasksFile;
     private final Gson gson;
     private List<Task> tasks;
 
     public TodoManager(Path projectRoot) {
-        this.projectRoot = projectRoot;
         this.todoDir = projectRoot.resolve(".TODO");
         this.tasksFile = todoDir.resolve("tasks.json");
         this.gson = new GsonBuilder().setPrettyPrinting().create();

@@ -1,7 +1,5 @@
 package com.agustinbenitez.addoncreator.core;
 
-import javafx.scene.image.Image;
-
 /**
  * Represents a project template
  */
