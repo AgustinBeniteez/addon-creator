@@ -583,7 +583,11 @@ public class LoadingSpinnerHelper {
 
         public StackPane getRoot() { return root; }
         public void setProgress(String text) { javafx.application.Platform.runLater(() -> progressLabel.setText(text)); }
-        public void setOnCancel(Runnable action) { cancelButton.setOnAction(e -> action.run()); }
+        public void setOnCancel(Runnable action) { 
+            if (cancelButton != null) {
+                cancelButton.setOnAction(e -> action.run()); 
+            }
+        }
     }
 
     public static DownloadOverlay createInteractiveDownloadOverlay(String message) {
@@ -608,6 +612,33 @@ public class LoadingSpinnerHelper {
         overlay.getChildren().add(content);
         
         return new DownloadOverlay(overlay, progressLabel, cancelBtn);
+    }
+
+    public static DownloadOverlay createNonCancellableProgressOverlay(String message) {
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(30, 30, 30, 0.8);");
+        
+        VBox content = new VBox(15);
+        content.setAlignment(Pos.CENTER);
+        
+        Label msgLabel = new Label(message);
+        msgLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        Label progressLabel = new Label("0%");
+        progressLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 12px;");
+        
+        // Use standard spinner or download spinner? User said "like percentage", so probably implies loading.
+        // Let's use the code spinner or standard spinner as it's for project loading.
+        // But the previous implementation used 'createDownloadSpinner' for the progress overlay.
+        // Let's use createCodeLoadingSpinner since it's a project (code) but the user mentioned "percentage".
+        // createDownloadSpinner has the bouncing arrow. createCodeLoadingSpinner has the {/} icon.
+        // I'll use createCodeLoadingSpinner as it fits "Project Loading" better, but I need to make sure it looks good.
+        // Actually, let's stick to createCodeLoadingSpinner as it was used in the simple overlay before.
+        
+        content.getChildren().addAll(createCodeLoadingSpinner(), msgLabel, progressLabel);
+        overlay.getChildren().add(content);
+        
+        return new DownloadOverlay(overlay, progressLabel, null);
     }
 
     public static Node createFileLoadingOverlay(String message) {

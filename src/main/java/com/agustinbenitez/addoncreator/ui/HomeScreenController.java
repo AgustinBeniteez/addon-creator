@@ -11,6 +11,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -28,6 +29,8 @@ import javafx.geometry.Pos;
 import javafx.geometry.Insets;
 import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.scene.Node;
 import javafx.util.Duration;
 import org.slf4j.Logger;
@@ -39,6 +42,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.awt.Desktop;
+import java.net.URI;
 import com.agustinbenitez.addoncreator.utils.ZipUtils;
 import javafx.stage.FileChooser;
 
@@ -76,6 +81,9 @@ public class HomeScreenController {
 
     @FXML
     private Button pixelArtButton;
+
+    @FXML
+    private Button blockBenchButton;
 
     @FXML
     private Button settingsButton;
@@ -163,6 +171,22 @@ public class HomeScreenController {
             group.setScaleY(0.5);
 
             pixelArtButton.setGraphic(group);
+        }
+
+        if (blockBenchButton != null) {
+            blockBenchButton.setOnAction(e -> handleOpenBlockBench());
+
+            // Create Blockbench Icon (Cube)
+            SVGPath cube = new SVGPath();
+            // Isometric Cube
+            cube.setContent("M12 2L2.2 7.7v11.6L12 25l9.8-5.7V7.7L12 2zm0 2.3l7.8 4.5-7.8 4.5-7.8-4.5 7.8-4.5zm-1.2 18.3V14.9L4.2 11v7.7l6.6 3.9zm2.4 0l6.6-3.9V11l-6.6 3.9v7.7z");
+            cube.setFill(Color.web("#E6E6E6"));
+
+            Group group = new Group(cube);
+            group.setScaleX(0.7);
+            group.setScaleY(0.7);
+
+            blockBenchButton.setGraphic(group);
         }
 
         settingsButton.setOnAction(e -> handleSettings());
@@ -622,6 +646,37 @@ public class HomeScreenController {
         }
     }
 
+    private void loadProjectWithProgress(Project project) {
+        if (rootStackPane != null) {
+            LoadingSpinnerHelper.DownloadOverlay overlay = LoadingSpinnerHelper.createNonCancellableProgressOverlay("Cargando proyecto...");
+            rootStackPane.getChildren().add(overlay.getRoot());
+
+            // Simulate loading progress
+            Timeline timeline = new Timeline(
+                new KeyFrame(Duration.ZERO, e -> overlay.setProgress("0%")),
+                new KeyFrame(Duration.millis(100), e -> overlay.setProgress("20%")),
+                new KeyFrame(Duration.millis(300), e -> overlay.setProgress("50%")),
+                new KeyFrame(Duration.millis(600), e -> overlay.setProgress("80%")),
+                new KeyFrame(Duration.millis(800), e -> {
+                    overlay.setProgress("100%");
+                    try {
+                        NavigationManager.getInstance().showEditor(project);
+                    } catch (Exception ex) {
+                        rootStackPane.getChildren().remove(overlay.getRoot());
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Error");
+                        alert.setHeaderText("No se pudo cargar el proyecto");
+                        alert.setContentText(ex.getMessage());
+                        alert.showAndWait();
+                    }
+                })
+            );
+            timeline.play();
+        } else {
+             NavigationManager.getInstance().showEditor(project);
+        }
+    }
+
     private void handleProjectClick(Project project, Pane cardNode) {
         // Animation feedback
         javafx.animation.ScaleTransition st = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(100),
@@ -643,14 +698,7 @@ public class HomeScreenController {
                 return;
             }
 
-            if (rootStackPane != null) {
-                Node overlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando proyecto...", "code");
-                rootStackPane.getChildren().add(overlay);
-            }
-
-            PauseTransition pause = new PauseTransition(Duration.millis(100));
-            pause.setOnFinished(event -> NavigationManager.getInstance().showEditor(project));
-            pause.play();
+            loadProjectWithProgress(project);
         });
         st.play();
     }
@@ -685,25 +733,17 @@ public class HomeScreenController {
             java.util.Optional<Project> existingProject = allProjects.stream()
                     .filter(p -> p.getRootPath().equals(path))
                     .findFirst();
-
-            // Show Loading Overlay
-            if (rootStackPane != null) {
-                Node overlay = LoadingSpinnerHelper.createLoadingOverlay("Cargando proyecto...", "code");
-                rootStackPane.getChildren().add(overlay);
+            
+            Project projectToOpen;
+            if (existingProject.isPresent()) {
+                projectToOpen = existingProject.get();
+            } else {
+                 // Create new project entry and save it
+                 projectToOpen = new Project(selectedDirectory.getName(), "Imported Project", path);
+                 projectManager.addProject(projectToOpen);
             }
-
-            PauseTransition pause = new PauseTransition(Duration.millis(100));
-            pause.setOnFinished(event -> {
-                if (existingProject.isPresent()) {
-                    NavigationManager.getInstance().showEditor(existingProject.get());
-                } else {
-                    // Create new project entry and save it
-                    Project project = new Project(selectedDirectory.getName(), "Imported Project", path);
-                    projectManager.addProject(project);
-                    NavigationManager.getInstance().showEditor(project);
-                }
-            });
-            pause.play();
+            
+            loadProjectWithProgress(projectToOpen);
         }
     }
 
@@ -761,54 +801,60 @@ public class HomeScreenController {
         }
     }
 
-    private void handleBlockbench() {
+    private void handleOpenBlockBench() {
         String path = SettingsManager.getInstance().getBlockbenchPath();
 
-        if (path == null || path.isEmpty() || !new File(path).exists()) {
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Configurar Blockbench");
-            alert.setHeaderText("Blockbench no está configurado");
-            alert.setContentText("Selecciona el ejecutable de Blockbench para continuar.");
-
-            alert.showAndWait().ifPresent(response -> {
-                if (response == ButtonType.OK) {
-                    FileChooser fileChooser = new FileChooser();
-                    fileChooser.setTitle("Seleccionar Ejecutable de Blockbench");
-                    fileChooser.getExtensionFilters()
-                            .add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "*.sh"));
-                    File file = fileChooser.showOpenDialog(pixelArtButton.getScene().getWindow());
-
-                    if (file != null) {
-                        SettingsManager.getInstance().setBlockbenchPath(file.getAbsolutePath());
-                        // Try again recursively
-                        handleBlockbench();
-                    }
-                }
-            });
+        if (path != null && !path.isEmpty() && new File(path).exists()) {
+            try {
+                new ProcessBuilder(path).start();
+            } catch (Exception ex) {
+                logger.error("Error al abrir Blockbench", ex);
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Error al iniciar Blockbench");
+                alert.setContentText(ex.getMessage());
+                alert.showAndWait();
+            }
             return;
         }
 
-        // Launch Blockbench
-        new Thread(() -> {
-            try {
-                if (java.awt.Desktop.isDesktopSupported()
-                        && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
-                    java.awt.Desktop.getDesktop().open(new File(path));
-                } else {
-                    // Fallback using ProcessBuilder
-                    new ProcessBuilder(path).start();
+        // Not configured or invalid path
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Configurar Blockbench");
+        alert.setHeaderText("Blockbench no está configurado");
+        alert.setContentText("¿Ya tienes Blockbench instalado?");
+
+        ButtonType btnSelect = new ButtonType("Sí, seleccionar ejecutable");
+        ButtonType btnDownload = new ButtonType("No, ir a descargar");
+        ButtonType btnCancel = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        alert.getButtonTypes().setAll(btnSelect, btnDownload, btnCancel);
+
+        java.util.Optional<ButtonType> result = alert.showAndWait();
+
+        if (result.isPresent()) {
+            if (result.get() == btnSelect) {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Seleccionar Ejecutable de Blockbench");
+                fileChooser.getExtensionFilters()
+                        .add(new FileChooser.ExtensionFilter("Ejecutables", "*.exe", "*.app", "blockbench"));
+                File exe = fileChooser.showOpenDialog(projectsGrid.getScene().getWindow());
+
+                if (exe != null) {
+                    SettingsManager.getInstance().setBlockbenchPath(exe.getAbsolutePath());
+                    // Retry opening
+                    handleOpenBlockBench();
                 }
-            } catch (java.io.IOException ex) {
-                javafx.application.Platform.runLater(() -> {
-                    logger.error("Error al abrir Blockbench", ex);
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Error");
-                    alert.setHeaderText("Error al iniciar Blockbench");
-                    alert.setContentText(ex.getMessage());
-                    alert.showAndWait();
-                });
+            } else if (result.get() == btnDownload) {
+                try {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI("https://www.blockbench.net/"));
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to open browser", e);
+                }
             }
-        }).start();
+        }
     }
 
     private void handleDownloadProject(Project project) {

@@ -91,6 +91,14 @@
                         <Font name="System Bold" size="18"/>
                     </font>
                 </Button>
+
+                <Button fx:id="blockBenchButton" text="Blockbench"
+                        styleClass="create-project-button">
+                    <tooltip><Tooltip text="Abrir Blockbench"/></tooltip>
+                    <font>
+                        <Font name="System Bold" size="18"/>
+                    </font>
+                </Button>
             </HBox>
             
 
