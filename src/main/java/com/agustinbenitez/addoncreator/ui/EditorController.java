@@ -1359,6 +1359,48 @@ public class EditorController {
             }
         }
 
+        // Add Paintings to Main View
+        try {
+            Path paintingsDir = root.resolve("RP/textures/painting");
+            if (Files.exists(paintingsDir)) {
+                try (Stream<Path> stream = Files.list(paintingsDir)) {
+                    stream.filter(p -> {
+                        String name = p.getFileName().toString().toLowerCase();
+                        return name.endsWith(".png") || name.endsWith(".tga") || name.endsWith(".jpg");
+                    }).forEach(p -> {
+                        String name = p.getFileName().toString();
+                        if (shouldShow(name)) {
+                            // Use absolute path for icon
+                            Node card = createEzCard("Painting", name, p.toAbsolutePath().toString());
+                            
+                            card.setOnMouseClicked(e -> {
+                                if (e.getButton() == MouseButton.PRIMARY) {
+                                    openPixelArtEditor(p.toFile());
+                                }
+                            });
+
+                            // Context menu
+                            ContextMenu cm = new ContextMenu();
+                            MenuItem editItem = new MenuItem("Editar");
+                            editItem.setOnAction(ev -> openPixelArtEditor(p.toFile()));
+                            
+                            MenuItem deleteItem = new MenuItem("Eliminar");
+                            deleteItem.setOnAction(ev -> deleteFileWithConfirmation(p, name, this::populateEzLists));
+                            
+                            cm.getItems().addAll(editItem, deleteItem);
+                            
+                            card.setOnContextMenuRequested(ev -> cm.show(card, ev.getScreenX(), ev.getScreenY()));
+                            
+                            card.setStyle(card.getStyle() + "-fx-cursor: hand;");
+                            mainElementsFlowPane.getChildren().add(card);
+                        }
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error loading paintings in main view", e);
+        }
+
         // Add Recipes to Main View
         try {
             Path recipesDir = root.resolve("BP/recipes");
@@ -2988,6 +3030,19 @@ public class EditorController {
                 icon.setContent(
                         "M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4M20,18H4V6H20V18M7.5,14L9,15.5L12.5,12L9,8.5L7.5,10L9.5,12L7.5,14M14,14H19V16H14V14Z");
                 color = "#607D8B"; // Blue Grey
+                break;
+            case "painting":
+            case "cuadro":
+                // Painting/Image icon
+                icon.setContent(
+                        "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z");
+                color = "#009688"; // Teal
+                break;
+            case "sound":
+            case "sonido":
+                // Music Note icon
+                icon.setContent("M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z");
+                color = "#E91E63"; // Pink/Red
                 break;
         }
 
@@ -7677,8 +7732,20 @@ public class EditorController {
                     updateTimeLabel(timeLabel, finalMediaPlayer.getCurrentTime(), finalMedia.getDuration());
                 });
             } else {
-                // Error case: Just info section
-                card.getChildren().addAll(infoSection);
+                // Error case: Just info section + External Open Button
+                Button openExternalBtn = new Button("Abrir en Sistema");
+                openExternalBtn.setStyle("-fx-background-color: #3B82F6; -fx-text-fill: white; -fx-cursor: hand;");
+                openExternalBtn.setOnAction(ev -> {
+                    try {
+                        if (java.awt.Desktop.isDesktopSupported()) {
+                            java.awt.Desktop.getDesktop().open(audioPath.toFile());
+                        }
+                    } catch (Exception ex) {
+                        logger.error("Failed to open audio externally", ex);
+                    }
+                });
+
+                card.getChildren().addAll(infoSection, new Separator(), openExternalBtn);
                 rootContainer.getChildren().add(card);
             }
 

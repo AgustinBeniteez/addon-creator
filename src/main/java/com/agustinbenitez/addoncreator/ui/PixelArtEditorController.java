@@ -1447,6 +1447,7 @@ public class PixelArtEditorController implements Initializable {
         this.isDirty = false;
     }
 
+    @FXML
     private void exportImage() {
         // If we have a current file (direct edit mode), save to it directly
         if (currentFile != null) {
