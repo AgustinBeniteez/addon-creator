@@ -12,6 +12,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -322,6 +324,17 @@ public class PixelArtEditorController implements Initializable {
                 }
             }
         }
+        
+        // System Clipboard Support
+        try {
+            Clipboard clipboard = Clipboard.getSystemClipboard();
+            ClipboardContent content = new ClipboardContent();
+            content.putImage(clipboardImage);
+            clipboard.setContent(content);
+        } catch (Exception e) {
+            System.err.println("Failed to copy to system clipboard: " + e.getMessage());
+        }
+
         System.out.println("Selection copied to clipboard.");
     }
 
@@ -380,6 +393,32 @@ public class PixelArtEditorController implements Initializable {
     }
     
     private void pasteSelection() {
+        // System Clipboard Support
+        try {
+            Clipboard clipboard = Clipboard.getSystemClipboard();
+            if (clipboard.hasImage()) {
+                Image sysImg = clipboard.getImage();
+                int w = (int) sysImg.getWidth();
+                int h = (int) sysImg.getHeight();
+                
+                // Convert System Image to WritableImage (Internal Format)
+                clipboardImage = new WritableImage(w, h);
+                PixelReader reader = sysImg.getPixelReader();
+                PixelWriter writer = clipboardImage.getPixelWriter();
+                
+                if (reader != null) {
+                    for (int x = 0; x < w; x++) {
+                        for (int y = 0; y < h; y++) {
+                            writer.setArgb(x, y, reader.getArgb(x, y));
+                        }
+                    }
+                    System.out.println("Loaded image from system clipboard: " + w + "x" + h);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to paste from system clipboard: " + e.getMessage());
+        }
+
         System.out.println("Pasting selection... Clipboard: " + (clipboardImage != null));
         if (clipboardImage == null) return;
         
