@@ -183,6 +183,8 @@ public class BlockCreatorController {
     @FXML
     private TextField modelPathField;
     @FXML
+    private Button btnSelectModel;
+    @FXML
     private Button btnTextureCustom;
     @FXML
     private ImageView imgTextureCustom;
@@ -278,6 +280,10 @@ public class BlockCreatorController {
         rbCubeSided.setToggleGroup(modelTypeGroup);
         rbCubeSix.setToggleGroup(modelTypeGroup);
         rbCustom.setToggleGroup(modelTypeGroup);
+
+        if (btnSelectModel != null) {
+            btnSelectModel.setDisable(false);
+        }
 
         modelTypeGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
             updateVisibility();
@@ -681,6 +687,10 @@ public class BlockCreatorController {
                         if (modelFile != null) {
                             fileCustomModel = modelFile;
                             modelPathField.setText(modelFile.getName());
+                        }
+                        
+                        if (btnSelectModel != null) {
+                            btnSelectModel.setDisable(true);
                         }
                     }
                 }

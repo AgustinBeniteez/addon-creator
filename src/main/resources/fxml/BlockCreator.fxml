@@ -116,7 +116,7 @@
                                     <Label text="Geometry File (.json)" styleClass="block-creator-label"/>
                                     <HBox spacing="5">
                                         <TextField fx:id="modelPathField" promptText="geometry.json" HBox.hgrow="ALWAYS" editable="false"/>
-                                        <Button text="..." onAction="#handleSelectModel" styleClass="block-creator-button"/>
+                                        <Button fx:id="btnSelectModel" text="..." onAction="#handleSelectModel" styleClass="block-creator-button"/>
                                     </HBox>
                                     <Label text="Texture" styleClass="block-creator-label"/>
                                     <Button fx:id="btnTextureCustom" text="Select Texture" onAction="#handleSelectTextureCustom" maxWidth="Infinity" styleClass="block-creator-button"/>
