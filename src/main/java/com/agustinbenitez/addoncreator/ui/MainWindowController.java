@@ -309,8 +309,15 @@ public class MainWindowController {
         VBox card = new VBox(10);
         card.setPadding(new Insets(15));
         card.setPrefWidth(200);
-        card.setStyle(
-                "-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
+        card.getStyleClass().add("template-card");
+
+        // Handle selection state
+        if (selectedTemplate == template) {
+            card.getStyleClass().add("selected");
+        }
+        
+        // Allow clicking the whole card to select
+        card.setOnMouseClicked(e -> selectTemplate(template));
 
         // Placeholder Icon
         HBox iconContainer = new HBox();
@@ -340,11 +347,11 @@ public class MainWindowController {
 
         VBox textContainer = new VBox(5);
         Label title = new Label(template.getName());
-        title.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");
+        title.getStyleClass().add("template-card-title");
         title.setWrapText(true);
 
         Label desc = new Label(template.getDescription());
-        desc.setStyle("-fx-text-fill: #888; -fx-font-size: 11px;");
+        desc.getStyleClass().add("template-card-description");
         desc.setWrapText(true);
         desc.setPrefHeight(40); // Fixed height for alignment
 
@@ -356,30 +363,11 @@ public class MainWindowController {
         Button useBtn = new Button("Use Template");
         useBtn.setMaxWidth(Double.MAX_VALUE);
         useBtn.getStyleClass().add("button-primary");
-        useBtn.setStyle("-fx-background-color: #0e639c; -fx-text-fill: white; -fx-font-size: 11px;");
+        useBtn.getStyleClass().add("template-card-button");
 
         useBtn.setOnAction(e -> selectTemplate(template));
 
         card.getChildren().addAll(header, useBtn);
-
-        // Hover effect
-        card.setOnMouseEntered(e -> card.setStyle(
-                "-fx-background-color: #333; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 8, 0, 0, 0);"));
-        card.setOnMouseExited(e -> {
-            if (selectedTemplate != template) {
-                card.setStyle(
-                        "-fx-background-color: #2b2b2b; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 0);");
-            } else {
-                card.setStyle(
-                        "-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
-            }
-        });
-
-        // Selection style
-        if (selectedTemplate == template) {
-            card.setStyle(
-                    "-fx-background-color: #333; -fx-background-radius: 8; -fx-border-color: #007acc; -fx-border-width: 2;");
-        }
 
         return card;
     }
