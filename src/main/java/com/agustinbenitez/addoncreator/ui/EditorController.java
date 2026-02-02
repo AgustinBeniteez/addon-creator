@@ -6531,8 +6531,55 @@ public class EditorController {
         MenuItem deleteItem = new MenuItem("🗑 Eliminar");
         deleteItem.setOnAction(e -> handleDeleteFile(item));
 
-        menu.getItems().addAll(openItem, renameItem, deleteItem);
+        MenuItem duplicateItem = null;
+        if (Files.isRegularFile(path)) {
+            duplicateItem = new MenuItem("📄 Duplicar");
+            duplicateItem.setOnAction(e -> handleDuplicateFile(item));
+        }
+
+        if (duplicateItem != null) {
+            menu.getItems().addAll(openItem, duplicateItem, renameItem, deleteItem);
+        } else {
+            menu.getItems().addAll(openItem, renameItem, deleteItem);
+        }
         menu.show(fileTree, x, y);
+    }
+
+    private void handleDuplicateFile(TreeItem<String> item) {
+        Path filePath = FileTreeManager.getPathFromTreeItem(item, Paths.get(currentProject.getRootPath()));
+
+        if (!Files.isRegularFile(filePath)) {
+            return;
+        }
+
+        try {
+            String fileName = filePath.getFileName().toString();
+            String namePart = fileName;
+            String extPart = "";
+
+            int lastDotIndex = fileName.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                namePart = fileName.substring(0, lastDotIndex);
+                extPart = fileName.substring(lastDotIndex);
+            }
+
+            Path parentDir = filePath.getParent();
+            Path newPath = parentDir.resolve(namePart + "_copy" + extPart);
+            int copyCount = 1;
+
+            while (Files.exists(newPath)) {
+                newPath = parentDir.resolve(namePart + "_copy_" + copyCount + extPart);
+                copyCount++;
+            }
+
+            Files.copy(filePath, newPath);
+            refreshProjectStructure();
+            log("✓ Duplicado: " + newPath.getFileName());
+
+        } catch (IOException e) {
+            logger.error("Failed to duplicate file", e);
+            showError("Error", "No se pudo duplicar el archivo: " + e.getMessage());
+        }
     }
 
     private void handleRenameFile(TreeItem<String> item) {
@@ -7991,20 +8038,28 @@ public class EditorController {
         // Handle wrapped content (like Markdown split view)
         if (node instanceof Pane && node.getUserData() instanceof javafx.scene.Node) {
             node = (javafx.scene.Node) node.getUserData();
-        }
-
-        if (node instanceof WebView) {
-            WebView webView = (WebView) node;
-            Object result = webView.getEngine().executeScript("getContent()");
-            content = (result != null) ? result.toString() : "";
-        } else if (node instanceof TextArea) {
-            content = ((TextArea) node).getText();
-        } else {
-            // Probably image or something else
-            return;
+        } else if (node instanceof StackPane) {
+            // Handle StackPane wrapper (Loading Overlay)
+            for (javafx.scene.Node child : ((StackPane) node).getChildren()) {
+                if (child instanceof WebView) {
+                    node = child;
+                    break;
+                }
+            }
         }
 
         try {
+            if (node instanceof WebView) {
+                WebView webView = (WebView) node;
+                Object result = webView.getEngine().executeScript("getContent()");
+                content = (result != null) ? result.toString() : "";
+            } else if (node instanceof TextArea) {
+                content = ((TextArea) node).getText();
+            } else {
+                // Probably image or something else
+                return;
+            }
+
             Files.writeString(filePath, content);
             log("✓ Guardado: " + filePath.getFileName());
 
@@ -8015,9 +8070,10 @@ public class EditorController {
             }
             updateSaveButtonState();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Failed to save file", e);
             log("✗ Error al guardar: " + e.getMessage());
+            showError("Error de Guardado", "No se pudo guardar el archivo:\n" + e.getMessage());
         }
     }
 
@@ -8030,6 +8086,14 @@ public class EditorController {
             // Handle wrapped content (like Markdown split view)
             if (node instanceof Pane && node.getUserData() instanceof javafx.scene.Node) {
                 node = (javafx.scene.Node) node.getUserData();
+            } else if (node instanceof StackPane) {
+                // Handle StackPane wrapper (Loading Overlay)
+                for (javafx.scene.Node child : ((StackPane) node).getChildren()) {
+                    if (child instanceof WebView) {
+                        node = child;
+                        break;
+                    }
+                }
             }
 
             if (node instanceof WebView) {
@@ -8657,6 +8721,13 @@ public class EditorController {
 
         public void log(String msg) {
             EditorController.this.log(msg);
+        }
+
+        public void save() {
+            log("Bridge: Save requested from JS");
+            javafx.application.Platform.runLater(() -> {
+                handleSave();
+            });
         }
 
         public void onMarkdownChange(String newContent) {

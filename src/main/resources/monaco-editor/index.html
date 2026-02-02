@@ -14,6 +14,7 @@
     require.config({ paths: { 'vs': 'vs' } });
     
     var editor;
+    var ignoreChange = false;
     
     require(['vs/editor/editor.main'], function() {
         // Configure JSON validation to be more permissive for Bedrock addons
@@ -39,8 +40,21 @@
             formatOnType: true
         });
         
+        // Add Command for Ctrl+S
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
+            console.log("Ctrl+S pressed");
+            if (window.javaApp && typeof window.javaApp.save === 'function') {
+                window.javaApp.save();
+            } else {
+                console.error("Java bridge not connected");
+                // Fallback attempt to notify user if bridge is broken
+                alert("Error: Save bridge not connected.");
+            }
+        });
+        
         // Add change listener to notify Java if needed
         editor.onDidChangeModelContent(function(e) {
+            if (ignoreChange) return;
             if (window.javaApp && typeof window.javaApp.onContentChange === 'function') {
                 window.javaApp.onContentChange();
             }
@@ -49,11 +63,10 @@
     
     function initEditor(content, lang) {
         if (editor) {
+            ignoreChange = true;
             editor.setValue(content);
+            ignoreChange = false;
             monaco.editor.setModelLanguage(editor.getModel(), lang);
-            setTimeout(function() {
-                editor.getAction('editor.action.formatDocument').run();
-            }, 100);
         } else {
             // Wait for editor to initialize
             setTimeout(function() { initEditor(content, lang); }, 100);
@@ -62,14 +75,9 @@
 
     function setContent(content) {
         if (editor) {
-            // Disable listener temporarily to avoid triggering change event on load
-            // Actually, we can just ignore the first change or handle it in Java
-            // But let's just set value.
+            ignoreChange = true;
             editor.setValue(content);
-            // Auto-format when setting content initially
-            setTimeout(function() {
-                editor.getAction('editor.action.formatDocument').run();
-            }, 100);
+            ignoreChange = false;
         }
     }
     
