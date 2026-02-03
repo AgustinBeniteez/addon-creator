@@ -11,6 +11,8 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
+import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.StrokeLineJoin;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.scene.paint.Color;
@@ -58,6 +60,7 @@ public class TemplateSelectionDialog extends Stage {
         addOption(grid, "Command", "M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z", "command");
         addOption(grid, "Gamerule", "M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z", "gamerule");
         addOption(grid, "Tool", "M13.7 13.7c-.39.39-1.02.39-1.41 0L6.3 7.7c-.39-.39-.39-1.02 0-1.41l3.54-3.54c.39-.39 1.02-.39 1.41 0l6 6c.39.39.39 1.02 0 1.41l-3.55 3.54zM4.41 19.59c-.39.39-1.02.39-1.41 0L.59 17.17c-.39-.39-.39-1.02 0-1.41L7 9.34 10.66 13l-6.25 6.59zM19 14.5l-2.5 2.5 1 1 2.5-2.5-1-1zm-1.75 3.25l-2.5 2.5 1 1 2.5-2.5-1-1z", "tool");
+        addOption(grid, "Plant", "M32 60 V28 M32 40 C22 38 18 34 16 30 C22 30 28 32 32 36 M32 44 C42 42 46 38 48 34 C42 34 36 36 32 40 M32 12 A8 8 0 1 1 32 28 A8 8 0 1 1 32 12 M32 12 C28 14 26 18 28 22 M32 12 C36 14 38 18 36 22 M26 20 C28 24 36 24 38 20", "plant");
         addOption(grid, "Painting", "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z", "painting");
         
         ScrollPane scroll = new ScrollPane(grid);
@@ -97,9 +100,20 @@ public class TemplateSelectionDialog extends Stage {
         
         SVGPath icon = new SVGPath();
         icon.setContent(iconContent);
-        icon.setFill(Color.WHITE);
-        icon.setScaleX(2.0);
-        icon.setScaleY(2.0);
+        
+        if ("plant".equals(id)) {
+            icon.setFill(null);
+            icon.setStroke(Color.WHITE);
+            icon.setStrokeWidth(2);
+            icon.setStrokeLineCap(StrokeLineCap.ROUND);
+            icon.setStrokeLineJoin(StrokeLineJoin.ROUND);
+            icon.setScaleX(1.0);
+            icon.setScaleY(1.0);
+        } else {
+            icon.setFill(Color.WHITE);
+            icon.setScaleX(2.0);
+            icon.setScaleY(2.0);
+        }
         
         Label lbl = new Label(title);
         lbl.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");

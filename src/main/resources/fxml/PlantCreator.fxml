@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.agustinbenitez.addoncreator.ui.PlantCreatorController"
+            stylesheets="@../css/block-creator.css"
+            styleClass="block-creator-root"
+            prefWidth="900" prefHeight="600">
+
+    <center>
+        <SplitPane dividerPositions="0.6">
+            <!-- Left Side: Settings -->
+            <VBox spacing="10" styleClass="block-creator-settings">
+                <Label text="Plant Creator" styleClass="block-creator-title"/>
+                
+                <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" VBox.vgrow="ALWAYS">
+                    <VBox spacing="15" style="-fx-padding: 10;">
+                        
+                        <!-- Identifier -->
+                        <VBox spacing="5">
+                            <Label text="Identifier (e.g. namespace:plant_name)" styleClass="block-creator-label"/>
+                            <TextField fx:id="identifierField" promptText="mypack:my_plant"/>
+                        </VBox>
+
+                        <Separator/>
+
+                        <!-- Appearance Section -->
+                        <Label text="Appearance" styleClass="block-creator-section-title"/>
+                        
+                        <VBox spacing="10" styleClass="block-creator-texture-box">
+                            <Label text="Plant Texture" styleClass="block-creator-label"/>
+                            
+                            <StackPane>
+                                <VBox fx:id="boxTexture" spacing="5">
+                                    <Button fx:id="btnTexture" text="Select Texture" onAction="#handleSelectTexture" maxWidth="Infinity" styleClass="block-creator-button"/>
+                                    <ImageView fx:id="imgTexture" fitWidth="64" fitHeight="64" preserveRatio="true"/>
+                                </VBox>
+                            </StackPane>
+                        </VBox>
+
+                        <Separator/>
+
+                        <!-- Properties Section -->
+                        <Label text="Properties" styleClass="block-creator-section-title"/>
+                        
+                        <GridPane hgap="10" vgap="10">
+                            <!-- Tool -->
+                            <Label text="Destroy Time:" styleClass="block-creator-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="destroyTimeSpinner" editable="true" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Explosion Resistance:" styleClass="block-creator-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <Spinner fx:id="explosionResistanceSpinner" editable="true" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Map Color:" styleClass="block-creator-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <ColorPicker fx:id="mapColorPicker" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                        <Separator/>
+
+                        <!-- Sounds & Loot -->
+                        <Label text="Sounds &amp; Loot" styleClass="block-creator-section-title"/>
+                        <VBox spacing="10">
+                             <Label text="Sound Category" styleClass="block-creator-label"/>
+                             <ComboBox fx:id="soundCategoryCombo" maxWidth="Infinity"/>
+
+                             <Label text="Loot Table (Drops)" styleClass="block-creator-label"/>
+                             <TableView fx:id="lootTable" prefHeight="200.0">
+                               <columns>
+                                 <TableColumn fx:id="colItem" prefWidth="150.0" text="Item" />
+                                 <TableColumn fx:id="colMin" prefWidth="50.0" text="Min" />
+                                 <TableColumn fx:id="colMax" prefWidth="50.0" text="Max" />
+                                 <TableColumn fx:id="colChance" prefWidth="75.0" text="Chance (%)" />
+                               </columns>
+                             </TableView>
+                             <HBox spacing="10.0">
+                               <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAddDrop" styleClass="block-creator-button" text="Add Drop" HBox.hgrow="ALWAYS" />
+                               <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleRemoveDrop" styleClass="block-creator-button" text="Remove Selected" HBox.hgrow="ALWAYS" />
+                             </HBox>
+                        </VBox>
+
+                    </VBox>
+                </ScrollPane>
+
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button text="Cancel" onAction="#handleCancel" styleClass="block-creator-button"/>
+                    <Button fx:id="createButton" text="Create Plant" onAction="#handleCreate" styleClass="block-creator-primary-button"/>
+                </HBox>
+            </VBox>
+
+            <!-- Right Side: Preview -->
+            <StackPane styleClass="block-creator-preview-area">
+                <Label text="Texture Preview" styleClass="block-creator-preview-label" StackPane.alignment="CENTER"/>
+                <ImageView fx:id="previewImage" fitWidth="200" fitHeight="200" preserveRatio="true"/>
+            </StackPane>
+        </SplitPane>
+    </center>
+</BorderPane>

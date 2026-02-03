@@ -6928,6 +6928,9 @@ public class EditorController {
                 case "painting":
                      openPaintingCreator();
                      break;
+                case "plant":
+                     openPlantCreator();
+                     break;
                 default:
                     log("Selected template: " + id + " (Not implemented yet)");
                     break;
@@ -7076,6 +7079,34 @@ public class EditorController {
             refreshProjectStructure();
         } catch (IOException e) {
             logger.error("Failed to open gamerule creator", e);
+        }
+    }
+
+    private void openPlantCreator() {
+        if (currentProject == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PlantCreator.fxml"));
+            Parent root = loader.load();
+            PlantCreatorController controller = loader.getController();
+            controller.setProject(currentProject);
+            
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Create Plant");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // Add icon
+            try {
+                if (getClass().getResourceAsStream("/images/addoncreator.png") != null) {
+                    stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/addoncreator.png")));
+                }
+            } catch (Exception e) {}
+            
+            stage.showAndWait();
+            
+            refreshProjectStructure();
+        } catch (IOException e) {
+            logger.error("Failed to open plant creator", e);
         }
     }
 
